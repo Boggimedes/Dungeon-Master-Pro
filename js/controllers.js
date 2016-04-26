@@ -4,14 +4,15 @@
 
 angular.module('myApp.controllers', [])
 
-.controller('SoundEditCtrl', ['$scope', 'soundsEditFactory','$state', '$stateParams', '$filter',
-  function($scope, soundsFactory, $state, $stateParams, $filter) {
-
+.controller('SoundEditCtrl', ['$scope', '$interval', 'soundsEditFactory', 'soundsFactory','$state', '$stateParams', '$filter',
+  function($scope, $interval, soundsEditFactory, soundsFactory, $state, $stateParams, $filter) {
+  var stopTime = $interval(function(){}, 200);
+   $scope.soundPlaying=[];
     $scope.soundEditInit = function(){
-      soundsFactory.getEffects().then(function(response) {$scope.allEffects = response.data;}, function(err) {console.log(err);});
+      soundsEditFactory.getEffects().then(function(response) {$scope.allEffects = response.data;}, function(err) {console.log(err);});
       var objectData = {"fields":"all"};
-      soundsFactory.getScenes(objectData).then(function(response) {$scope.allScenes = response.data;}, function(err) {console.log(err);});
-      soundsFactory.getCollections().then(function(response) {
+      soundsEditFactory.getScenes(objectData).then(function(response) {$scope.allScenes = response.data;}, function(err) {console.log(err);});
+      soundsEditFactory.getCollections().then(function(response) {
         if(typeof response.data === 'object' ) response.data = [response.data];
         $scope.allCollections = response.data;
       }, function(err) {console.log(err);});
@@ -42,7 +43,7 @@ angular.module('myApp.controllers', [])
       if ($scope.effect.id !== 'new') {
         $scope.heading = "Update Effect";
         var objectData = {"where":[{"id":$scope.effect.id}]};
-        soundsFactory.getEffects(objectData).then(function(response) {
+        soundsEditFactory.getEffects(objectData).then(function(response) {
             $scope.effect = response.data;
             if($scope.effect.sounds == null){$scope.effect.sounds = [];}
             $scope.effect.loop = $scope.effect.loop? true:false;
@@ -50,7 +51,7 @@ angular.module('myApp.controllers', [])
             $scope.effect.optional = $scope.effect.optional? true:false;
             $scope.effect.seq = $scope.effect.seq? true:false;                
             }, function(err) {console.log(err);});
-        soundsFactory.getSounds().then(function(response) {
+        soundsEditFactory.getSounds().then(function(response) {
             $scope.sounds = response.data;
             $scope.activeSet = response.data;
             console.log($scope.sounds);
@@ -129,8 +130,8 @@ angular.module('myApp.controllers', [])
                 "chance":{showSelectionBar:true,floor:1,ceil:100,step:1,
                     disabled: $scope.effect.seq},
               "percent":{showSelectionBar:true,floor:1,ceil:100,step:1},
-              "pitchVar":{showSelectionBar:true,floor:0,ceil:600,step:10},
-              "pitchSet":{showSelectionBar:true,floor:0,ceil:1200,step:10}
+              "pitchVar":{showSelectionBar:true,floor:0,ceil:200,step:1},
+              "pitchSet":{showSelectionBar:true,floor:-600,ceil:600,step:1}
             }
         };
       };
@@ -143,9 +144,9 @@ angular.module('myApp.controllers', [])
       if ($scope.sceneContent.id !== 'new') {
         $scope.heading = "Update Scene";
         var objectData = {"fields":"all","where":[{"id":$scope.sceneContent.id}]};
-        soundsFactory.getScenes(objectData).then(function(response) {
+        soundsEditFactory.getScenes(objectData).then(function(response) {
           $scope.sceneContent = response.data;
-          soundsFactory.getEffects().then(function(response) {
+          soundsEditFactory.getEffects().then(function(response) {
             $scope.allEffects = response.data;
             $scope.effectIDs=[];
             $scope.sceneContent.effects.forEach(function(effect){
@@ -159,7 +160,7 @@ angular.module('myApp.controllers', [])
           }, function(err) {console.log(err);});
         }
         else{
-          soundsFactory.getEffects().then(function(response) {
+          soundsEditFactory.getEffects().then(function(response) {
             $scope.allEffects = response.data;
             $scope.effectIDs=[];
             $scope.sceneContent.effects.forEach(function(effect){
@@ -177,12 +178,12 @@ angular.module('myApp.controllers', [])
       if ($scope.collectionContent.name !== 'new') {
         $scope.heading = "Update Collection";
         var objectData = {"where":[{"id":$scope.collectionContent.id}]};
-        soundsFactory.getCollections(objectData).then(function(response) {
+        soundsEditFactory.getCollections(objectData).then(function(response) {
           $scope.collectionContent = response.data;
           }, function(err) {console.log(err);});
         }
 
-      soundsFactory.getScenes().then(function(response) {
+      soundsEditFactory.getScenes().then(function(response) {
         $scope.allScenes = response.data;
         $scope.scenesArray=[];
         $scope.sceneIDs=[];
@@ -200,21 +201,21 @@ angular.module('myApp.controllers', [])
       $scope.effect.preDelay = $scope.effect.preDelay? 1:0;
       $scope.effect.optional = $scope.effect.optional? 1:0;
       $scope.effect.seq = $scope.effect.seq? 1:0;
-      soundsFactory.updateEffect($scope.effect).then(function() {
+      soundsEditFactory.updateEffect($scope.effect).then(function() {
           $state.go('edit');
           flashMessageService.setMessage("Effect Saved Successfully");
           }, function(err) {console.log(err);});
       };
 
     $scope.saveCollection = function() {
-      soundsFactory.updateCollection($scope.collectionContent).then(function(response) {
+      soundsEditFactory.updateCollection($scope.collectionContent).then(function(response) {
           $state.go('edit');
           flashMessageService.setMessage("Collection Saved Successfully");
         }, function(err) {console.log(err);});
       };
 
     $scope.saveScene = function() {
-      soundsFactory.updateScene($scope.sceneContent).then(function(response) {
+      soundsEditFactory.updateScene($scope.sceneContent).then(function(response) {
           flashMessageService.setMessage("Scene Saved Successfully");
           $state.go('edit');
         }, function() {console.log(err);});
@@ -223,76 +224,66 @@ angular.module('myApp.controllers', [])
     $scope.deleteCollection = function(id,index) {
       $scope.allCollections.splice(index,1);
       id = {"field":"id", "value":id};
-      soundsFactory.deleteCollection(id);
+      soundsEditFactory.deleteCollection(id);
       };
 
     $scope.deleteEffect = function(id,index) {
       $scope.allEffects.splice(index,1);
       id = {"field":"id", "value":id};
-      soundsFactory.deleteEffect(id);
+      soundsEditFactory.deleteEffect(id);
       };
 
     $scope.deleteScene = function(id,index) {
       $scope.allScenes.splice(index,1);
       id = {"field":"id", "value":id};
-      soundsFactory.deleteScene(id);
+      soundsEditFactory.deleteScene(id);
       };
 
 
 
-    $scope.playSound = function(sound){
-      $scope.sound = sound;
-      $scope.sound.context = new AudioContext();
-      var source = $scope.sound.context.createBufferSource(); 
-      var url = "/sounds/"+$scope.sound.file;
-      var cents = $scope.sound.pitchSet;
-      cents = cents + getRandomInt(-$scope.sound.pitchVar,$scope.sound.pitchVar * 2);
-      var rate = Math.pow(2.0, cents / 1200.0);
-      source.playbackRate.value = rate;
-      var request = new XMLHttpRequest();
-      request.open("GET", url, true);
-      request.responseType = "arraybuffer";
+    $scope.playSound = function(sound,effect){
 
-      request.onload = function() {
-      $scope.sound.context.decodeAudioData(request.response, function(buffer){ 
-      mixToMono(buffer);
-      source.buffer = buffer;     
+    $scope.soundPlaying[sound.name] = !$scope.soundPlaying[sound.name];
 
-      $scope.sound.merger = $scope.sound.context.createChannelMerger(8);
-      $scope.sound.gainNode =$scope.sound.merger.context.createGain();
-      $scope.sound.gainNode.gainSet = ($scope.sound.vol/100);
-      $scope.sound.merger.connect($scope.sound.gainNode);
-      $scope.sound.gainNode.connect($scope.sound.context.destination);
-      var startSceneFade = $scope.sound.fadeIn;
-      $scope.sound.gainNode.gain.linearRampToValueAtTime(0, $scope.sound.context.currentTime);
-      $scope.sound.gainNode.gain.linearRampToValueAtTime($scope.sound.gainNode.gainSet, ($scope.sound.context.currentTime + (startSceneFade)));
+var soundObject = {  
+         "name":sound.name,
+         "desc":sound.name,
+         "vol":100,
+         "fadeIn":sound.fadeIn,
+         "fadeOut":sound.fadeOut,
+         "effects":[  
+            {  
+               "name":sound.name,
+               "desc":sound.name,
+               "sounds":[sound],
+               "vol":effect.vol,
+               "preDelay":0,
+               "loop":effect.loop,
+               "delayL":0,
+               "delayH":0,
+               "optional":0,
+               "seq":0
+            }
+         ]
+      };
 
+      soundsFactory.toggleScene(soundObject);
 
-      var silence = $scope.sound.context.createBufferSource();
-      var channelMax = ($scope.sound.context.destination.maxChannelCount-2);
-      var channelplayed;
-      if($scope.sound.context.destination.maxChannelCount< 3){(channelMax = 1)}
-      if($scope.sound.randLoc){
-        for(var i=0;i<7;i++){silence.connect($scope.sound.merger, 0, i);}
-        channelplayed =  getRandomInt(0,channelMax);
-        source.connect($scope.sound.merger, 0,channelplayed);
-        $scope.sound.gainNode.gainSet = getRandomInt($scope.sound.gainNode.gainSet*0.2,$scope.sound.gainNode.gainSet);
-        console.log("Channel Played:"+channelplayed);
-        }
-        else{
-          for(var i=0;i<8;i++){source.connect($scope.sound.merger, 0, i);}
-          channelplayed = "all";
-          }
+        };
 
-      source.start(0);
-      // At the end of the track, fade it out.
-      $scope.sound.gainNode.gain.linearRampToValueAtTime($scope.sound.gainNode.gainSet, ($scope.sound.context.currentTime + buffer.duration-$scope.sound.fadeOut));
-      $scope.sound.gainNode.gain.linearRampToValueAtTime(0, ($scope.sound.context.currentTime + buffer.duration));
-            },
-            function(e){"Error with decoding audio data" + e});
-          };
-          request.send();
-          return;
+    $scope.playEffect = function(effect){
+      $scope.effectPlaying = !$scope.effectPlaying;
+var effectObject = {  
+         "name":effect.name,
+         "desc":effect.name,
+         "vol":100,
+         "fadeIn":0,
+         "fadeOut":0,
+         "effects":[effect]
+      };
+
+      soundsFactory.toggleScene(effectObject);
+
         };
 
 
@@ -678,147 +669,8 @@ angular.module('myApp.controllers', [])
       });
     $scope.toggleScene = function(scene){
       soundsFactory.toggleScene(scene);
-    }
-    $scope.toggleScenex = function(sN){
-      if(typeof $scope.aS[sN.name] === 'undefined'){
-        if($scope.aS.length<5){
-     //      var objectData = {"fields":"all","where":[{"id":sN.id}]};
-          // soundsFactory.getScenes(objectData).then(function(response){
-          // var sN = response.data.name;
-          // $scope.aS[sN] = response.data;
-          $scope.aS[sN.name] = angular.copy(sN);
-
-          $scope.aS[sN].context = new AudioContext();
-          console.log($scope.aS[sN]);
-          $scope.aS[sN].gainNode = [];
-          //$scope.aS[sN].context.destination.maxChannelCount = 8;
-          $scope.aS[sN].context.destination.channelCountMode = "explicit";
-          $scope.aS[sN].context.destination.channelInterpretation = "discrete";
-          $scope.aS[sN].context.destination.channelCount = $scope.aS[sN].context.destination.maxChannelCount;
-        console.log($scope.aS[sN]);
-          for(var j=0;j<$scope.aS[sN].effects.length;j++){
-            if($scope.aS[sN].effects[j].preDelay){
-              $scope.aS[sN].effects[j].nextPlay = getRandomInt($scope.aS[sN].effects[j].delayL,$scope.aS[sN].effects[j].delayH)+$scope.aS[sN].context.currentTime;
-            }
-          }
-
-          unregister[sN] = $scope.$watch(function(){return $scope.aS[sN].context.currentTime;}, function() {
-
-            $scope.aS[sN].effects.forEach(function(Effect){
-              if(typeof Effect.nextPlay == "undefined"){Effect.nextPlay = 0;}
-              if(typeof $scope.aS[sN] === "undefined"){return;}
-              if($scope.aS[sN].closeTime<=$scope.aS[sN].context.currentTime){
-                $scope.aS[sN].context.close();
-                delete $scope.aS[sN].closeTime;
-                delete $scope.aS[sN].effects;
-                delete $scope.aS[sN];
-                unregister[sN]();
-              }
-              else if(Effect.nextPlay<=$scope.aS[sN].context.currentTime){
-                $scope.chkScene(sN);
-              }
-            });
-          });
-          // },
-     //  function(err) {
-     //    console.log(err);
-     //  });
-        }
-        else{alert("You can only play 5 scenes at once.");}
-      }
-      else{
-        sN = sN.name;
-        console.log($scope.aS[sN]);
-        $scope.aS[sN].gainNode.forEach(function(gNode){
-        gNode.gain.linearRampToValueAtTime(gNode.gainSet, $scope.aS[sN].context.currentTime);
-        gNode.gain.linearRampToValueAtTime(0, $scope.aS[sN].context.currentTime + ($scope.aS[sN].fadeOut));
-        });
-        $scope.aS[sN].closeTime = $scope.aS[sN].context.currentTime + ($scope.aS[sN].fadeOut);
-      }
-
-
-    };
-    $scope.chkScene = function(sN){
-      for(var j=0;j<$scope.aS[sN].effects.length;j++){
-        if($scope.aS[sN].effects[j].nextPlay<$scope.aS[sN].context.currentTime+0.5 && !$scope.aS[sN].effects[j]){
-          $scope.aS[sN].effects[j].nextPlay = $scope.aS[sN].context.currentTime + 20000;
-          var source = $scope.aS[sN].context.createBufferSource(); 
-          var perChance=0;
-          for(var k=0;k<$scope.aS[sN].effects[j].sounds.length;k++){perChance += $scope.aS[sN].effects[j].sounds[k].chance;}
-          var perRoll = getRandomInt(1,perChance);
-          perChance=0;
-          for(var k=0;k<$scope.aS[sN].effects[j].sounds.length;k++){
-              perChance += $scope.aS[sN].effects[j].sounds[k].chance;
-              if(perChance>perRoll){
-               var url = "/sounds/"+$scope.aS[sN].effects[j].sounds[k].file;
-               break;
-              }
-          }
-          var cents = $scope.aS[sN].effects[j].sounds[k].pitchSet;
-          cents = cents + getRandomInt(-$scope.aS[sN].effects[j].sounds[k].pitchVar,$scope.aS[sN].effects[j].sounds[k].pitchVar * 2);
-          var rate = Math.pow(2.0, cents / 1200.0);
-          source.playbackRate.value = rate;
-          var request = new XMLHttpRequest();
-          request.open("GET", url+"?"+sN+","+j+","+k, true);
-          request.responseType = "arraybuffer";
-
-          request.onload = function() {
-            $scope.aS[sN].context.decodeAudioData(request.response, function(buffer){ 
-              mixToMono(buffer);
-              source.buffer = buffer;     
-              $scope.processAudio(buffer.duration, sN, j, k,source);
-            },
-            function(e){"Error with decoding audio data" + e});
-          };
-          request.send();
-          return;
-        }
-      }
     };
 
-
-      $scope.processAudio = function(duration, sN, eIndex, sIndex, source){
-      $scope.aS[sN].effects[eIndex].nextPlay = getRandomInt($scope.aS[sN].effects[eIndex].delayL, $scope.aS[sN].effects[eIndex].delayH) + duration + $scope.aS[sN].context.currentTime - ($scope.aS[sN].effects[eIndex].sounds[sIndex].fadeIn);
-
-      //$scope.aS[sN].source = source;
-      $scope.aS[sN].merger = $scope.aS[sN].context.createChannelMerger(8);
-      $scope.aS[sN].gainNode.push($scope.aS[sN].merger.context.createGain());
-      var gainIndex = $scope.aS[sN].gainNode.length-1;
-      $scope.aS[sN].gainNode[gainIndex].gainSet = ($scope.aS[sN].effects[eIndex].sounds[sIndex].vol/100) * ($scope.aS[sN].effects[eIndex].vol/100) * ($scope.aS[sN].vol/100);
-      $scope.aS[sN].merger.connect($scope.aS[sN].gainNode[gainIndex]);
-      $scope.aS[sN].gainNode[gainIndex].connect($scope.aS[sN].context.destination);
-      var startSceneFade = $scope.aS[sN].effects[eIndex].sounds[sIndex].fadeIn;
-      if($scope.aS[sN].context.currentTime < 2){startSceneFade = $scope.aS[sN].fadeIn;}
-      $scope.aS[sN].gainNode[gainIndex].gain.linearRampToValueAtTime(0, $scope.aS[sN].context.currentTime);
-      $scope.aS[sN].gainNode[gainIndex].gain.linearRampToValueAtTime($scope.aS[sN].gainNode[gainIndex].gainSet, ($scope.aS[sN].context.currentTime + (startSceneFade)));
-
-      if($scope.aS[sN].effects[eIndex].Loop){
-        for(var i=0;i<8;i++){source.connect($scope.aS[sN].merger, 0, i);}
-      }
-      else{
-        var silence = $scope.aS[sN].context.createBufferSource();
-        var channelMax = ($scope.aS[sN].context.destination.maxChannelCount-2);
-        var channelplayed;
-        if($scope.aS[sN].context.destination.maxChannelCount< 3){(channelMax = 1)}
-        if($scope.aS[sN].effects[eIndex].sounds[sIndex].randLoc){
-          for(var i=0;i<7;i++){silence.connect($scope.aS[sN].merger, 0, i);}
-          channelplayed =  getRandomInt(0,channelMax);
-          source.connect($scope.aS[sN].merger, 0,channelplayed);
-          $scope.aS[sN].gainNode[gainIndex].gainSet = getRandomInt($scope.aS[sN].gainNode[gainIndex].gainSet*0.2,$scope.aS[sN].gainNode[gainIndex].gainSet);
-          console.log("Channel Played:"+channelplayed);
-        }
-        else{
-          for(var i=0;i<8;i++){source.connect($scope.aS[sN].merger, 0, i);}
-          channelplayed = "all";
-        }
-      }
-
-      console.log("Playing sound "+$scope.aS[sN].effects[eIndex].sounds[sIndex].name+" from "+ $scope.aS[sN].effects[eIndex].name+" in scene "+sN);
-        source.start(0);
-       // At the end of the track, fade it out.
-      $scope.aS[sN].gainNode[gainIndex].gain.linearRampToValueAtTime($scope.aS[sN].gainNode[gainIndex].gainSet, ($scope.aS[sN].context.currentTime + duration-$scope.aS[sN].effects[eIndex].sounds[sIndex].fadeOut));
-      $scope.aS[sN].gainNode[gainIndex].gain.linearRampToValueAtTime(0, ($scope.aS[sN].context.currentTime + duration));
-    };
   }])
 
 

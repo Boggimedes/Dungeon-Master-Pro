@@ -9,7 +9,6 @@ angular.module('myApp.services', [])
         console.log(pageData);
         return $http.post('/api/main/setshowfile',pageData);
       }
-
     };
   }
 ])
@@ -243,6 +242,7 @@ angular.module('myApp.services', [])
 
       },
       toggleScene: function(data){
+        console.log(JSON.stringify(data));
         if(typeof scenes[data.name] === 'undefined'){
           if(scenes.length>=5){alert("You can only play 5 scenes at once.");return;}
             scenes[data.name] = angular.copy(data);
@@ -294,6 +294,7 @@ angular.module('myApp.services', [])
         }
         },
       chkScene: function(name){
+        console.log(name);
         aScene = scenes[name];
         for(var j=0;j<aScene.effects.length;j++){
           if(aScene.effects[j].nextPlay<aScene.context.currentTime+0.5 && (aScene.effects[j].active || aScene.effects[j].active == null)){
@@ -310,8 +311,12 @@ angular.module('myApp.services', [])
                  break;
                 }
             }
+            console.log(j);
+            console.log(k);
+            console.log(aScene);
             var cents = aScene.effects[j].sounds[k].pitchSet;
             cents = cents + getRandomInt(-aScene.effects[j].sounds[k].pitchVar,aScene.effects[j].sounds[k].pitchVar * 2);
+            cents = cents*3;
             var rate = Math.pow(2.0, cents / 1200.0);
             source.playbackRate.value = rate;
             var request = new XMLHttpRequest();

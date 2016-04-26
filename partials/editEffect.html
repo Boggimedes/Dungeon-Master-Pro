@@ -4,18 +4,25 @@
 <div class="scrollable" ng-init="effectInit()">
   <div class="scrollable-content section">
 <form role="form" id="add-page" ng-submit="saveEffect()">
+<div class="row">
 <div class="form-group col-md-4">
 <label>Title</label>
 
 <input class="form-control" type="text" ng-model="effect.name"/>
 </div>
-<div class="form-group col-md-7">
+<div class="form-group col-md-6">
 <label>Description</label>
 <input class="form-control"type="text" ng-model="effect.desc"/>
 </div>
 <div class="form-group col-md-1 text-center">
 <label>Optional</label>
 <div class="switch"><input class="form-control"  type="checkbox" ng-model="effect.optional"/><label> </label></div></div>
+<div class="form-group col-md-1 text-center" style="padding-top: 38px;">
+<button type="button" class="btn" ng-click="playEffect(effect)">
+      <i class="fa {{effectPlaying? 'fa-stop' : 'fa-play'}}"></i>
+    </button>
+</div>
+</div>
 <style>
 .inline {
       text-align: center;
@@ -41,7 +48,9 @@
     <div class="form-group col-md-1 inline"><input class="form-control" style="width:40%" type="text" ng-model="sound.fadeIn"/>/<input class="form-control" style="width:40%" type="text" ng-model="sound.fadeOut"/></div>
     <div class="form-group col-md-1 inline"><input class="form-control"style="display:none" type="checkbox" ng-model="sound.reverb"/>
     <div class="switch"><input type="checkbox" ng-model="sound.randLoc"/><label> </label></div>
-    <button type="button" ng-click="playSound(sound)">play</button>
+    <button type="button" style="position: absolute;top: 18px;right: 0px;" class="btn btn-xs" ng-click="playSound(sound,effect)">
+      <i class="fa {{soundPlaying[sound.name]? 'fa-stop' : 'fa-play'}}"></i>
+    </button>
     </div>
   </div>
   <button type="button" ng-click="addSound()" style="display: block;" class="btn btn-xs btn-default"><span class="fa fa-plus"></span></button>
