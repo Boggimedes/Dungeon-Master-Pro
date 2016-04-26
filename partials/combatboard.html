@@ -1,0 +1,16 @@
+<div ui-content-for="title">
+  <span>Combat Board</span>
+</div>
+<div ui-content-for="navbarAction">
+  <div ui-toggle="uiSidebarRight" style="font-size: 2.5vh; padding-top: 0.5vh;" class="btn">
+    <i class="fa fa-optin-monster"></i> Monsters
+  </div>
+</div>
+<div  ui-view="monsters"></div>
+<div class="scrollable">
+<div class="section scrollable-content" >
+<div class="col-md-12" style="height:60%;overflow:auto;">
+<section ui-view="combat"></section>
+</div>
+</div>
+</div>

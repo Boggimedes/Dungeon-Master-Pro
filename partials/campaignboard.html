@@ -1,0 +1,14 @@
+<div ui-content-for="navbarAction">
+  <div ui-toggle="uiSidebarRight" style="font-size: 2.5vh; padding-top: 0.5vh;" class="btn">
+    <i class="fa fa-optin-monster"></i> Monsters
+  </div>
+</div>
+<div  ui-view="monsters"></div>
+<div class="scrollable">
+  <div class="scrollable-content">
+    <div class="section scrollable-content" id="appBoard" ng-controller="combatCtrl" >
+      <div ui-view="sounds" id="playController" class="col-md-2 col-sm-2" ng-class="{slid : screenSlide}" ></div>
+      <section ui-view="combat" style="height:98%"></section>
+    </div>
+  </div>
+</div>
