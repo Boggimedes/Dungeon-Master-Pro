@@ -1,11 +1,11 @@
 <?php
 class DbHandler {
     private $conn;
-    function __construct() {
-        require_once dirname(__FILE__) . '/DbConnect.php';
+    function __construct($conn) {
+        //require_once dirname(__FILE__) . '/DbConnect.php';
         // opening db connection
-        $db = new DbConnect();
-        $this->conn = $db->connect();
+       // $db = new DbConnect();
+        $this->conn = $conn;
     }
     /* ------------- `users` table method ------------------ */
     /**
@@ -92,7 +92,7 @@ class DbHandler {
      * @param String $email User email id
      */
     public function getUserByEmail($email) {
-        $stmt = $this->conn->prepare("SELECT name, email, api_key, status, created_at FROM users WHERE email = ?");
+        $stmt = $this->conn->prepare("SELECT name, email, api_key, status, joinDate FROM users WHERE email = ?");
         $stmt->bind_param("s", $email);
         if ($stmt->execute()) {
             $user = $stmt->get_result()->fetch_assoc();
@@ -186,7 +186,7 @@ class DbHandler {
      * @param String $task_id id of the task
      */
     public function getTask($task_id, $user_id) {
-        $stmt = $this->conn->prepare("SELECT t.id, t.task, t.status, t.created_at from tasks t, user_tasks ut WHERE t.id = ? AND ut.task_id = t.id AND ut.user_id = ?");
+        $stmt = $this->conn->prepare("SELECT t.id, t.task, t.status, t.joinDate from tasks t, user_tasks ut WHERE t.id = ? AND ut.task_id = t.id AND ut.user_id = ?");
         $stmt->bind_param("ii", $task_id, $user_id);
         if ($stmt->execute()) {
             $task = $stmt->get_result()->fetch_assoc();
