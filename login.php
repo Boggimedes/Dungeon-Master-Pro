@@ -14,6 +14,7 @@
 </head>
 
  <body >
+<?php echo $message; ?>
  <form method="POST" action="/login">
 <div class="form-group">
 <label>Email Address</label>

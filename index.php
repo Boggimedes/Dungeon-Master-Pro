@@ -55,6 +55,10 @@ $container['db'] = function ($c) {
     return $mysqli;
 };
 
+$container['view'] = function ($container) {
+    return new \Slim\Views\PhpRenderer('');
+};
+
 // (Optional) Check if debug is true, show Slim debug report
 if(SLIM_DEBUG){$app->config('debug',true);}
 
@@ -121,26 +125,55 @@ $app->post('/register', function() use ($app) {
 // * method - POST
 // * params - email, password
 // */
-$app->post('/login', function() use ($app) {
-  verifyRequiredParams(array('email', 'password'));
-  // reading post params
-  $email = $_POST['email'];
-  $password = $_POST['password'];
-  $response = array();
-  $db = new DbHandler($this->db);
-  // check for correct email and password
-  if ($db->checkLogin($email, $password)) {
-      // get the user by email
-// session_start();
-$_SESSION["logged-in"] = true;
-$_SESSION["roll"] = "admin";
-  } else {
-      // user credentials are wrong
-      $response['error'] = true;
-      $response['message'] = 'Login failed. Incorrect credentials';
-  }
-  // echoResponse(200, $response);
+
+
+$app->map(['GET', 'POST'],'/login', function (Request $request, Response $response, $args) use($app) {
+    if($request->getMethod()=="GET"){
+        return $this->view->render($response, 'login.php', ['message' => ""]);   
+        }
+        else{
+            $email = $_POST['email'];
+            $password = $_POST['password'];
+            $db = new DbHandler($this->db);
+            // check for correct email and password
+            if ($db->checkLogin($email, $password)) {
+            // get the user by email
+            $_SESSION["logged-in"] = true;
+            $_SESSION["roll"] = "admin";
+            return $response->withStatus(200)->withHeader('Location', '/');
+            } else {
+            // user credentials are wrong
+            $resp['error'] = true;
+            $resp['message'] = 'Login failed. Incorrect credentials';
+            return $this->view->render($response, 'login.php', ['message' => $resp['message']]);   
+            }
+
+            }
+
 });
+
+// $app->post('/login', function(Request $request, Response $response) {
+//     $resp = verifyRequiredParams(array('email', 'password'));
+//   // reading post params
+//     $test = "test";
+  // $email = $_POST['email'];
+  // $password = $_POST['password'];
+  // $db = new DbHandler($this->db);
+  // // check for correct email and password
+  // if ($db->checkLogin($email, $password)) {
+  //     // get the user by email
+
+  //   $_SESSION["logged-in"] = true;
+  //   $_SESSION["roll"] = "admin";
+  //     } else {
+  //         // user credentials are wrong
+  //  $resp = array();
+  //        $resp['error'] = true;
+  //         $resp['message'] = 'Login failed. Incorrect credentials';
+  //     }
+  //     $response = $resp;
+//    return "test";
+// });
 
 
 // /**
@@ -553,17 +586,10 @@ $app->get('/api/citizens/getWorld', function (Request $request, Response $respon
 
 
 
-$app->get('/world', function (Request $request, Response $response) {
-    $response = file_get_contents('index.html');
-    return $response;
-});
-
-$app->get('/user-login', function (Request $request, Response $response) {
-        print_r($_SESSION);
-
-$response = file_get_contents('user-login.html');
-    return $response;
-});
+// $app->get('/world', function (Request $request, Response $response) {
+//     $response = file_get_contents('index.html');
+//     return $response;
+// });
 
 // $app->get('/npcs/{id}', function (Request $request, Response $response) {
 //     $response = file_get_contents('index.html');
@@ -583,8 +609,7 @@ $response = file_get_contents('user-login.html');
 
 $app->get('/logout', function (Request $request, Response $response) {
     session_destroy(); 
-    $response = file_get_contents('user-login.html');
-    return $response;
+    return $response->withStatus(200)->withHeader('Location', '/login');
 });
 
 $app->get('/{a}[/{b}[/{c}]]', function (Request $request, Response $response) {
@@ -592,7 +617,7 @@ $app->get('/{a}[/{b}[/{c}]]', function (Request $request, Response $response) {
         $response = file_get_contents('index.html');
         return $response;
         }
-        else  return $response->withStatus(302)->withHeader('Location', 'user-login');
+        else  return $response->withStatus(302)->withHeader('Location', 'login');
 });
 
 

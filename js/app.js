@@ -95,6 +95,10 @@ $urlRouterProvider.otherwise("/");
             controller: 'SpellsCtrl', reloadOnSearch: false
         });
 
+        $stateProvider.state('logout', {
+            url:'/logout',
+            templateUrl: 'logout'
+        });
 
 
         $stateProvider.state('soundboard', {
