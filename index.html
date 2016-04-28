@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en" ng-app="myApp">
+<html lang="en"     ng-app="myApp" 
+    ng-controller="SiteCtrl">
 
 <head>
     <meta charset="utf-8">
@@ -10,17 +11,17 @@
     <link rel="stylesheet" href="bower_components/mobile-angular-ui/dist/css/mobile-angular-ui-desktop.min.css" />
      <link rel="stylesheet" href="bower_components/mobile-angular-ui/dist/css/mobile-angular-ui-hover.min.css" />
     <link rel="stylesheet" href="bower_components/angular-bootstrap/ui-bootstrap-csp.css" />
+    <link rel="stylesheet" href="bower_components/ng-file-upload/ng-img-crop.css" />
     <link rel="stylesheet" type="text/css" href="bower_components/angularjs-slider/dist/rzslider.min.css"/>
   <link rel="stylesheet" href="bower_components/handsontable/dist/handsontable.full.css">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.1/css/font-awesome.min.css">
     <link rel="stylesheet" href="css/app.css" />
+    <link ng-if="css=='custom'" rel="stylesheet" ng-href="user/{{user.id}}/user.css" />
+    <link ng-if="css=='dark'" rel="stylesheet" ng-href="css/dark.css" />
           <script src="bower_components/handsontable/dist/handsontable.full.js"></script>
 </head>
 
- <body 
-    ng-app="myApp" 
-    ng-controller="SiteCtrl"
-    ui-prevent-touchmove-defaults
-    >
+ <body ui-prevent-touchmove-defaults >
 
     <!-- Sidebars -->
     <div ng-include="'sidebar.html'" 
@@ -84,6 +85,8 @@
     <script src="bower_components/angular-local-storage/dist/angular-local-storage.js"></script>
     <script src="bower_components/angular-bootstrap-contextmenu/contextMenu.js"></script>
     <script src="bower_components/angularjs-slider/dist/rzslider.min.js"></script>
+    <script src="bower_components/ng-file-upload/ng-file-upload.min.js"></script>
+    <script src="bower_components/ng-file-upload/ng-img-crop.js"></script>
     <script src="js/ui-scroll.js"></script>
     <script src="js/ui-scroll-jqlite.js"></script>
    <script src="js/ngHandsontable.js"></script>

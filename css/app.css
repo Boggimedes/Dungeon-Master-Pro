@@ -510,3 +510,58 @@ content: 'off';
 .form-control {
     padding: 6px 6px;
     }
+
+.top-right{
+      position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.info-box{
+  text-align:left;
+  position:absolute;
+  padding:5px;
+  background-color:white;
+  z-index:1000;
+  border:2px solid grey;
+  border-radius:20px;
+}
+
+#combatLog{
+  width: 49%;
+    height: 40%;
+    overflow: auto;
+    line-height: 1.6em;
+    border: 2px solid grey;
+}
+
+ .panelFill{
+   height: 70vh;
+   overflow: auto;
+  }  
+
+.selected:hover>td {
+  background-color: #098201 !important;
+}
+.table-hover>tbody>tr:hover>td {
+  background-color: #001FFF;
+  color:#eeeeee;
+  cursor:pointer;
+}
+.table-hover-selected>tbody>tr:hover>td {
+  background-color: #098201;
+  color:#eeeeee;
+}
+.padded{
+  padding:1%;
+}
+.center{
+  text-align:center;
+}
+.center > div,.center > input,.center > span{
+  margin:auto;
+}
+textarea.form-control {
+    resize: none;
+    height: 110px;
+}

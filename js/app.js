@@ -17,7 +17,9 @@ angular.module('myApp', [
   'ui.scroll.jqlite',
   'LocalStorageModule',
   'ui.bootstrap.contextMenu',
-  'rzModule'
+  'rzModule',
+  'ngFileUpload', 
+  'ngImgCrop'
 ])
 
 .run(function($transform) {
@@ -87,6 +89,12 @@ $urlRouterProvider.otherwise("/");
             url:'/edit/spells',
             templateUrl: 'partials/spells.html',
             controller: 'SpellsCtrl', reloadOnSearch: false
+        });
+
+        $stateProvider.state('settings', {
+            url:'/user/settings',
+            templateUrl: 'partials/userSettings.html',
+            controller: 'SettingsCtrl', reloadOnSearch: false
         });
 
         $stateProvider.state('editSpells', {

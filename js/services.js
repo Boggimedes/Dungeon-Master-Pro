@@ -447,4 +447,20 @@ angular.module('myApp.services', [])
 ])
 
 
+.factory('settingsFactory', ['$http', 
+  function($http) {
+
+    return {
+      getSettings: function() {
+        return $http.get('/api/settings/get');
+      },
+
+      saveSettings: function(pageData) {
+        return $http.post('/api/settings/set', pageData);
+      },
+
+    }
+  }
+])
+
 

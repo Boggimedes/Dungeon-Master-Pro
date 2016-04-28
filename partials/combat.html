@@ -22,14 +22,14 @@ img{
 }
 
 </style>
-      <div ng-if="windowWidth<768" style="position: absolute;left: 24%;top: 10px;"><button  class="btn btn-xs" ng-click="startCombat(combatants)">Start Combat</button>
-      <button class="btn btn-xs" ng-click="clearCombat()">Clear</button>
+      <div ng-if="windowWidth<768" style="position: absolute;left: 24%;top: 10px;"><button  class="btn btn-xs btn-primary" ng-click="startCombat(combatants)">Start Combat</button>
+      <button class="btn btn-xs btn-primary" ng-click="clearCombat()">Clear</button>
       </div>
 
   <table style="margin-bottom:0px;" id="combatTable" class="combatant table table-striped">
    <thead> <tr>
       <th style="width:40px;">
-      <button type="button" ng-click="qEntry = !qEntry" class="btn-xs btn btn-default ">
+      <button type="button" ng-click="qEntry = !qEntry" class="btn-xs btn btn-primary ">
       <span style="font-size:xx-small;" class="fa fa-plus" ng-hide="qEntry"></span> 
       <span style="font-size:xx-small;" class="fa fa-minus" ng-show="qEntry"></span> 
       </button></th>
@@ -62,7 +62,7 @@ img{
       <th class="numberRow" style="text-align:center;">Round</th>
     </tr></thead><tbody>
     <tr ng-class="{'selected':$index == selectedRow}" ng-click="setClickedRow($index)" ng-repeat="combatant in combatants track by $index">
-      <td><button class="btn-xs  btn " style="float:left" ng-click="endTurn(combatant)"><span class="fa fa-level-down"></span></button></td>
+      <td><button class="btn-xs  btn  btn-primary" style="float:left" ng-click="endTurn(combatant)"><span class="fa fa-level-down"></span></button></td>
       <td style="width:auto;text-align:left;"><input style="width:100%;text-align:left;" type="text" ng-model="combatant.name" ></td>
       <td class="numberRow"><input type="number" ng-model="combatant.ac" ></td>
       <td class="numberRow" style="width: 65px;" ng-mouseleave="combatant.hpButtons=false" ><input type="number" ng-model="combatant.hp" ng-change="deathCheck(combatant.hp,$index)"  ng-focus="combatant.hpButtons=true" >
@@ -92,8 +92,8 @@ img{
        <h5>Recently Added Monsters</h5>
               <div style="text-align:center;float:right;" ng-repeat="monster in recentMonsters"><img style="height:50px;width:auto;" on-double-click="loadMonster(monster)" src="images/{{monster.img}}" title="{{monster.name}}(CR{{monster.cr}})"></div>
        </div>
-        <th class="buttonRow"><button class="btn" ng-click="startCombat(combatants)">Start Combat</button></th>
-      <th class="buttonRow"><button class="btn" ng-click="combatants=[];combatLog=''">Clear</button></th>
+        <th class="buttonRow"><button class="btn btn-primary" ng-click="startCombat(combatants)">Start Combat</button></th>
+      <th class="buttonRow"><button class="btn btn-primary" ng-click="combatants=[];combatLog=''">Clear</button></th>
 
        <div style="padding-top:10px;">
       <div class="btn-group btn btn-xs btn-primary" >
@@ -139,7 +139,7 @@ img{
       </button>
       </div>
       <div style="padding-top:10px;">
-      <select type="text"  ng-model="combatants[selectedRow].cskill" ng-options="skill as skill.skill for skill in combatants[selectedRow].skills" >
+      <select type="text" class="skill" ng-model="combatants[selectedRow].cskill" ng-options="skill as skill.skill for skill in combatants[selectedRow].skills" >
       <option value="">Select Skill</option>
       </select>
       <button type="button" ng-click="Action(combatants[selectedRow].name,combatants[selectedRow].cskill,'d')" class="btn-xs btn btn-default ">
@@ -153,7 +153,7 @@ img{
       </button>
 
       <h3>Dice Bag</h3>
-      <button type="button" ng-click="diceBag(dicebag)" style="width:22%;float:right" class="btn default-btn ">
+      <button type="button" ng-click="diceBag(dicebag)" style="width:22%;float:right" class="btn btn-primary">
       roll
       </button>
       <input ng-model="dicebag" type="text" class="form-control" style="width:75%;">
@@ -206,11 +206,11 @@ img{
 </div>
 
  </div>
- <div class="col-md-6 col-sm-6 col-xs-6" id="combatLog" ng-bind-html="combatLog" ng-keyup="" style="width:49%;height:40%;overflow:auto;line-height: 1.6em;border: 2px solid grey;" resize>
+ <div class="col-md-6 col-sm-6 col-xs-6" id="combatLog" ng-bind-html="combatLog" ng-keyup="" resize>
 </div>
 <div ui-content-for="modals">
   <div class="modal" ui-if='diceBag' ui-state='diceBag'>
-  <div class="modal-dialog" ui-outer-click="Ui.turnOff('diceBag')" style="z-index: 1050; max-width: 250px; top: 30vh; left: 71%;">
+  <div class="modal-dialog" style="z-index: 1050; max-width: 250px; top: 30vh; left: 71%;">
     <div class="modal-content">
       <div class="modal-header">
         <button class="close" 
@@ -224,7 +224,7 @@ img{
         <input ng-model="new.roll" autofocus style="text-align:left" placeholder="ex. 3d6+6, 1d2, 1d8+1d12">
       </div>
       <div class="modal-footer">
-        <button ui-turn-off="diceBag" class="btn btn-default">Close</button>
+        <button ui-turn-off="diceBag" class="btn btn-primary">Close</button>
         <button ui-turn-off="diceBag" ng-click="addDie(new)" class="btn btn-primary">Save</button>
       </div>
     </div>
@@ -271,7 +271,7 @@ img{
      </div>
       </div>
       <div class="modal-footer">
-        <button ui-turn-off="soundOptions" class="btn btn-default">Close</button>
+        <button ui-turn-off="soundOptions" class="btn btn-primary">Close</button>
       </div>
     </div>
   </div>

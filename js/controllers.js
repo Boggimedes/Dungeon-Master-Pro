@@ -676,7 +676,7 @@ var effectObject = {
 
 .controller('SiteCtrl', ['$rootScope', '$filter', '$window', 'filterFilter', '$scope','monsterDatasource', '$timeout' , 'soundsFactory','$state',  
   function($rootScope, $filter, $window, filterFilter, $scope, monsterDatasource, $timeout,soundsFactory,$state){
-
+$scope.css = 'dark';
   $scope.swiped = function(direction) {
     alert('Swiped ' + direction);
   };
@@ -850,7 +850,6 @@ $rootScope.chkScene = soundsFactory.chkScene;
         function(response) {
         $scope.regions = response.data.regions;
         if($scope.region == null || typeof $scope.region == "undefined" || $scope.region == "") $scope.region = $scope.regions[0].id;
-        $scope.$parent.go('npcs',{region:$scope.region});
          $scope.professions = response.data.professions;
         $scope.races = response.data.races;
         $scope.descriptives = response.data.descriptives;
@@ -1036,5 +1035,69 @@ console.log($scope.selectedCitizen);
         console.log(err);
       });    
 
+
+    }])
+
+
+.controller('SettingsCtrl', ['$scope', 'settingsFactory', 'Upload',
+  function($scope,settingsFactory, Upload){
+
+    settingsFactory.getSettings().then(function(response){
+      console.log(response);
+      $scope.settings = response.data.settings;
+      $scope.name = response.data.name;
+      $scope.email = response.data.email;
+    $scope.$watch('settings',function(newValue, oldValue){
+console.log(newValue+"|"+oldValue);
+        if (newValue != null && newValue != '' && newValue != oldValue) {
+       settingsFactory.saveSettings({'settings':$scope.settings}).then(function(response){
+        });
+      }       
+    },true);
+    $scope.$watch('name',function(newValue, oldValue){
+ console.log(newValue+"|"+oldValue);
+        if (newValue != null && newValue != '' && newValue != oldValue) {
+       settingsFactory.saveSettings({'name':$scope.name}).then(function(response){
+        });
+      }       
+    },true);
+    $scope.$watch('email',function(newValue, oldValue){
+console.log(newValue+"|"+oldValue);
+        if (newValue != null && newValue != '' && newValue != oldValue) {
+       settingsFactory.saveSettings({'email':$scope.email}).then(function(response){
+        });
+      }       
+    },true);
+        });
+
+
+
+    $scope.$watch('cssFile', function () {
+        if ($scope.cssFile != null) {
+            $scope.files = [$scope.cssFile]; 
+            $scope.upload($scope.files);
+        }
+    });
+
+
+    $scope.upload = function (files) {
+        if (files && files.length) {
+            for (var i = 0; i < files.length; i++) {
+              var file = files[i];
+              if (!file.$error) {
+                Upload.upload({
+                    url: '/api/settings/set',
+                    data: {
+                      settings: $scope.settings,
+                      file: file  
+                    }
+                }).then(function (resp) {
+                  console.log(resp);
+
+                });
+              }
+            }
+        }
+    };
 
     }])

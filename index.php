@@ -20,6 +20,7 @@ spl_autoload_register(function ($classname) {
 session_start();
 if(!isset($_SESSION["logged-in"])) $_SESSION["logged-in"] = false;
 if(!isset($_SESSION["roll"])) $_SESSION["roll"] = '';
+if(!isset($_SESSION["id"])) $_SESSION["id"] = 1;
 
 // Instantiate the app
 $settings = require __DIR__ . '/src/settings.php';
@@ -567,8 +568,6 @@ $app->post('/api/spell/{action}', function (Request $request, Response $response
 
 $app->get('/api/citizens/getWorld', function (Request $request, Response $response) {
     $param = $request->getParsedBody();
-    $action = $request->getAttribute('action');
-    $table = $request->getAttribute('table');
     $api = new citizenAPI(1, $param['region'],$this->db);
 
     $response = new stdClass;
@@ -606,6 +605,39 @@ $app->get('/api/citizens/getWorld', function (Request $request, Response $respon
 //         else  return $response->withStatus(302)->withHeader('Location', 'user-login');
 
 // });
+
+$app->get('/api/settings/get', function (Request $request, Response $response) {
+    $query  = "SELECT name,email,settings FROM users WHERE id = {$_SESSION['id']}";
+    if ($result = $this->db->query($query)) {
+                while ($row = $result->fetch_assoc ()) {
+                  $row['settings'] = json_decode($row['settings']);;
+                  $response = $row;
+                }
+                $result->close();
+    }    
+    return json_encode($response);
+});
+
+
+$app->post('/api/settings/set', function (Request $request, Response $response) {
+    $param = $request->getParsedBody();
+    if(array_key_exists("file",$param)) $file = $param['file'];
+    // if($param['password']){
+    //   $db = new DbHandler($this->db);
+    //   $res = $db->updatePassword($_SESSION['id'], $password);
+    //   }
+       if(array_key_exists("email",$param)) $set = "`email` = '".$param['email']."'";
+       if(array_key_exists("name",$param)) $set = "`name` = '".$param['name']."'";
+       if(array_key_exists("settings",$param)) $set = "`settings` = '".json_encode($param['settings'])."'";
+      if($file){
+        //save file as user/id/user.css
+      }
+    $query  = "UPDATE users SET $set WHERE id = '{$_SESSION['id']}'";
+    $result = $this->db->query($query);
+
+    return "Updated";
+});
+
 
 $app->get('/logout', function (Request $request, Response $response) {
     session_destroy(); 
