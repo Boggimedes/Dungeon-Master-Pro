@@ -612,6 +612,10 @@ $app->get('/logout', function (Request $request, Response $response) {
     return $response->withStatus(200)->withHeader('Location', '/login');
 });
 
+$app->get('/sign-up', function (Request $request, Response $response) {
+        return $this->view->render($response, 'sign-up.html', ['message' => ""]);   
+});
+
 $app->get('/{a}[/{b}[/{c}]]', function (Request $request, Response $response) {
     if($_SESSION['logged-in']) {
         $response = file_get_contents('index.html');
