@@ -69,11 +69,12 @@ function echoResponse($status_code, $response) {
 *  Adding Middle Layer to authenticate every request
 *  Checking if the request has valid api key in the 'Authorization' header
  */
-function authenticate($route) {
+function authenticate($request, $response, $next) {
   // getting request header
   $headers = apache_request_headers();
   $response = array();
-  print_r($route);
+  // print_r($request);
+  return $response;
   // $app = \Slim\Slim::getInstance();
   // verifying authorization header
   // if (isset($headers['Authorization'])) {

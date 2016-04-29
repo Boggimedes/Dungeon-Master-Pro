@@ -452,6 +452,7 @@ angular.module('myApp.services', [])
 
     return {
       getSettings: function() {
+        console.log("test");
         return $http.get('/api/settings/get');
       },
 
@@ -462,5 +463,4 @@ angular.module('myApp.services', [])
     }
   }
 ])
-
 

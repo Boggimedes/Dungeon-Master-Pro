@@ -80,6 +80,13 @@ $app->get('/', function (Request $request, Response $response) {
 });
 
 
+$auth = function ($request, $response, $next) {
+     if($_SESSION['logged-in']) {
+        $response = $next($request, $response);
+         return $response;
+             }
+        else  return $response->withStatus(401);
+};
 
 
 
@@ -120,13 +127,13 @@ $app->post('/register', function() use ($app) {
       echoResponse(200, $response);
   }
 });
+
 // /**
 // * User Login
 // * url - /login
 // * method - POST
 // * params - email, password
 // */
-
 
 $app->map(['GET', 'POST'],'/login', function (Request $request, Response $response, $args) use($app) {
     if($request->getMethod()=="GET"){
@@ -153,150 +160,6 @@ $app->map(['GET', 'POST'],'/login', function (Request $request, Response $respon
 
 });
 
-// $app->post('/login', function(Request $request, Response $response) {
-//     $resp = verifyRequiredParams(array('email', 'password'));
-//   // reading post params
-//     $test = "test";
-  // $email = $_POST['email'];
-  // $password = $_POST['password'];
-  // $db = new DbHandler($this->db);
-  // // check for correct email and password
-  // if ($db->checkLogin($email, $password)) {
-  //     // get the user by email
-
-  //   $_SESSION["logged-in"] = true;
-  //   $_SESSION["roll"] = "admin";
-  //     } else {
-  //         // user credentials are wrong
-  //  $resp = array();
-  //        $resp['error'] = true;
-  //         $resp['message'] = 'Login failed. Incorrect credentials';
-  //     }
-  //     $response = $resp;
-//    return "test";
-// });
-
-
-// /**
-// * Creating new task in db
-// * method POST
-// * params - name
-// * url - /tasks/
-// */
-$app->post('/tasks', 'authenticate', function() use ($app){
-  verifyRequiredParams(array('task'));
-  $response = array();
-  $task = $app->request->post('task');
-  global $user_id;
-  $db = new DbHandler($this->db);
-  // creating new task
-  $task_id = $db->createTask($user_id, $task);
-  if ($task_id != NULL) {
-      $response["error"] = false;
-      $response["message"] = "Task created successfully";
-      $response["task_id"] = $task_id;
-  } else {
-      $response["error"] = true;
-      $response["message"] = "Failed to create task. Please try again";
-  }
-  echoResponse(201, $response);
-});
-// /**
-// * Listing all tasks of particular user
-// * method GET
-// * url /tasks
-// */
-$app->get('/tasks', 'authenticate', function(){
-  global $user_id;
-  $response = array();
-  $db = new DbHandler($this->db);
-  // fetching all user tasks
-  $result = $db->getAllUserTasks($user_id);
-  $response["error"] = false;
-  $response["tasks"] = array();
-  // looping through result and preparing tasks array
-  while ($task = $result->fetch_assoc()) {
-      $tmp = array();
-      $tmp["id"] = $task["id"];
-      $tmp["task"] = $task["task"];
-      $tmp["status"] = $task["status"];
-      $tmp["createdAt"] = $task["created_at"];
-      array_push($response["tasks"], $tmp);
-  }
-  echoResponse(200, $response);
-});
-// /**
-// * Listing single task of particular user
-// * method GET
-// * url /tasks/:id
-// * Return 404 if task doesn't belong to user
-// */
-$app->get('/tasks/:task_id', 'authenticate', function($task_id){
-  global $user_id;
-  $response = array();
-  $db = new DbHandler($this->db);
-  // fetch task
-  $result = $db->getTask($task_id, $user_id);
-  if ($result != NULL) {
-      $response["error"] = false;
-      $response["id"] = $result["id"];
-      $response["task"] = $result["task"];
-      $response["status"] = $result["status"];
-      $response["createdAt"] = $result["created_at"];
-      echoResponse(200, $response);
-  } else {
-      $response["error"] = true;
-      $response["message"] = "The requested resource doesn't exists";
-      echoResponse(404, $response);
-  }
-});
-// /**
-// * Updating existing task
-// * method PUT
-// * params task, status
-// * url - /tasks/:id
-// */
-$app->put('/tasks/:task_id', 'authenticate', function($task_id) use($app) {
-  verifyRequiredParams(array('task', 'status'));
-  global $user_id;
-  $task = $app->request->put('task');
-  $status = $app->request->put('status');
-  $db = new DbHandler($this->db);
-  $response = array();
-  // updating task
-  $result = $db->updateTask($user_id, $task_id, $task, $status);
-  if ($result) {
-      // task updated successfully
-      $response["error"] = false;
-      $response["message"] = "Task updated successfully";
-  } else {
-      // task failed to update
-      $response["error"] = true;
-      $response["message"] = "Task failed to update. Please try again!";
-  }
-  echoResponse(200, $response);
-});
-// /**
-//  * Deleting task. Users can delete only their tasks
-//  * method DELETE
-//  * url /tasks
-//  */
-$app->delete('/tasks/:task_id', 'authenticate', function($task_id) use($app) {
-    global $user_id;
-    $db = new DbHandler($this->db);
-    $response = array();
-    $result = $db->deleteTask($user_id, $task_id);
-    if ($result) {
-        // task deleted successfully
-        $response["error"] = false;
-        $response["message"] = "Task deleted succesfully";
-    } else {
-        // task failed to delete
-        $response["error"] = true;
-        $response["message"] = "Task failed to delete. Please try again!";
-    }
-    echoResponse(200, $response);
-});
 
 
 $app->post('/api/main/{action}', function (Request $request, Response $response) {
@@ -323,7 +186,7 @@ $app->post('/api/main/{action}', function (Request $request, Response $response)
     }
 
     return $response;
-    });
+    })->add($auth);
 
 $app->get('/account/{accnt}/view', function (Request $request, Response $response) {
 
@@ -349,7 +212,7 @@ $app->post('/api/citizens/seedregion', function (Request $request, Response $res
     $param = $request->getParsedBody();
     $api = new citizenAPI(1, $param['region'],$this->db);
     return $api->seedRegion();
-    });
+    })->add($auth);
 
 $app->post('/api/citizens/getcitizens', function (Request $request, Response $response) {
     $param = $request->getParsedBody();
@@ -357,7 +220,7 @@ $app->post('/api/citizens/getcitizens', function (Request $request, Response $re
     $api->getCitizensArray($param);
     $citizens = json_encode($api->citizens);
     return $citizens;
-    });
+    })->add($auth);
 
 
 $app->post('/api/citizens/getcitizen', function (Request $request, Response $response) {
@@ -366,7 +229,7 @@ $app->post('/api/citizens/getcitizen', function (Request $request, Response $res
     $api = new citizenAPI(1, $param['region'],$this->db);
     $citizen = json_encode($api->getCitizenDetails($param));
     return $citizen;
-    });
+    })->add($auth);
 
 
 $app->post('/api/citizens/getraces', function (Request $request, Response $response) {
@@ -374,7 +237,7 @@ $app->post('/api/citizens/getraces', function (Request $request, Response $respo
     $api = new citizenAPI(1, $param['region'],$this->db);
     $races = json_encode($api->races);
     return $races;
-    });
+    })->add($auth);
 
 
 $app->post('/api/citizens/getaspects', function (Request $request, Response $response) {
@@ -382,13 +245,13 @@ $app->post('/api/citizens/getaspects', function (Request $request, Response $res
     $api = new citizenAPI(1, $param['region'],$this->db);
     $aspects = json_encode($api->getAspects($param['region']));
     return $aspects;
-    });
+    })->add($auth);
 
 $app->post('/api/citizens/ageregion', function (Request $request, Response $response) {
     $param = $request->getParsedBody();
     $api = new citizenAPI(1, $param['region'],$this->db);
     return $api->ageRegion($param['years']);
-    });
+    })->add($auth);
 
 
 $app->post('/api/citizens/{table}/{action}', function (Request $request, Response $response) {
@@ -423,7 +286,7 @@ $app->post('/api/citizens/{table}/{action}', function (Request $request, Respons
     }
 
     return $response;
-    });
+    })->add($auth);
 
 $app->post('/api/sound/{table}/{action}', function (Request $request, Response $response) {
 
@@ -466,7 +329,7 @@ $app->post('/api/sound/{table}/{action}', function (Request $request, Response $
     }
 
     return $response;
-    });
+    })->add($auth);
 
 $app->post('/api/monster/{action}', function (Request $request, Response $response) {
 
@@ -512,7 +375,7 @@ $app->post('/api/monster/{action}', function (Request $request, Response $respon
    }
 
         return $response;
-    });
+    })->add($auth);
 
 $app->post('/api/spell/{action}', function (Request $request, Response $response) {
 
@@ -564,7 +427,7 @@ $app->post('/api/spell/{action}', function (Request $request, Response $response
    }
 
         return $response;
-    });
+    })->add($auth);
 
 $app->get('/api/citizens/getWorld', function (Request $request, Response $response) {
     $param = $request->getParsedBody();
@@ -581,42 +444,22 @@ $app->get('/api/citizens/getWorld', function (Request $request, Response $respon
     $response->regions = $api->getRegions($param);
 
     return json_encode($response);
-});
+})->add($auth);
 
-
-
-// $app->get('/world', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-// $app->get('/npcs/{id}', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-
-// $app->get('/soundboard', function (Request $request, Response $response) {
-//     print_r($_SESSION);
-//     if($_SESSION['logged-in']) {
-//         $response = file_get_contents('index.html');
-//         return $response;
-//         }
-//         else  return $response->withStatus(302)->withHeader('Location', 'user-login');
-
-// });
 
 $app->get('/api/settings/get', function (Request $request, Response $response) {
     $query  = "SELECT name,email,settings FROM users WHERE id = {$_SESSION['id']}";
     if ($result = $this->db->query($query)) {
                 while ($row = $result->fetch_assoc ()) {
-                  $row['settings'] = json_decode($row['settings']);;
+                  $row['settings'] = json_decode($row['settings']);
+                  $row['loggedIn'] = true;
                   $response = $row;
+
                 }
                 $result->close();
     }    
     return json_encode($response);
-});
+})->add($auth);
 
 
 $app->post('/api/settings/set', function (Request $request, Response $response) {
@@ -636,7 +479,7 @@ $app->post('/api/settings/set', function (Request $request, Response $response) 
     $result = $this->db->query($query);
 
     return "Updated";
-});
+})->add($auth);
 
 
 $app->get('/logout', function (Request $request, Response $response) {
@@ -649,47 +492,6 @@ $app->get('/sign-up', function (Request $request, Response $response) {
 });
 
 $app->get('/{a}[/{b}[/{c}]]', function (Request $request, Response $response) {
-    if($_SESSION['logged-in']) {
-        $response = file_get_contents('index.html');
-        return $response;
-        }
-        else  return $response->withStatus(302)->withHeader('Location', 'login');
+        return file_get_contents('index.html');
 });
-
-
-
-// $app->get('/edit/effect/{id}', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-
-// $app->get('/edit/{type}/{id}', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-// $app->get('/edit/monster/{id}', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-// $app->get('/edit/spells', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-// $app->get('/edit/spell/{id}', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-
-// $app->get('/edit', function (Request $request, Response $response) {
-//     $response = file_get_contents('index.html');
-//     return $response;
-// });
-
-
-
 $app->run();

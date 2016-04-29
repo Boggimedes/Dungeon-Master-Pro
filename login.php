@@ -13,10 +13,10 @@
     <link rel="stylesheet" href="css/app.css" />
 </head>
 
- <body >
+ <body class="text-center">
 <?php echo $message; ?>
- <form method="POST" action="/login">
-<div class="form-group">
+ <form method="POST" action="/login" class="form" style="text-align:left;margin:auto;margin-top:50px;max-width:500px;background-color:lightgrey;border:2px solid darkgrey;border-radius:10px;" >
+ <img style="border-top-left-radius:10px;border-top-right-radius:10px" src="/img/GMP Logo (medium).jpg"><div class="form-group">
 <label>Email Address</label>
 <input type="text" class="form-control" name="email">
 </div>
@@ -24,7 +24,7 @@
 <label>Password</label>
 <input type="password" class="form-control" name="password">
 </div><div class="form-group">
-<input type="submit" class="form-control" name="submit" value="Submit">
+<input type="submit" class="form-control btn btn-primary" name="submit" value="Submit">
 </div>
 
  </form>

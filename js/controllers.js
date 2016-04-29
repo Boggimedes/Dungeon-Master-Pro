@@ -4,6 +4,106 @@
 
 angular.module('myApp.controllers', [])
 
+
+
+.controller('SiteCtrl', ['$rootScope', '$filter', 'monsterDatasource', '$window', '$scope' , 'soundsFactory', '$state', 'settingsFactory', 
+  function($rootScope, $filter, monsterDatasource, $window, $scope, soundsFactory, $state, settingsFactory){
+$scope.css = 'dark';
+  $scope.swiped = function(direction) {
+    alert('Swiped ' + direction);
+  };
+
+$scope.hgt = $window.innerHeight-56;
+  // User agent displayed in home page
+  $scope.userAgent = navigator.userAgent;
+  $scope.screenSlide=false;
+  // Needed for the loading screen
+  $rootScope.$on('$routeChangeStart', function(){
+    $rootScope.loading = true;
+  });
+
+  $rootScope.$on('$routeChangeSuccess', function(){
+    $rootScope.loading = false;
+  });
+
+$scope.slideScreen = function(test){
+  $scope.screenSlide = !$scope.screenSlide;
+}
+
+$scope.go = function(state,params){
+  console.log(params);
+  $state.go(state,params);
+
+}
+  $scope.notices = [];
+  
+  for (var j = 0; j < 10; j++) {
+    $scope.notices.push({icon: 'envelope', message: 'Notice ' + (j + 1) });
+  }
+
+  $scope.deleteNotice = function(notice) {
+    var index = $scope.notices.indexOf(notice);
+    if (index > -1) {
+      $scope.notices.splice(index, 1);
+    }
+  };
+
+  console.log("testing");
+    settingsFactory.getSettings().then(function(response){
+      console.log(response);
+      $rootScope.loggedIn = response.data.loggedIn;
+      $rootScope.settings = response.data.settings;
+      $rootScope.name = response.data.name;
+      $rootScope.email = response.data.email;
+        }) .catch(function(fallback) {
+      console.log(fallback);
+      $scope.Ui.turnOn('login');
+      });
+
+     $scope.uiScrollMonsters = {
+        remain: true
+      };
+
+$scope.monsterFilter = function(nfilter,cfilter){
+  monsterDatasource.setFilter(nfilter,cfilter);
+  // console.log($scope.uiScrollMonsters);
+  // $scope.uiScrollMonsters.reload();
+};
+
+
+
+ var orderBy = $filter('orderBy');
+
+      $scope.mfilter = '';
+
+      // var datasource;
+      // datasource = {};
+      // datasource.get = function (descriptor, success) {
+      //   return $timeout(function () {
+      //     var count, i, index, j, ref, ref1, result, min, max;
+      //     index = descriptor.index;
+      //     count = descriptor.count;
+      //     descriptor.filter = $scope.mfilter;
+      //     monsterFactory.getUiScrollMonsters(descriptor).then(function(response) {
+      //         return success(response.data);
+      //       }, function(err) { });
+      //   }, 100);
+      // };
+      // $scope.datasource = datasource;
+      // return $scope.datasource;
+$rootScope.chkScene = soundsFactory.chkScene;
+
+}])
+
+
+
+
+
+
+
+
+
+
 .controller('SoundEditCtrl', ['$scope', '$interval', 'soundsEditFactory', 'soundsFactory','$state', '$stateParams', '$filter',
   function($scope, $interval, soundsEditFactory, soundsFactory, $state, $stateParams, $filter) {
   var stopTime = $interval(function(){}, 200);
@@ -674,82 +774,6 @@ var effectObject = {
   }])
 
 
-.controller('SiteCtrl', ['$rootScope', '$filter', '$window', 'filterFilter', '$scope','monsterDatasource', '$timeout' , 'soundsFactory','$state',  
-  function($rootScope, $filter, $window, filterFilter, $scope, monsterDatasource, $timeout,soundsFactory,$state){
-$scope.css = 'dark';
-  $scope.swiped = function(direction) {
-    alert('Swiped ' + direction);
-  };
-$scope.hgt = $window.innerHeight-56;
-  // User agent displayed in home page
-  $scope.userAgent = navigator.userAgent;
-  $scope.screenSlide=false;
-  // Needed for the loading screen
-  $rootScope.$on('$routeChangeStart', function(){
-    $rootScope.loading = true;
-  });
-
-  $rootScope.$on('$routeChangeSuccess', function(){
-    $rootScope.loading = false;
-  });
-
-$scope.slideScreen = function(test){
-  $scope.screenSlide = !$scope.screenSlide;
-}
-
-$scope.go = function(state,params){
-  console.log(params);
-  $state.go(state,params);
-
-}
-  $scope.notices = [];
-  
-  for (var j = 0; j < 10; j++) {
-    $scope.notices.push({icon: 'envelope', message: 'Notice ' + (j + 1) });
-  }
-
-  $scope.deleteNotice = function(notice) {
-    var index = $scope.notices.indexOf(notice);
-    if (index > -1) {
-      $scope.notices.splice(index, 1);
-    }
-  };
-
-
-     // $scope.uiScrollMonsters = {
-     //    remain: true
-     //  };
-
-$scope.monsterFilter = function(nfilter,cfilter){
-  monsterDatasource.setFilter(nfilter,cfilter);
-  // console.log($scope.uiScrollMonsters);
-  // $scope.uiScrollMonsters.reload();
-};
-
-
-
- var orderBy = $filter('orderBy');
-
-      $scope.mfilter = '';
-
-      // var datasource;
-      // datasource = {};
-      // datasource.get = function (descriptor, success) {
-      //   return $timeout(function () {
-      //     var count, i, index, j, ref, ref1, result, min, max;
-      //     index = descriptor.index;
-      //     count = descriptor.count;
-      //     descriptor.filter = $scope.mfilter;
-      //     monsterFactory.getUiScrollMonsters(descriptor).then(function(response) {
-      //         return success(response.data);
-      //       }, function(err) { });
-      //   }, 100);
-      // };
-      // $scope.datasource = datasource;
-      // return $scope.datasource;
-$rootScope.chkScene = soundsFactory.chkScene;
-
-}])
 
 
 
