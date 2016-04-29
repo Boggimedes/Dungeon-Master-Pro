@@ -24,7 +24,7 @@
  <body ui-prevent-touchmove-defaults >
 
     <!-- Sidebars -->
-    <div ng-include="'sidebar.html'" 
+    <div ui-yield-to="menu" ng-include="'sidebar.html'" 
             ui-track-as-search-param='true'
             class="sidebar sidebar-left"></div>
 
