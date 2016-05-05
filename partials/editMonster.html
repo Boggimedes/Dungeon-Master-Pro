@@ -1,0 +1,216 @@
+<div ui-content-for="title">
+  <span>{{heading}}</span>
+</div>
+<div ui-content-for="navbarAction">
+  <div ui-toggle="uiSidebarRight" style="font-size: 2.5vh; padding-top: 0.5vh;" class="btn">
+    <i class="fa fa-optin-monster"></i> Monsters
+  </div>
+</div>
+<div  ng-include="'/partials/monsters.html'"></div>
+<div class="scrollable">
+  <div class="scrollable-content section">
+    <span style="font-size:xx-small;display:none;">pg.{{currentMonster.pg}}</span>
+    <form role="form" id="add-page" ng-submit="saveMonster()" class="form-inline">
+
+      <div class="row">
+        <div class="form-group col-md-3">
+          <label>Name</label>
+          <input class="form-control" type="text" ng-model="currentMonster.name" />
+        </div>
+
+        <div class="form-group col-md-1">
+          <label>CR</label>
+          <input class="form-control" type="text" ng-model="currentMonster.cr" />
+        </div>
+
+        <div class="form-group col-md-1">
+          <label>AC</label>
+          <input class="form-control" type="text" ng-model="currentMonster.ac" />
+        </div>
+
+        <div class="form-group col-md-3">
+          <label>AC Notes</label>
+          <input class="form-control" type="text" ng-model="currentMonster.acNotes" />
+        </div>
+
+        <div class="form-group col-md-2">
+          <label>Speed</label>
+          <input class="form-control" type="text" ng-model="currentMonster.speed" />
+        </div>
+
+        <div class="form-group col-md-2">
+          <label>Hit Points</label>
+          <input class="form-control" type="text" ng-model="currentMonster.hp" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group col-md-2">
+          <label>Initiative</label>
+          <input class="form-control" type="text" ng-model="currentMonster.initiative" />
+        </div>
+
+        <div class="form-group col-md-3">
+          <label>Size</label>
+          <input class="form-control" ng-model="currentMonster.size" />
+        </div>
+        <div class="form-group col-md-3">
+          <label>Environment</label>
+          <input class="form-control" ng-model="currentMonster.environment" />
+        </div>
+
+        <div class="form-group col-md-4">
+          <label>Creature Image</label>
+          <input class="form-control" type="text" ng-model="currentMonster.img" style="text-align:left" />
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group col-md-4">
+          <label>Description</label>
+          <textarea class="form-control" type="text" ng-model="currentMonster.desc" rows="7"></textarea>
+        </div>
+
+        <div class="form-group col-md-4">
+          <label>Senses &amp; Resistances/Vulnerabilities</label>
+          <textarea class="form-control" ui-tinymce="tinymceOptions" type="text" ng-model="currentMonster.senses" rows="5"></textarea>
+        </div>
+
+        <div class="form-group col-md-4">
+          <label>Special</label>
+          <textarea class="form-control" ui-tinymce="tinymceOptions" ng-model="currentMonster.special" rows="5"></textarea>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group" style="float:right;">
+          <table class="table" style="max-width:500px;">
+            <thead><tr><th>str</th><th>dex</th><th>con</th><th>int</th><th>wis</th><th>cha</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><input ng-model="currentMonster.str"></td>
+                <td><input ng-model="currentMonster.dex"></td>
+                <td><input ng-model="currentMonster.con"></td>
+                <td><input ng-model="currentMonster.int"></td>
+                <td><input ng-model="currentMonster.wis"></td>
+                <td><input ng-model="currentMonster.cha"></td>
+              </tr>
+              <tr><th>strsave</th><th>dexsave</th><th>consave</th><th>intsave</th><th>wissave</th><th>chasave</th></tr>
+              <tr>
+                <td><input ng-model="currentMonster.strSave"></td>
+                <td><input ng-model="currentMonster.dexSave"></td>
+                <td><input ng-model="currentMonster.conSave"></td>
+                <td><input ng-model="currentMonster.intSave"></td>
+                <td><input ng-model="currentMonster.wisSave"></td>
+                <td><input ng-model="currentMonster.chaSave"></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="form-group">
+          <label>Skills </label>
+          <button type="button" ng-click="addSkill()" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
+          </button>
+          <table ng-if="currentMonster.skills.length" class="skills-actions">
+            <thead>
+              <tr><th>Skill Name</th><th>Modifier</th></tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="skill in currentMonster.skills">
+                <td>
+                  <input class="form-control" type="text" ng-model="skill.name" />
+                </td>
+                <td style="position:relative;"><i ng-click="currentMonster.skills.splice($index,1)" class="fa fa-times-circle x-close"></i>
+                  <input class="form-control" type="text" ng-model="skill.bonus" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <label>Actions/Attacks </label>
+      <button type="button" ng-click="addAttack()" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
+      </button>
+      <section ng-repeat="attack in currentMonster.attacks" ng-if="currentMonster.attacks.length" class="skills-actions row action-group">
+        <i ng-click="currentMonster.attacks.splice($index,1)" class="fa fa-times-circle x-close"></i>
+        <div class="form-group col-md-2">
+          <label>Attack Name</label>
+          <input class="form-control" type="text" list="attacktriggers" ng-model="attack.name" />
+          <label ng-show="attack.name=='Spellcasting'">Caster Level</label>
+          <input ng-show="attack.name=='Spellcasting'" class="form-control" type="text" ng-model="attack.cl" />
+          <label ng-show="attack.name=='Spellcasting'">Melee Spell Attack Bonus</label>
+          <input ng-show="attack.name=='Spellcasting'" class="form-control" type="text" ng-model="attack.meleespell" />
+          <label ng-show="attack.name=='Spellcasting'">Ranged Spell Attack Bonus</label>
+          <input ng-show="attack.name=='Spellcasting'" class="form-control" type="text" ng-model="attack.rangedspell" />
+          <label ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'">Attack Reach/Range</label>
+          <input ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'" class="form-control" type="text" ng-model="attack.rr" />
+          <label ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'">Attack Bonus</label>
+          <input ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'" class="form-control" type="text" ng-model="attack.bonus" />
+          <button ng-if="attack.name=='Multiattack'  || attack.name=='Spellcasting'" type="button" ng-click="addMulti(attack)" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
+          </button>
+          <datalist id="attacktriggers">
+            <option value="Multiattack">Multiattack</option>
+            <option value="Spellcasting">Spellcasting</option>
+          </datalist>
+        </div>
+
+        <div ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'" class="form-group col-md-5">
+          <label>Damage roll/text</label>
+          <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="attack.damage" /></textarea>
+        </div>
+        <div ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'" class="form-group col-md-5">
+          <label>Special</label>
+          <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="attack.special" /></textarea>
+        </div>
+
+        <section ng-show="attack.name=='Multiattack'" style="padding: 15px;margin-right:5px;max-width:250px" ng-repeat="subitem in attack.submenu" class="form-group col-md-2 action-group list-unstyled">
+          <i ng-click="currentMonster.attacks[$parent.$index].submenu.splice($index,1)" class="fa fa-times-circle x-close"></i>
+          <label>Multi-Attack Name</label>
+          <input class="form-control" type="text" ng-model="subitem.name" />
+          <label>Coma separated attacks</label>
+          <input class="form-control" type="text" ng-model="subitem.bonus" />
+          <span ng-if="attack.name=='Multiattack'" ng-init="subitem.type = 'ma'"></span>
+        </section>
+
+        <section ng-show="attack.name=='Spellcasting'" style="padding: 15px;margin-right:5px;max-width:250px" ng-repeat="subitem in attack.submenu" class="form-group col-md-2 action-group list-unstyled">
+          <i ng-click="currentMonster.attacks[$parent.$index].submenu.splice($index,1)" class="fa fa-times-circle x-close"></i>
+          <label>Spell Level/Innate</label>
+          <input class="form-control" type="text" ng-model="subitem.name" style="width:55%;float:left" />
+          <input class="form-control" placeholder="#" type="text" ng-model="subitem.num" style="width:20%;float:left" />
+          <label>Add Spell/Ability</label>
+          <input class="form-control" type="text" placeholder="Name" ng-model="spell.name" style="width:55%;float:left" />
+          <input class="form-control" placeholder="#" type="text" ng-model="spell.num" style="width:20%;float:left" />
+          <input class="form-control" type="button" value="add" ng-click="subitem.submenu.push({'name':spell.name,'num':spell.num});spell=[];" style="width:25%;" />
+          <div style="display: flex;flex-wrap: wrap;"><span ng-repeat="subsubitem in subitem.submenu" class="subitem"> {{subsubitem.name}}{{subsubitem.num ? 'x'+subsubitem.num : '' }} <i ng-click="subitem.submenu.splice($index,1)"  class="fa fa-times-circle"></i><span ng-if="attack.name=='Spellcasting'" ng-init="subsubitem.type = 'ca'"></span></span>
+          </div>
+        </section>
+      </section>
+
+      <div>
+        <label>Legendary Actions </label>
+        <button type="button" ng-click="addLA()" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
+        </button>
+        <section ng-repeat="lAttack in currentMonster.legendaryActions" ng-if="currentMonster.legendaryActions.length" class="skills-actions">
+          <div class="form-group col-md-2">
+            <label>Attack Name</label>
+            <input class="form-control" type="text" ng-model="lAttack.name" />
+            <label>Attack Reach/Range</label>
+            <input class="form-control" type="text" ng-model="lAttack.rr" />
+            <label>Attack Bonus</label>
+            <input class="form-control" type="text" ng-model="lAttack.bonus" />
+          </div>
+          <div class="form-group col-md-5">
+            <label>Damage roll/text</label>
+            <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="lAttack.damage" /></textarea>
+          </div>
+          <div class="form-group col-md-5">
+            <label>Special</label>
+            <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="lAttack.special" /></textarea>
+          </div>
+        </section>
+      </div>
+      <input type="submit" class="btn btn-success" value="Save">
+    </form>
+  </div>
+</div>

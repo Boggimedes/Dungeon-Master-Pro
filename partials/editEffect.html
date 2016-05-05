@@ -1,0 +1,181 @@
+<style>
+  .file-list i.fa-folder {
+    color: rgb(254, 245, 176);
+    font-size: 40px;
+  }
+  .file-list .fa span {
+    padding-left: 5px;
+  }
+  .file-list {
+    display: inline-block;
+    margin: 15px;
+  }
+  .file-list .fa-folder span {
+    bottom: 8px;
+    position: relative;
+    font-size: 16px;
+    color: black;
+  }
+  .inline {
+    text-align: center;
+  }
+  .inline input {
+    display: inline-block;
+  }
+</style>
+<div ui-content-for="title">
+  <span>Edit Effect</span>
+</div>
+<div class="scrollable" ng-init="effectInit()">
+  <div class="scrollable-content section">
+    <form role="form" id="add-page" ng-submit="saveEffect()">
+      <div class="row">
+        <div class="form-group col-md-4">
+          <label>Title</label>
+          <input class="form-control" type="text" ng-model="effect.name" />
+        </div>
+        <div class="form-group col-md-6">
+          <label>Description</label>
+          <input class="form-control" type="text" ng-model="effect.desc" />
+        </div>
+        <div class="form-group col-md-1 text-center">
+          <label>Optional</label>
+          <div class="switch">
+            <input class="form-control" type="checkbox" ng-model="effect.optional" />
+            <label> </label>
+          </div>
+        </div>
+        <div class="form-group col-md-1 text-center" style="padding-top: 38px;">
+          <button type="button" class="btn" ng-click="playEffect(effect)">
+            <i class="fa {{effectPlaying? 'fa-stop' : 'fa-play'}}"></i>
+          </button>
+        </div>
+      </div>
+      <label>Sounds</label>
+      <label style="padding-left:40px;" for="seq" title="Sequential option means sounds play in the order in which they are displayed below.">Sequential</label>
+      <div class="switch" style="display: inline-block;width: 20px;height: 20px;top: 5px;">
+        <input id="seq" type="checkbox" ng-model="effect.seq" ng-change="slider.options.chance.disabled=effect.seq" />
+        <label> </label>
+      </div>
+      <label style="padding-left:40px;" for="loop" title="'Loops' are single, generally ambient, effects that play back to back">Loop</label>
+      <div class="switch" style="display: inline-block;width: 20px;height: 20px;top: 5px;">
+        <input id="loop" type="checkbox" ng-model="effect.loop" />
+        <label> </label>
+      </div>
+      <div style="border:1px solid darkgrey;padding:0px 0px 5px 10px;">
+        <div class="form-group">
+          <label class="col-md-2">Name</label>
+          <label class="col-md-2">file</label>
+          <label class="col-md-1 text-center">Volume %</label>
+          <label class="col-md-2 text-center">Pitch</label>
+          <label class="col-md-2 text-center">Pitch Var</label>
+          <label class="col-md-1 text-center" title="This is the relative likelihood of a sound playing.  So if all sounds are set at 100 (or all set at 1 for that matter) then they all have an equal chance of playing.  However if one sound is set at 50 and the others are at 100, then that sound is less likely to play than the others">Chance</label>
+          <label class="col-md-1 text-center" title="Fade duration (in seconds)">Fade In/Out</label>
+          <label class="col-md-1 text-center">Rand Loc</label>
+        </div>
+        <div ng-repeat="sound in effect.sounds" class="row">
+
+          <div class="form-group col-md-2">
+            <input class="form-control" type="text" ng-model="sound.name" />
+          </div>
+          <div class="form-group col-md-2"><a ui-turn-on="soundPicker" ng-click="$parent.selectedSound=$index" style="float:right;margin-top:2px;font-size: 25px;"><i class="fa fa-folder"></i></a>
+            <input style="width:80%;" class="form-control" type="text" ng-model="sound.file" />
+          </div>
+          <div class="form-group col-md-1">
+            <rzslider rz-slider-options="slider.options.percent" rz-slider-model="sound.vol"></rzslider>
+          </div>
+          <div class="form-group col-md-2">
+            <rzslider rz-slider-options="slider.options.pitchSet" rz-slider-model="sound.pitchSet"></rzslider>
+          </div>
+          <div class="form-group col-md-2">
+            <rzslider rz-slider-options="slider.options.pitchVar" rz-slider-model="sound.pitchVar"></rzslider>
+          </div>
+          <div class="form-group col-md-1">
+            <rzslider rz-slider-options="slider.options.chance" rz-slider-model="sound.chance"></rzslider>
+          </div>
+          <div class="form-group col-md-1 inline">
+            <input class="form-control" style="width:40%" type="text" ng-model="sound.fadeIn" />/
+            <input class="form-control" style="width:40%" type="text" ng-model="sound.fadeOut" />
+          </div>
+          <div class="form-group col-md-1 inline">
+            <input class="form-control" style="display:none" type="checkbox" ng-model="sound.reverb" />
+            <div class="switch">
+              <input type="checkbox" ng-model="sound.randLoc" />
+              <label> </label>
+            </div>
+            <button type="button" style="position: absolute;top: 18px;right: 0px;" class="btn btn-xs" ng-click="playSound(sound,effect)">
+              <i class="fa {{soundPlaying[sound.name]? 'fa-stop' : 'fa-play'}}"></i>
+            </button>
+          </div>
+        </div>
+        <button type="button" ng-click="addSound()" style="display: block;" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
+        </button>
+      </div>
+
+      <div class="form-group col-md-3 text-center">
+        <label>Volume %</label>
+        <rzslider rz-slider-options="slider.options.percent" rz-slider-model="effect.vol"></rzslider>
+      </div>
+
+      <div class="form-group col-md-5 text-center">
+        <label>Delay Range</label>
+        <rzslider rz-slider-model="delayL" rz-slider-high="delayH" rz-slider-options="slider.options.delay"></rzslider>
+      </div>
+      <div class="form-group col-md-4 text-center">
+        <label>Pre Delay</label>
+        <rzslider rz-slider-model="preDelay" rz-slider-options="slider.options.preDelay"></rzslider>
+      </div>
+
+      <input type="submit" class="btn btn-success" value="Save">
+    </form>
+  </div>
+</div>
+
+<div ui-content-for="navbarAction">
+
+</div>
+
+<div ui-content-for="modals">
+  <div class="modal" ui-if='soundPicker' ui-state='soundPicker'>
+    <div class="modal-dialog" style="z-index: 1050;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button class="close" ui-turn-off="soundPicker">&times;</button>
+          <h4 class="modal-title">Select Sound</h4>
+        </div>
+        <div class="modal-body">
+
+          <div ui-state="activeTab" default="1">
+            <ul class="nav nav-tabs">
+              <li ui-class="{'active': activeTab == 1}">
+                <a ui-set="{'activeTab': 1}">Existing Sound</a>
+              </li>
+              <li ui-class="{'active': activeTab == 2}">
+                <a ui-set="{'activeTab': 2}">Upload Sound</a>
+              </li>
+            </ul>
+            <div ui-if="activeTab == 1" style="padding:10px;">
+              <div> <span ng-if="pathDepth>0" ng-click="setActive(backPath,'Music',-1)">Back</span>
+              </div>
+              <div class="file-list" ng-repeat="(key,item) in activeSet" ng-click="setActive(item,key,1)">
+                <i class="fa fa-{{pathIcon}}"><span>{{key}}</span><span ng-if="item.name"></i>
+              </div>
+            </div>
+
+            <div ui-if="activeTab == 2">
+              <h3 class="page-header">Tab 2</h3>
+              <p>
+                <!-- ... -->
+              </p>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button ui-turn-off="soundPicker" class="btn btn-default">Close</button>
+          <button ui-turn-off="soundPicker" ng-click="addDie(new)" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

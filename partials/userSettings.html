@@ -1,0 +1,100 @@
+<div ui-content-for="title">
+  <span>User Settings</span>
+</div>
+<div class="scrollable">
+  <div class="scrollable-content section" ng-controller="SettingsCtrl">
+  <div class="row">
+  <h1>Settings/Options</h1>
+  <div class="col-md-3">
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" class="form-control" ng-model="name">
+    </div>
+    <div class="form-group">
+      <label>Email address (/User Name)</label>
+      <input type="email" class="form-control" ng-model="email">
+    </div>
+    <div class="form-group">
+      <a>Reset Password</a>
+    </div>
+  </div>
+    <div class="form-group col-md-2 text-center">
+      <label>Monster Images <i class="fa fa-question-circle-o" ng-init="monsterImages=false" ng-click="monsterImages=!monsterImages"></i></label><div ng-if="monsterImages" class="info-box">This enables or disables usage of monster images.  There are two likely scenarios for disabling monster images: <br>1. Slow computer or slow internet speed, <br>2. If you have not uploaded images for a large portion of monsters it may be preferable to only show the monster name until you have uploaded more images</div>
+      <div class="switch">
+        <input class="form-control"  type="checkbox" ng-model="settings.monsterImages"/>
+        <label> </label>
+      </div>
+      </div>
+    <div class="form-group col-md-2 text-center">
+      <label>Advantage/Disadvantage <i class="fa fa-question-circle-o" ng-init="advDisAdv=false" ng-click="advDisAdv=!advDisAdv"></i></label><div ng-if="advDisAdv" class="info-box">Turns on/of the additional combat buttons for using the Advantage/Disadvantage system for 5th edition D&amp;D</div>
+      <div class="switch">
+        <input class="form-control"  type="checkbox" ng-model="settings.advDisAdv"/>
+        <label> </label>
+      </div>
+    </div>
+    <div class="form-group col-md-3 text-center">
+      <label>Custom/Alternate Styling <i class="fa fa-question-circle-o" ng-init="customCSS=false" ng-click="customCSS=!customCSS"></i></label><div ng-if="customCSS" class="info-box">Don't like the look and feel of the site? Change it! You can upload a custom CSS file to modify any visual aspect of the site. Obviously this takes some basic CSS coding knowledge so the plan is to provide some templates to use for those who don't have a web design background.</div>
+      <select type="text" ng-model="settings.customCSS" class="form-control">
+        <option value="default">Default</option>
+        <option value="dark">Dark</option>
+        <option value="custom">Custom</option>
+      </select>
+       <div class="button" accept=".css" ngf-select ng-model="cssFile" ng-show="settings.customCSS=='custom'" ngf-multiple="false">Select File</div>
+
+  </div>
+  </div>
+  <div class="row" style="padding-top:100px;">
+  <h1>Reset/Clear Data</h1>
+      <div class="form-group col-md-2 text-center">
+      <i class="fa fa-question-circle-o top-right" ng-init="defaultReset=false" ng-click="defaultReset=!defaultReset"></i><div ng-if="defaultReset" class="info-box">This button will reset your account to defaults, so all monsters, spells, and sounds will be reset.  This will remove all custom work you have done (with the exception of Citizens).</div>
+      <input class="btn btn-primary"  type="button" value="Reset to Defaults" ui-turn-on="defaultResetUI"/>
+      
+      </div>
+</div>
+  <div class="row">
+      <div class="form-group col-md-2 text-center">
+      <i class="fa fa-question-circle-o top-right" ng-init="clearReset=false" ng-click="clearReset=!clearReset"></i><div ng-if="clearReset" class="info-box">This button will clear your account, so all monsters, spells, citizens, regions, and sounds will be REMOVED.  This will give you a blank slate to do a completely custom setup.</div>
+      <input class="btn btn-primary"  type="button" value="Clear All Data" ui-turn-on="clearReset"/>
+      
+      </div>
+</div>
+</div>
+</div>
+<div ui-content-for="modals">
+  <div class="modal" ui-if='defaultResetUI' ui-state='defaultResetUI'>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" 
+                ui-turn-off="defaultResetUI">&times;</button>
+        <h4 class="modal-title">Are you SURE?</h4>
+      </div>
+      <div class="modal-body">
+       This function will reset your account to defaults, so all monsters, spells, and sounds will be reset.  This will remove all custom work you have done (with the exception of Citizens).
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="defaultResetUI" class="btn btn-danger">Yes I'm Sure</button>
+        <button ui-turn-off="defaultResetUI" class="btn btn-success">I've changed my mind</button>
+      </div>
+    </div>
+  </div>
+</div>
+  <div class="modal" ui-if='clearReset' ui-state='clearReset'>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" 
+                ui-turn-off="clearReset">&times;</button>
+        <h4 class="modal-title">Are you SURE?</h4>
+      </div>
+      <div class="modal-body">
+       This button will clear your account, so all monsters, spells, citizens, regions, and sounds will be REMOVED.  This will give you a blank slate to do a completely custom setup.
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="clearReset" class="btn btn-danger">Yes I'm Sure</button>
+        <button ui-turn-off="clearReset" class="btn btn-success">I've changed my mind</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>

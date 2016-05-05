@@ -1,0 +1,14 @@
+<div ui-content-for="title">
+  <span>Combat Board</span>
+</div>
+<div ui-content-for="navbarAction">
+  <div ui-toggle="uiSidebarRight" class="right-menu-button btn">
+    <i class="fa fa-optin-monster"></i> Monsters
+  </div>
+</div>
+<div  ng-include="'/partials/monsters.html'"></div>
+<div class="scrollable">
+	<div class="section scrollable-content" ng-controller="combatCtrl" >
+		      <section ng-include="'/partials/combat.html'" class="combat-section" style="height:98%"></section>
+	</div>
+</div>

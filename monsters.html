@@ -1,0 +1,13 @@
+<div class="scrollable" id="monsterscroll">
+  <div class="scrollable-content" style="overflow: hidden;" >
+      <div class="list-group" style="height:100%;/*height: 100vh;
+                                      margin-bottom: 0px;
+                                      top: 0;
+                                      position: absolute;*/" >
+<input type="text" placeholde"Search..." ng-change="monsterFilter(mfilter)" ng-model="mfilter" style="width: 100%;border:1px solid black;background-color:white;max-width:100%;position:fixed;top:-1px;border-bottom-right-radius:6px;border-bottom-left-radius:6px;height:34px;" autocomplete="off" />
+    <ul ui-scroll-viewport style="height: 100%;margin-top:32px;overflow:auto;" class="list-unstyled section">
+      <li ui-scroll="monster in datasource" adapter="uiScrollMonsters" buffer-size="10" padding="10" style="text-align:center;" is-loading="loading"><img style="height:150px;width:auto;" on-double-click="addComb(monster)" src="{{monster.img}}" ><br> {{monster.name}} <small style="font-size:70%">(CR{{monster.cr}})</small></li>
+    </ul>
+      </div>
+  </div>
+</div>

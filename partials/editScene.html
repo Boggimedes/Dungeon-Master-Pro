@@ -1,0 +1,76 @@
+<style>
+	ul.form-group {
+		padding-left: 0px;
+		}
+	ul.form-group > li {
+		padding: 5px;
+		border: 1px solid black;
+		border-radius: 4px;
+		list-style: none;
+		text-align: center;
+		}
+	input[type=checkbox] {
+		margin: auto;
+		}
+</style>
+<div ui-content-for="title">
+	<span>Edit Scene</span>
+</div>
+<div class="scrollable" ng-init="sceneInit()">
+	<div class="scrollable-content section">
+		<form role="form" id="add-page" ng-submit="saveScene()" class="col-md-10">
+			<div class="form-group">
+				<label>Title</label>
+				<input class="form-control" type="text" ng-model="sceneContent.name" />
+			</div>
+
+			<div class="form-group">
+				<label>Description</label>
+				<input class="form-control" type="text" ng-model="sceneContent.desc" />
+			</div>
+
+			<label>Effects</label>
+			<ul dnd-list="sceneContent.effects" class="form-group" style="width:100%;min-height:30px;flex-flow: row wrap;display: flex;text-align: center;">
+				<li ng-repeat="effect in sceneContent.effects" dnd-draggable="effect" dnd-moved="sceneContent.effects.splice($index, 1)" dnd-effect-allowed="move">
+					<label ng-attr-title="{{effect.desc}}">{{effect.name}}</label>
+				</li>
+			</ul>
+
+			<div class="form-group col-md-3 text-center">
+				<label>Volume %</label>
+				<input class="form-control" type="number" ng-model="sceneContent.vol" />
+			</div>
+
+			<div class="form-group col-md-2 text-center">
+				<label>Fade In (seconds)</label>
+				<input class="form-control" type="number" ng-model="sceneContent.fadeIn" />
+			</div>
+
+			<div class="form-group col-md-2 text-center">
+				<label>Fade Out (seconds)</label>
+				<input class="form-control" type="number" ng-model="sceneContent.fadeOut" />
+			</div>
+
+			<div class="form-group col-md-2 text-center">
+				<label>Scene Solo</label>
+				<input class="form-control" style="width:20px;box-shadow: none;-webkit-box-shadow:none" type="checkbox" ng-model="sceneContent.sceneSolo" />
+			</div>
+
+			<div class="form-group col-md-3 text-center">
+				<label>Image File</label>
+				<input class="form-control" type="text" ng-model="sceneContent.img" />
+			</div>
+
+			<input type="submit" class="btn btn-success" value="Save">
+		</form>
+		<div class="col-md-2" style="height: 90vh;overflow: auto;">
+			<ul dnd-list="allEffects" class="form-group" style="flex-flow: row wrap;display: flex;text-align: center;">
+				<li ng-repeat="effectObjects in allEffects" dnd-draggable="effectObjects" dnd-moved="allEffects.splice($index, 1)" dnd-effect-allowed="move" style="width: 100%">
+					<label ng-attr-title="{{effectObjects.desc}}">{{effectObjects.name}}</label>
+					<input class="form-control" style="display:none" type="text" ng-model="effectObjects" />
+				</li>
+			</ul>
+		</div>
+	</div>
+</div>
+<div ui-content-for="navbarAction"></div>
