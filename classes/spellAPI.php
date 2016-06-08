@@ -21,7 +21,8 @@ function getMonsters($data){
 			$whereStr.="and `$key` = '$value' ";
 		}
 	}
-	$query = "SELECT * FROM monster WHERE account = $this->account ".$whereStr;
+	$query = "SELECT * FROM (SELECT * FROM monster WHERE account = $this->account ".$whereStr.
+				"UNION ALL SELECT * FROM monster WHERE account = 1 ".$whereStr.") AS monster GROUP BY name ORDER BY name";
 
 	if ($result = $this->mysqli->query($query)) {
 		while($row=$result->fetch_assoc()){
@@ -38,7 +39,6 @@ function getMonsters($data){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
 	return $monsters;
 }
 
@@ -49,12 +49,18 @@ function getSpells($data){
 	if(is_array($data)) if(array_key_exists("where", $data)) $where = $data['where'][0];
 	$spells=[];
 	if($where){
-		$whereStr='';
+		$whereStr=[];
 		foreach($where as $key=>$value){
-			$whereStr.="and `$key` = '$value' ";
+			$whereStr[]=" `$key` = '$value' ";
 		}
 	}
-	$query = "SELECT * FROM spells WHERE account = $this->account ".$whereStr;
+    if(count($whereStr)==0) $whereStr='';
+    	else $whereStr = "WHERE".implode(" AND ",$whereStr);
+	if($_SESSION["settings"]->defaultSpells) $spellsQuery = "(SELECT * FROM (SELECT * FROM gm_master_tools.spells WHERE account = $this->account
+			UNION ALL SELECT * FROM gm_master_tools.spells WHERE account = 1) AS spells GROUP BY `name` ORDER BY `name`) AS spells";
+	 else $spellsQuery = "(SELECT * FROM gm_master_tools.monster WHERE account = $this->account) AS spells";
+
+	$query = "SELECT * FROM $spellsQuery $whereStr";
 	$query .= " ORDER BY name";
 	if ($result = $this->mysqli->query($query)) {
 		while($row=$result->fetch_assoc()){
@@ -68,7 +74,7 @@ function getSpells($data){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
+
 	return $spells;
 }
 
@@ -79,12 +85,18 @@ function getSpellBasics($data){
 	if(is_array($data)) if(array_key_exists("where", $data)) $where = $data['where'][0];
 	$spells=[];
 	if($where){
-		$whereStr='';
+		$whereStr=[];
 		foreach($where as $key=>$value){
-			$whereStr.="and `$key` = '$value' ";
+			$whereStr[]=" `$key` = '$value' ";
 		}
 	}
-	$query = "SELECT name, level, id FROM spells WHERE account = $this->account ".$whereStr;
+    if(count($whereStr)==0) $whereStr='';
+    	else $whereStr = "WHERE".implode(" AND ",$whereStr);
+	if($_SESSION["settings"]->defaultSpells) $spellsQuery = "(SELECT * FROM (SELECT * FROM gm_master_tools.spells WHERE account = $this->account
+			UNION ALL SELECT * FROM gm_master_tools.spells WHERE account = 1) AS spells GROUP BY `name` ORDER BY `name`) AS spells";
+	 else $spellsQuery = "(SELECT * FROM gm_master_tools.monster WHERE account = $this->account) AS spells";
+
+	$query = "SELECT name, level, id FROM $spellsQuery $whereStr";
 	$query .= " ORDER BY name";
 	if ($result = $this->mysqli->query($query)) {
 		while($row=$result->fetch_assoc()){
@@ -98,64 +110,13 @@ function getSpellBasics($data){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
+
 	return $spells;
 }
 
-function getUiScrollMonsters($descriptor){
-	$filter = $descriptor['filter'];
-	$query = "SELECT COUNT(`name`) FROM monster WHERE account = $this->account AND `name` LIKE '%$filter%'";
-	if ($result = $this->mysqli->query($query)) {
-		while($row=$result->fetch_array()){$count=$row[0];}
-	    $result->close();
-	}
-	$dcount = $descriptor['count'];
-	$index = $descriptor['index']/$count;
-	$index = round(substr($index,strpos($index,"."))*$count);
-	if($descriptor['index'] < 0){
-		if($index+$dcount > $count){
-			$blimit = ($index+$dcount)-$count;
-			$limit = $count - $index;
-			$query = "SELECT * FROM (SELECT *,1 as rank FROM monster WHERE account = $this->account AND `name` LIKE '%$filter%' ORDER BY `name` DESC LIMIT $limit) a
-						UNION ALL SELECT * FROM (SELECT *,2 as rank FROM monster WHERE account = $this->account AND `name` LIKE '%$filter%' LIMIT $blimit) b
-						ORDER BY Rank ,`name`";
-		}
-		else $query = "SELECT * FROM (SELECT * FROM monster WHERE account = $this->account AND `name` LIKE '%$filter%' ORDER BY `name` DESC LIMIT $index, $dcount) a ORDER BY `name`";
-	} 
-	else{
-		if($index+$dcount > $count){
-			$blimit = (abs($index)+$dcount)-$count;
-			$limit = $count - abs($index);
-			$query = "SELECT * FROM (SELECT *,1 as rank FROM monster WHERE account = $this->account AND `name` LIKE '%$filter%' LIMIT $limit) a
-						UNION ALL SELECT * FROM (SELECT *,2 as rank FROM monster WHERE account = $this->account AND `name` LIKE '%$filter%' ORDER BY `name` DESC LIMIT $blimit) b
-						ORDER BY Rank ,`name`";
-		}
-		else $query = "SELECT * FROM monster WHERE account = $this->account AND `name` LIKE '%$filter%' ORDER BY `name` LIMIT $index, $dcount";
-
-	} 
-
-	$monsters=[];
-	if ($result = $this->mysqli->query($query)) {
-		while($row=$result->fetch_assoc()){
-			$row['skills']=json_decode($row['skills']);
-			$row['attacks']=json_decode($row['attacks']);
-			$row['legendaryActions']=json_decode($row['legendaryActions']);
-			//echo json_last_error_msg ();
-			$monsters[]=$row;
-		}
-	    $result->close();
-	}
-	if ($this->mysqli->errno) { 
-	echo "Mysqli failed.\n $query \n"; 
-	var_dump($this->mysqli->error); 
-	} 
-	$this->mysqli->close();
-	return $monsters;
-}
-
-function addMonster($monsterData){
-	$query = "INSERT INTO monster SET account = $this->account";
-	foreach($monsterData as $key=>$value){
+function addSpell($spellData){
+	$query = "INSERT INTO spells SET account = $this->account";
+	foreach($spellData as $key=>$value){
 		if($value === 0 || $value === 1) $query .= $key." = ".$value.",";
 			else $query .= ", `$key` = '".$this->mysqli->real_escape_string($value)."'";
 		}
@@ -164,37 +125,34 @@ function addMonster($monsterData){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
+
 	return "added";
 }
 
 
-function updateMonster($monsterData){
-	$this->account = 1;
-	$query = "REPLACE INTO monster SET account = $this->account";
-    unset($monsterData['account']);
-	foreach($monsterData as $key=>$value){
-		if($key == "skills" || $key == "attacks" || $key == "legendaryActions"){
-			$query .= ", `$key` = '".$this->mysqli->real_escape_string(json_encode($value))."'";
-			continue;
-		}
+function updateSpell($spellData){
+	if($spellData['account'] == 1 && $this->account != 1)unset($spellData['id']);
+	$query = " account = $this->account";
+    unset($spellData['account']);
+	foreach($spellData as $key=>$value){
 		if($value === 0 || $value === 1) $query .= ", `$key` = $value";
 			else $query .= ", `$key` = '".$this->mysqli->real_escape_string($value)."'";
 		}
 
+	$query = "INSERT INTO spells SET $query ON DUPLICATE KEY UPDATE $query";
 	$this->mysqli->query($query);
 	
 	if ($this->mysqli->errno) { 
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
+
 	return "updated";
 }
 
 
-function deleteMonster($id){
-	$query = "DELETE FROM monster WHERE account = $this->account AND ".$id['field']." = '".$id['value']."'";
+function deleteSpell($id){
+	$query = "DELETE FROM spells WHERE account = $this->account AND ".$id['field']." = '".$id['value']."'";
 
 	if ($result = $this->mysqli->query($query)) {
 	    $result->close();
@@ -203,7 +161,7 @@ function deleteMonster($id){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
+
 	return "Deleted record ".$id['value'];
 }
 

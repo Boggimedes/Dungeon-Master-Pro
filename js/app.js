@@ -4,9 +4,11 @@
 // Declare app level module which depends on filters, and services
 angular.module('myApp', [
   'ngRoute',
+  'oc.lazyLoad',
   'ui.tinymce',
   'myApp.filters',
   'myApp.services',
+  'jkuri.slimscroll',
   'myApp.directives',
   'myApp.controllers',
   'dndLists',
@@ -26,6 +28,20 @@ angular.module('myApp', [
 .run(function($transform) {
   window.$transform = $transform;
 })
+.run(['$route', '$rootScope', '$location', function ($route, $rootScope, $location) {
+    var original = $location.path;
+    $location.path = function (path, reload) {
+        if (reload === false && typeof path == "undefined") {
+            var lastRoute = $route.current;
+            var un = $rootScope.$on('$locationChangeSuccess', function () {
+                $route.current = lastRoute;
+                un();
+                $rootScope.loading=false;
+            });
+        }
+        return original.apply($location, [path]);
+    };
+}])
 
 .config(['localStorageServiceProvider', function(localStorageServiceProvider){
   localStorageServiceProvider.setPrefix('ls');
@@ -39,6 +55,11 @@ $routeProvider.otherwise("/");
         $routeProvider.when('/edit',
             {templateUrl: 'partials/editSound.html',
             controller: 'SoundEditCtrl', reloadOnSearch: false
+        });
+        
+        $routeProvider.when('/faq',
+            {templateUrl: 'partials/faq.html',
+            controller: 'SettingsCtrl', reloadOnSearch: false
         });
         
         $routeProvider.when('/edit/effect/:id',
@@ -62,8 +83,13 @@ $routeProvider.otherwise("/");
         });
 
         $routeProvider.when('/npcs/:region',
-            {templateUrl: 'partials/npcs.html',
+            {templateUrl: 'partials/npcBoard.html',
             controller: 'NpcCtrl', reloadOnSearch: false
+        });
+
+        $routeProvider.when('/pc',
+            {templateUrl: 'partials/pc.html',
+             reloadOnSearch: false
         });
 
         $routeProvider.when('/world',
@@ -95,11 +121,11 @@ $routeProvider.otherwise("/");
         });
 
         $routeProvider.when('/edit/monster/:id',
-          { templateUrl: 'partials/editMonster.html', reloadOnSearch: false
+          { templateUrl: 'partials/editMonster.html',controller: 'MonstersCtrl', reloadOnSearch: false
         });
 
         $routeProvider.when('/edit/sounds',
-          { templateUrl: 'partials/editSound.html', reloadOnSearch: false
+          { templateUrl: 'partials/editSounds.html', reloadOnSearch: false
         });
 
         $routeProvider.when('/campaignboard',

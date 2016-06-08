@@ -1,20 +1,28 @@
 {
-    "name": "slim/slim-skeleton",
-    "description": "A Slim Framework skeleton application for rapid development",
-    "keywords": ["microframework","rest","router", "psr7"],
-    "homepage": "http://github.com/slimphp/Slim-Skeleton",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Josh Lockhart",
-            "email": "info@joshlockhart.com",
-            "homepage": "http://www.joshlockhart.com/"
-        }
-    ],
+    "name": "bwa-designs/gamemaster.pro",
+    "description": "SaaS for Game Masters running tabletop Role Playing Games",
+    "type": "project",
     "require": {
-        "php": ">=5.5.0",
+        "php": ">=7.0.0",
         "slim/slim": "^3.1",
         "slim/php-view": "^2.0",
-        "monolog/monolog": "^1.17"
-    }
+        "monolog/monolog": "^1.17",
+        "stripe/stripe-php": "^3.13"
+    },
+    "license": "apache2.0",
+    "authors": [
+        {
+            "name": "Daniel Boggs",
+            "email": "boggimedes@gmail.com"
+        }
+    ],
+    "minimum-stability": "beta",
+    "scripts": {
+"post-install-cmd": [
+"bower install"
+],
+"post-update-cmd": [
+"bower install"
+]
+}
 }

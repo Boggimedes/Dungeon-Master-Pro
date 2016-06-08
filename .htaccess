@@ -1,3 +1,23 @@
+# 480 weeks
+<FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif)$">
+Header set Cache-Control "max-age=290304000, public"
+</FilesMatch>
+
+ # 480 weeks
+#<FilesMatch "\.(ico|pdf|flv|jpg|jpeg|png|gif|js|css|swf)$">
+#Header set Cache-Control "max-age=290304000, public"
+#</FilesMatch>
+ 
+# 2 DAYS
+#<FilesMatch "\.(xml|txt)$">
+#Header set Cache-Control "max-age=172800, public, must-revalidate"
+#</FilesMatch>
+ 
+# 2 HOURS
+#<FilesMatch "\.(html|htm)$">
+#Header set Cache-Control "max-age=7200, must-revalidate"
+#</FilesMatch>
+
 RewriteEngine On
 
 # Some hosts may require you to use the `RewriteBase` directive.

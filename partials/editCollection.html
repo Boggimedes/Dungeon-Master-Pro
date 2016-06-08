@@ -22,17 +22,17 @@
 		}
 </style>
 <div ui-content-for="title">
-  <span>Edit Collection</span>
+  <span>{{heading}}</span>
 </div>
 
 <div class="scrollable" ng-init="collectionInit()">
 	<div class="scrollable-content section">
 		<div class="row">
 			<div class="col-md-10">
-				<form role="form" id="add-page" ng-submit="savecollection()">
+				<form role="form" id="add-page" ng-submit="saveCollection()">
 					<div class="form-group">
 						<label>Collection ID</label>
-						<input class="form-control" type="text" readonly ng-model="collectionContent._id"/>
+						<input class="form-control" type="text" readonly ng-model="collectionContent.id"/>
 					</div>
 					<div class="form-group">
 						<label>Title</label>

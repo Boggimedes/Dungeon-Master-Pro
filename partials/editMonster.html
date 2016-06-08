@@ -6,12 +6,13 @@
     <i class="fa fa-optin-monster"></i> Monsters
   </div>
 </div>
-<div  ng-include="'/partials/monsters.html'"></div>
+<div  ng-include="'/partials/monsters.html'" style="background-color:white;"></div>
 <div class="scrollable">
-  <div class="scrollable-content section">
+  <div class="scrollable-content section" style="background-color:white;">
     <span style="font-size:xx-small;display:none;">pg.{{currentMonster.pg}}</span>
-    <form role="form" id="add-page" ng-submit="saveMonster()" class="form-inline">
+    <form role="form" id="add-page" class="form-inline">
 
+ <div class="col-md-10">
       <div class="row">
         <div class="form-group col-md-3">
           <label>Name</label>
@@ -42,9 +43,6 @@
           <label>Hit Points</label>
           <input class="form-control" type="text" ng-model="currentMonster.hp" />
         </div>
-      </div>
-
-      <div class="row">
         <div class="form-group col-md-2">
           <label>Initiative</label>
           <input class="form-control" type="text" ng-model="currentMonster.initiative" />
@@ -59,30 +57,40 @@
           <input class="form-control" ng-model="currentMonster.environment" />
         </div>
 
-        <div class="form-group col-md-4">
-          <label>Creature Image</label>
-          <input class="form-control" type="text" ng-model="currentMonster.img" style="text-align:left" />
-        </div>
       </div>
-
       <div class="row">
         <div class="form-group col-md-4">
-          <label>Description</label>
-          <textarea class="form-control" type="text" ng-model="currentMonster.desc" rows="7"></textarea>
+          <label>Description</label> <i class="fa fa-pencil-square-o" ng-click="descEdit=true"></i>
+          <textarea class="form-control" ng-if="descEdit" ui-tinymce="tinymceOptions" type="text" ng-model="currentMonster.desc" rows="5"></textarea>
+          <div ng-if="!descEdit" class="mce-hold" ng-bind-html="trust(currentMonster.desc)"></div>
+        </div>
+        <div class="form-group col-md-4">
+          <label>Senses &amp; Resistances/Vulnerabilities</label> <i class="fa fa-pencil-square-o" ng-click="sensesEdit=true"></i>
+          <textarea class="form-control" ng-if="sensesEdit" ui-tinymce="tinymceOptions" type="text" ng-model="currentMonster.senses" rows="5"></textarea>
+          <div ng-if="!sensesEdit" class="mce-hold" ng-bind-html="trust(currentMonster.senses)"></div>
         </div>
 
         <div class="form-group col-md-4">
-          <label>Senses &amp; Resistances/Vulnerabilities</label>
-          <textarea class="form-control" ui-tinymce="tinymceOptions" type="text" ng-model="currentMonster.senses" rows="5"></textarea>
-        </div>
-
-        <div class="form-group col-md-4">
-          <label>Special</label>
-          <textarea class="form-control" ui-tinymce="tinymceOptions" ng-model="currentMonster.special" rows="5"></textarea>
+          <label>Special</label> <i class="fa fa-pencil-square-o" ng-click="specialEdit=true"></i>
+          <textarea class="form-control" ng-if="specialEdit" ui-tinymce="tinymceOptions" type="text" ng-model="currentMonster.special" rows="5"></textarea>
+          <div ng-if="!specialEdit" class="mce-hold" ng-bind-html="trust(currentMonster.special)"></div>
         </div>
       </div>
+</div>
+      <div class="col-md-2" style="max-width: 260px;">
+              <div ngf-drop ng-model="picFile" ng-show="showImgChange" ngf-pattern="image/*"
+             class="cropArea">Click or drop image here...
+            <img-crop  area-type="square" result-width-mult="2.6/3" result-image-format="image/jpeg" result-image-size="300" image="picFile  | ngfDataUrl"                 
+            result-image="currentMonster.img">
+            </img-crop>
+        </div>
+        <div>
+            <img ng-src="{{currentMonster.img}}" />
+        </div>
+        <button class="btn btn-primary btn-xs" ng-click="showImgChange=!showImgChange">{{showImgChange? 'Hide':'Change Image'}}</button> 
+        </div>
 
-      <div class="row">
+      <div class="row col-md-12">
         <div class="form-group" style="float:right;">
           <table class="table" style="max-width:500px;">
             <thead><tr><th>str</th><th>dex</th><th>con</th><th>int</th><th>wis</th><th>cha</th></tr></thead>
@@ -129,6 +137,7 @@
         </div>
       </div>
 
+<div class="row col-md-12">
       <label>Actions/Attacks </label>
       <button type="button" ng-click="addAttack()" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
       </button>
@@ -156,12 +165,14 @@
         </div>
 
         <div ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'" class="form-group col-md-5">
-          <label>Damage roll/text</label>
-          <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="attack.damage" /></textarea>
+          <label>Damage roll/text</label> <i class="fa fa-pencil-square-o" ng-click="attackEdit=true"></i>
+          <textarea class="form-control" ng-if="attackEdit" ui-tinymce="tinymceOptionsWithButton" type="text" ng-model="attack.damage" rows="6"></textarea>
+          <div ng-if="!attackEdit" class="mce-hold" ng-bind-html="trust(attack.damage)"></div>
         </div>
         <div ng-hide="attack.name=='Multiattack' || attack.name=='Spellcasting'" class="form-group col-md-5">
-          <label>Special</label>
-          <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="attack.special" /></textarea>
+          <label>Special</label> <i class="fa fa-pencil-square-o" ng-click="specialEdit=true"></i>
+          <textarea class="form-control" ng-if="specialEdit" ui-tinymce="tinymceOptionsWithButton" type="text" ng-model="attack.special" rows="6"></textarea>
+          <div ng-if="!specialEdit" class="mce-hold" ng-bind-html="trust(attack.special)"></div>
         </div>
 
         <section ng-show="attack.name=='Multiattack'" style="padding: 15px;margin-right:5px;max-width:250px" ng-repeat="subitem in attack.submenu" class="form-group col-md-2 action-group list-unstyled">
@@ -181,36 +192,64 @@
           <label>Add Spell/Ability</label>
           <input class="form-control" type="text" placeholder="Name" ng-model="spell.name" style="width:55%;float:left" />
           <input class="form-control" placeholder="#" type="text" ng-model="spell.num" style="width:20%;float:left" />
-          <input class="form-control" type="button" value="add" ng-click="subitem.submenu.push({'name':spell.name,'num':spell.num});spell=[];" style="width:25%;" />
+          <input class="form-control" type="button" value="add" ng-click="addSpell(spell,subitem);spell = [];" style="width:25%;" />
           <div style="display: flex;flex-wrap: wrap;"><span ng-repeat="subsubitem in subitem.submenu" class="subitem"> {{subsubitem.name}}{{subsubitem.num ? 'x'+subsubitem.num : '' }} <i ng-click="subitem.submenu.splice($index,1)"  class="fa fa-times-circle"></i><span ng-if="attack.name=='Spellcasting'" ng-init="subsubitem.type = 'ca'"></span></span>
           </div>
         </section>
       </section>
-
-      <div>
-        <label>Legendary Actions </label>
-        <button type="button" ng-click="addLA()" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
-        </button>
-        <section ng-repeat="lAttack in currentMonster.legendaryActions" ng-if="currentMonster.legendaryActions.length" class="skills-actions">
-          <div class="form-group col-md-2">
-            <label>Attack Name</label>
-            <input class="form-control" type="text" ng-model="lAttack.name" />
-            <label>Attack Reach/Range</label>
-            <input class="form-control" type="text" ng-model="lAttack.rr" />
-            <label>Attack Bonus</label>
-            <input class="form-control" type="text" ng-model="lAttack.bonus" />
-          </div>
-          <div class="form-group col-md-5">
-            <label>Damage roll/text</label>
-            <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="lAttack.damage" /></textarea>
-          </div>
-          <div class="form-group col-md-5">
-            <label>Special</label>
-            <textarea class="form-control" type="text" ui-tinymce="tinymceOptionsWithButton" rows="6" ng-model="lAttack.special" /></textarea>
-          </div>
-        </section>
       </div>
-      <input type="submit" class="btn btn-success" value="Save">
     </form>
+    <div class="row">
+    <div class="col-md-6">
+    <buttom class="form-control btn btn-success" ng-click="saveMonster()" >Save</buttom>
+    </div>
+    <div class="col-md-6">
+    <buttom class="form-control btn btn-danger"  ng-click="deleteMonster(currentMonster.id)">Delete</buttom>
+    <br><small>*This button will delete CUSTOM monsters, or reset altered monsters to the default.  If you do not wish to display default monsters you can change that in <a href="/user/settings">Settings</a></small>
+    </div>
+    </div>
+
   </div>
 </div>
+
+<style>
+.mce-hold{
+  height:143px;
+  overflow:auto;
+  background-color:white;
+  padding:5px;
+  border:1px solid darkgrey;
+}
+.cropArea {
+    background: #E4E4E4;
+    overflow: hidden;
+    width: 260px;
+    height: 300px;
+    display: table-cell;
+    vertical-align: middle;
+    position: absolute;
+    right: 100%;
+    text-align: center;
+  }
+form .progress {
+    line-height: 15px;
+}
+.progress {
+    display: inline-block;
+    width: 100px;
+    border: 3px groove #CCC;
+}
+.progress div {
+    font-size: smaller;
+    background: orange;
+    width: 0;
+}
+img-crop {
+    width: 100%;
+    height: 100%;
+    display: block;
+    position: absolute;
+    overflow: hidden;
+    top: 0;
+}
+</style>
