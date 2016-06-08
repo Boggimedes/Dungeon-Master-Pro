@@ -66,9 +66,7 @@ table {
 	background-color:black;
 }
 
-.selected:hover>td {
-  background-color: #098201 !important;
-}
+
 .info-box {
     background-color: black;
     border: 2px solid darkgrey;
@@ -77,3 +75,13 @@ table {
   .hp-options li:nth-child(7){
     color:white;
   }
+.help-question{
+    background-color:#474747;
+}
+.nav-tabs>li.active>a, .nav-tabs>li.active>a:focus {
+    color: white;
+    background-color: #636363;
+    border: 1px solid #ddd;
+    border-bottom-color: transparent;
+    cursor: default;
+}

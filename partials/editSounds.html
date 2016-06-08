@@ -1,0 +1,11 @@
+<div ui-content-for="title">
+  <span>Edit Sounds</span>
+</div>
+<div class="scrollable" ng-controller="ImageGetCtrl">
+  <div class="scrollable-content section">
+   <div ng-repeat="img in resources" >
+   {{img.public_id}}
+   <img ng-src="http://res.cloudinary.com/bwa-designs/video/upload/h_100,w_1000,fl_waveform,co_blue,b_white/{{img.public_id}}.png">
+   </div>
+  </div>
+</div>

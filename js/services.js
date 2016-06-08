@@ -24,10 +24,42 @@ angular.module('myApp.services', [])
             },
             getUiScrollMonsters: function(pageData) {
                 pageData = {
-                    "descriptor": pageData,
-                    "account": 1
+                    "descriptor": pageData
                 };
                 return $http.post('/api/monster/getui', pageData);
+            },
+            get: function(descriptor, success) {
+                var that = this;
+                console.log(descriptor);
+                return $timeout(function() {
+                    var count, i, index, j, ref, ref1, result, min, max;
+                    index = descriptor.index;
+                    count = descriptor.count;
+                    descriptor.cFilter = cf;
+                    descriptor.nFilter = nf;
+                    that.getUiScrollMonsters(descriptor).then(function(response) {
+                        return success(response.data);
+                    }, function(err) {});
+                }, 100);
+            }
+        };
+    }
+])
+
+.factory('soundsDatasource', ['$timeout', '$http',
+    function($timeout, $http) {
+        var nf = '';
+        var tf = '';
+        return {
+            setFilter: function(nfilter, tfilter) {
+                nf = nfilter;
+                tf = tfilter;
+            },
+            getUiScrollSounds: function(pageData) {
+                pageData = {
+                    "descriptor": pageData
+                };
+                return $http.post('/api/sound/sounds/getui', pageData);
             },
             get: function(descriptor, success) {
                 var that = this;
@@ -36,9 +68,9 @@ angular.module('myApp.services', [])
                     var count, i, index, j, ref, ref1, result, min, max;
                     index = descriptor.index;
                     count = descriptor.count;
-                    descriptor.cFilter = cf;
                     descriptor.nFilter = nf;
-                    that.getUiScrollMonsters(descriptor).then(function(response) {
+                    descriptor.tFilter = tf;
+                    that.getUiScrollSounds(descriptor).then(function(response) {
                         return success(response.data);
                     }, function(err) {});
                 }, 100);
@@ -104,6 +136,9 @@ angular.module('myApp.services', [])
             getCollections: function(pageData) {
                 return $http.post('/api/sound/collection/get', pageData);
             },
+            getCollection: function(pageData) {
+                return $http.post('/api/sound/collection/getdetails', pageData);
+            },
             updateCollection: function(pageData) {
                 return $http.post('/api/sound/collection/update', pageData);
             },
@@ -130,11 +165,11 @@ angular.module('myApp.services', [])
                 return $http.post('/api/monster/add', pageData);
             },
             updateMonster: function(pageData) {
-                var id = pageData._id;
                 return $http.post('/api/monster/update', pageData);
             },
             deleteMonster: function(id) {
-                return $http.post('/api/monster/delete/' + id);
+               var pageData = {"field":"id","value":id};
+                return $http.post('/api/monster/delete', pageData);
             },
             getMonsterContent: function(pageData) {
                 return $http.post('/api/monster/' + name);
@@ -190,7 +225,7 @@ angular.module('myApp.services', [])
                 return Math.floor(Math.random() * (max - min + 1)) + min;
             },
             rollDice: function(roll) {
-                if (roll == "-") {
+                if (roll == "-" || roll == "") {
                     return "";
                 }
                 var result = 0;
@@ -204,6 +239,7 @@ angular.module('myApp.services', [])
                 }
                 for (var r = 0; r < vMatch.length; r++) {
                     tRoll = vMatch[r].split("d");
+                    result=0;
                     for (var i = 0; i < tRoll[0]; i++) {
                         result = result + this.getRandomInt(1, tRoll[1]);
                     }
@@ -215,6 +251,7 @@ angular.module('myApp.services', [])
                 if (vMatch == null) return roll;
                 for (var r = 0; r < vMatch.length; r++) {
                     console.log(roll);
+                    //vMatch[r] = vMatch[r].replace("--","-");
                     console.log(vMatch[r]);
                     console.log(eval(vMatch[r]));
                     roll = roll.replace(vMatch[r], eval(vMatch[r]));
@@ -251,6 +288,9 @@ angular.module('myApp.services', [])
             playSound: function(data) {
 
             },
+            getScenes: function(pageData) {
+                return $http.post('/api/sound/scene/get', pageData);
+            },
             getSounds: function(data) {
                 return $http.get('/api/sounds/sounds/get');
             },
@@ -276,7 +316,7 @@ angular.module('myApp.services', [])
                     aScene.context.destination.channelCount = aScene.context.destination.maxChannelCount;
 
                     for (var j = 0; j < aScene.effects.length; j++) {
-                        if (aScene.effects[j].preDelay) {
+                        if (aScene.effects[j].preDelay>0) {
                             aScene.effects[j].nextPlay = getRandomInt(aScene.effects[j].delayL, aScene.effects[j].delayH) + aScene.context.currentTime + aScene.effects[j].preDelay + aScene.context.currentTime;
                         } else aScene.effects[j].nextPlay = 0;
                         if (j == 0) aScene.nextPlay = aScene.effects[j].nextPlay;
@@ -330,15 +370,20 @@ angular.module('myApp.services', [])
                         }
                         var perRoll = getRandomInt(1, perChance);
                         perChance = 0;
-                        for (var k = 0; k < aScene.effects[j].sounds.length; k++) {
-                            perChance += aScene.effects[j].sounds[k].chance;
+                        var k=0;
+                        for (var l = 0; l < aScene.effects[j].sounds.length; l++) {
+                            perChance += aScene.effects[j].sounds[l].chance;
+                        console.log(perRoll);
+                        console.log(perChance);
                             if (perChance > perRoll) {
-                                var url = "/sounds/" + aScene.effects[j].sounds[k].file;
+                                var url = "/sounds/" + aScene.effects[j].sounds[l].file;
+                                k=l;
                                 break;
                             }
                         }
                         console.log(j);
                         console.log(k);
+                        console.log(url);
                         console.log(aScene);
                         var cents = aScene.effects[j].sounds[k].pitchSet;
                         cents = cents + getRandomInt(-aScene.effects[j].sounds[k].pitchVar, aScene.effects[j].sounds[k].pitchVar * 2);
@@ -352,10 +397,6 @@ angular.module('myApp.services', [])
                             aScene.context.decodeAudioData(request.response, function(buffer) {
                                     mixToMono(buffer);
                                     source.buffer = buffer;
-                                    if (aScene.effects[j].loop) aScene.effects[j].nextPlay = getRandomInt(aScene.effects[j].delayL, aScene.effects[j].delayH) + buffer.duration + aScene.context.currentTime - (aScene.effects[j].sounds[k].fadeIn);
-                                    else aScene.effects[j].nextPlay = 99999999;
-                                    if (aScene.nextPlay > aScene.effects[j].nextPlay) aScene.nextPlay = aScene.effects[j].nextPlay;
-
                                     //aScene.source = source;
                                     aScene.merger = aScene.context.createChannelMerger(8);
                                     aScene.gainNode.push(aScene.merger.context.createGain());
@@ -391,12 +432,26 @@ angular.module('myApp.services', [])
                                         channelplayed = "all";
                                     }
 
+                                    if (aScene.effects[j].loop) aScene.effects[j].nextPlay = getRandomInt(aScene.effects[j].delayL, aScene.effects[j].delayH) + buffer.duration + aScene.context.currentTime - (aScene.effects[j].sounds[k].fadeIn);
+                                    else {
+                                        aScene.effects[j].nextPlay = 99999999;
+                                        if(!aScene.effects[j].sounds[k].loop) aScene.closeTime = aScene.context.currentTime + (buffer.duration);
+                                        }
+                                    if (aScene.nextPlay > aScene.effects[j].nextPlay) aScene.nextPlay = aScene.effects[j].nextPlay;
+
                                     console.log("Playing sound " + aScene.effects[j].sounds[k].name + " from " + aScene.effects[j].name + " in scene " + aScene.name);
+                                    if(aScene.effects[j].sounds[k].loop) {
+                                        source.loop=true;
+                                        aScene.effects[j].nextPlay = 9999999;
+                                    }
                                     source.start(0);
                                     // At the end of the track, fade it out.
+                                    console.log(aScene.effects[j].nextPlay);
+                                    console.log(aScene.context.currentTime);
+                                    if(aScene.effects[j].sounds[k].fadeOut>0){
                                     aScene.gainNode[gainIndex].gain.linearRampToValueAtTime(aScene.gainNode[gainIndex].gainSet, (aScene.context.currentTime + buffer.duration - aScene.effects[j].sounds[k].fadeOut));
                                     aScene.gainNode[gainIndex].gain.linearRampToValueAtTime(0, (aScene.context.currentTime + buffer.duration));
-
+                                    }
 
 
                                 },
@@ -471,6 +526,12 @@ angular.module('myApp.services', [])
             updateDescriptives: function(pageData) {
                 return $http.post('/api/citizens/descriptives/update', pageData);
             },
+            updateNpcRecord: function(table,pageData) {
+                return $http.post('/api/citizens/'+table+'/update', pageData);
+            },
+            deleteNpcRecord: function(table,pageData) {
+                return $http.post('/api/citizens/'+table+'/delete', pageData);
+            },
             addDescriptives: function(pageData) {
                 return $http.post('/api/citizens/descriptives/add', pageData);
             },
@@ -496,6 +557,12 @@ angular.module('myApp.services', [])
             },
             login: function(pageData) {
                 return $http.post('/login', pageData);
+            },
+            resetPassword: function(pageData){
+                return $http.post('/api/user/reset-password', pageData);
+            },
+            startMembership: function(pageData){
+                return $http.post('/api/user/membership', pageData);
             }
 
         }

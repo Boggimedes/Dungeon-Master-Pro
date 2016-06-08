@@ -7,6 +7,14 @@ angular.module('myApp.controllers', [])
 .controller('SiteCtrl', ['$rootScope', '$route', '$filter', 'monsterDatasource', '$window', '$scope', 'soundsFactory', 'siteFactory', '$location',
     function($rootScope, $route, $filter, monsterDatasource, $window, $scope, soundsFactory, siteFactory, $location) {
         //$scope.css = 'dark';
+        $scope.checkOverflow = function($event) {
+               if ($event.target.offsetHeight < $event.target.scrollHeight ||
+                      $event.target.offsetWidth < $event.target.scrollWidth) {
+                      return true;
+                    } else {
+                      return false;
+                    }
+        };
         $scope.swiped = function(direction) {
             alert('Swiped ' + direction);
         };
@@ -17,11 +25,36 @@ angular.module('myApp.controllers', [])
         $rootScope.$on('$routeChangeStart', function() {
             $rootScope.loading = true;
         });
-
         $rootScope.$on('$routeChangeSuccess', function() {
             $rootScope.loading = false;
-            if(!$scope.loggedIn && $location.$$path != "/") $scope.Ui.turnOn('login');
+            // console.log($scope.loggedIn);
+            // console.log($location.$$path);
+            // if(!$scope.loggedIn && $location.$$path != "/"){console.log(0);$scope.Ui.turnOn('login');}
+
         });
+
+        $scope.startTutorial = function(){
+            $scope.helpOverlay = true;
+            $scope.helpStep = 0;
+            $scope.tutorial = [
+            "/tutorial/0.html",
+            "/tutorial/1.0.html",
+            "/tutorial/2.0.html",
+            "/tutorial/2.1.html",
+            "/tutorial/3.0.html",
+            "/tutorial/3.1.html",
+            "/tutorial/4.0.html",
+            "/tutorial/4.1.html",
+            "/tutorial/4.2.html",
+            "/tutorial/5.0.html",
+            "/tutorial/5.1.html"
+            ];
+        }
+
+        $scope.moveTutorial = function(direction){
+            $scope.helpStep += direction;
+            console.log($scope.helpStep);
+        }
 
         $scope.sceneOptions = function(scene) {
             console.log($scope.sceneOpt = scene);
@@ -32,9 +65,8 @@ angular.module('myApp.controllers', [])
             $scope.screenSlide = !$scope.screenSlide;
         }
 
-        $scope.go = function(location) {
-            console.log(location);
-            $location.path(location)
+        $scope.go = function(location,reload) {
+            $location.path(location, reload);
         }
         $scope.notices = [];
 
@@ -51,16 +83,13 @@ angular.module('myApp.controllers', [])
                 $scope.notices.splice(index, 1);
             }
         };
-
+        console.log("test");
         if($location.$$path != "/"){
           siteFactory.getSettings().then(function(response) {
             console.log(response.data);
-              $scope.loggedIn = response.data.loggedIn;
-              $scope.settings = response.data.settings;
-              $scope.name = response.data.name;
-              $scope.email = response.data.email;
-          }).catch(function(fallback) {
-              $scope.Ui.turnOn('login');
+            $scope.applySettings(response.data);
+          }).catch(function(err) {
+                if(err.status == 401){console.log(1);$scope.Ui.turnOn('login');}
           });
         }
         else $scope.hideMenu=true;
@@ -68,20 +97,42 @@ angular.module('myApp.controllers', [])
         $scope.uiScrollMonsters = {
             remain: true
         };
-
+        $scope.applySettings = function(data){
+              $scope.loggedIn = data.loggedIn;
+              $scope.settings = data.settings;
+              $scope.customerID = data.customerID;
+              $scope.name = data.name;
+              $scope.email = data.email;
+              $scope.css = data.settings.customCSS;
+        }
         $scope.login = function(email, password) {
             siteFactory.login({
                 "email": email,
                 "password": password
             }).then(function(response) {
+                siteFactory.getSettings().then(function(response) {
+                $scope.applySettings(response.data);
                 $scope.Ui.turnOff('login');
-                window.location.reload(); 
+                $route.reload();
+                }).catch(function(fallback) {
+                if(err.status == 401){console.log(2);$scope.Ui.turnOn('login');}
+                });
 
-            }).catch(function(fallback) {
-              $scope.Ui.turnOn('login');
-              $route.reload();
             });
         };
+
+
+
+
+
+
+
+
+
+
+
+
+
         $scope.monsterFilter = function(nfilter, cfilter) {
             monsterDatasource.setFilter(nfilter, cfilter);
             // console.log($scope.uiScrollMonsters);
@@ -96,15 +147,15 @@ angular.module('myApp.controllers', [])
     }
 ])
 
-.controller('SoundEditCtrl', ['$scope', '$interval', 'soundsEditFactory', 'soundsFactory', '$routeParams', '$filter',
-    function($scope, $interval, soundsEditFactory, soundsFactory, $routeParams, $filter) {
+.controller('SoundEditCtrl', ['$scope', '$timeout', '$interval', 'soundsDatasource', 'soundsEditFactory', 'soundsFactory', '$routeParams', '$filter', 'angularPlayer', 'Upload',
+    function($scope, $timeout, $interval, soundsDatasource, soundsEditFactory, soundsFactory, $routeParams, $filter, angularPlayer, Upload) {
         var stopTime = $interval(function() {}, 200);
         $scope.soundPlaying = [];
         $scope.soundEditInit = function() {
             soundsEditFactory.getEffects().then(function(response) {
                 $scope.allEffects = response.data;
             }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(3);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
             var objectData = {
@@ -113,14 +164,13 @@ angular.module('myApp.controllers', [])
             soundsEditFactory.getScenes(objectData).then(function(response) {
                 $scope.allScenes = response.data;
             }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(4);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
             soundsEditFactory.getCollections().then(function(response) {
-                if (typeof response.data === 'object') response.data = [response.data];
                 $scope.allCollections = response.data;
             }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(5);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
         };
@@ -149,7 +199,7 @@ angular.module('myApp.controllers', [])
             $scope.effect.id = $routeParams.id;
             $scope.heading = "Add a New Effect";
             $scope.effect.sounds = [{}];
-            if ($scope.effect.id !== 'new') {
+            if ($scope.effect.id != 'new') {
                 $scope.heading = "Update Effect";
                 var objectData = {
                     "where": [{
@@ -162,40 +212,36 @@ angular.module('myApp.controllers', [])
                         $scope.effect.sounds = [];
                     }
                     $scope.effect.loop = $scope.effect.loop ? true : false;
-                    $scope.effect.preDelay = $scope.effect.preDelay ? true : false;
                     $scope.effect.optional = $scope.effect.optional ? true : false;
                     $scope.effect.seq = $scope.effect.seq ? true : false;
                 }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(6);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
                 soundsEditFactory.getSounds().then(function(response) {
-                    $scope.sounds = response.data;
-                    $scope.activeSet = response.data;
+                    $scope.fx = response.data.sounds.fx;
+                    $scope.ambience = response.data.sounds.ambience;
+                    $scope.music = response.data.sounds.music;
+                    $scope.tags = response.data.tags;
                     console.log($scope.sounds);
                 }, function(err) {
-                 if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(7);$scope.Ui.turnOn('login');}
                    console.log(err);
                 });
             }
-            $scope.setActive = function(item, key, depth) {
-                console.log($scope.backPath);
-                $scope.backPath = $scope.activeSet;
-                if ($scope.pathDepth == 1 && depth == -1) {
-                    item = $scope.sounds;
-                }
-                if (item.name) {
+            $scope.soundsFilter = function(nfilter, tfilter) {
+                soundsDatasource.setFilter(nfilter, tfilter);
+                // console.log($scope.uiScrollMonsters);
+                // $scope.uiScrollMonsters.reload();
+            };
+            $scope.hoverRow=0;
+            $scope.setRange = function(index){$scope.hoverRow=index;}
+            $scope.loadSound = function(item) {
                     console.log(item.name);
                     console.log($scope.selectedSound);
                     $scope.Ui.turnOff("soundPicker")
-                    $scope.effect.sounds[$scope.selectedSound].file = item.file;
+                    $scope.effect.sounds[$scope.selectedSound].file = item.category+'/'+item.file;
                     $scope.effect.sounds[$scope.selectedSound].name = item.name;
-                    return;
-                }
-                $scope.pathDepth = $scope.pathDepth + depth;
-                if ($scope.pathDepth > 0 && key != "Music") $scope.pathIcon = "music";
-                else $scope.pathIcon = "folder";
-                $scope.activeSet = item;
             }
             $scope.stepsArray = [];
             for (var i = -60; i < 2400; i++) {
@@ -280,13 +326,49 @@ angular.module('myApp.controllers', [])
                 }
             };
         };
+        $scope.uiScrollSounds = {
+            remain: true
+        };
 
+         $scope.$on('currentTrack:duration', function(event, data) {
+    //do your stuff here
+        $scope.soundDuration = data;
+    });
+        $scope.$on('currentTrack:position', function(event, data) {
+    //do your stuff here
+        $scope.soundPosition = data;
+    });
+        var playTime;
+                   console.log(angularPlayer);
+                   console.log(angularPlayer.repeatToggle());
+        $scope.hoverPlay = function(track,index){
+
+                   console.log(angularPlayer.isPlayingStatus());
+                   console.log(angularPlayer.getRepeatStatus());
+            if(angularPlayer.isPlayingStatus()) return;
+            $scope.hoverIndex = index;
+            track = {
+                        "id":'one',
+                        "title":track.name,
+                        "artist":'',
+                        "url":"/sounds/"+track.category+"/"+track.file
+                    };
+           playTime = $timeout(function(){ console.log("hoverplay"); angularPlayer.addTrack(track);
+            angularPlayer.playTrack(track.id); },500);
+        }
+
+        $scope.hoverStop = function(){
+             $timeout.cancel(playTime);
+            $timeout(function(){ console.log("hoverstop"); angularPlayer.stop();angularPlayer.clearPlaylist(function(){});});
+        }
+
+        $scope.tagFilter = function(tag){$scope.fxFilter.tags = tag;}
         $scope.sceneInit = function() {
             $scope.sceneContent = {};
             $scope.sceneContent.id = $routeParams.id;
             $scope.heading = "Add a New Scene";
             $scope.sceneContent.effects = [];
-            if ($scope.sceneContent.id !== 'new') {
+            if ($scope.sceneContent.id != 'new') {
                 $scope.heading = "Update Scene";
                 var objectData = {
                     "fields": "all",
@@ -295,7 +377,7 @@ angular.module('myApp.controllers', [])
                     }]
                 };
                 soundsEditFactory.getScenes(objectData).then(function(response) {
-                    $scope.sceneContent = response.data;
+                    $scope.sceneContent = response.data[0];
                     soundsEditFactory.getEffects().then(function(response) {
                         $scope.allEffects = response.data;
                         $scope.effectIDs = [];
@@ -310,7 +392,7 @@ angular.module('myApp.controllers', [])
                         console.log(err);
                     });
                 }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(8);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
             } else {
@@ -321,7 +403,7 @@ angular.module('myApp.controllers', [])
                         $scope.effectIDs.push(effect.id);
                     });
                 }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(9);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
             }
@@ -332,17 +414,18 @@ angular.module('myApp.controllers', [])
             $scope.collectionContent.id = $routeParams.id;
             $scope.heading = "Add a New Collection";
             $scope.collectionContent.scenes = [];
-            if ($scope.collectionContent.name !== 'new') {
+            console.log($routeParams.id);
+            if ($scope.collectionContent.id != 'new') {
                 $scope.heading = "Update Collection";
                 var objectData = {
                     "where": [{
                         "id": $scope.collectionContent.id
                     }]
                 };
-                soundsEditFactory.getCollections(objectData).then(function(response) {
+                soundsEditFactory.getCollection(objectData).then(function(response) {
                     $scope.collectionContent = response.data;
                 }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(10);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
             }
@@ -356,7 +439,7 @@ angular.module('myApp.controllers', [])
                     $scope.sceneIDs.push(scene.id);
                 });
             }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(11);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
         }
@@ -367,34 +450,45 @@ angular.module('myApp.controllers', [])
 
         $scope.saveEffect = function() {
             $scope.effect.loop = $scope.effect.loop ? 1 : 0;
-            $scope.effect.preDelay = $scope.effect.preDelay ? 1 : 0;
             $scope.effect.optional = $scope.effect.optional ? 1 : 0;
             $scope.effect.seq = $scope.effect.seq ? 1 : 0;
             soundsEditFactory.updateEffect($scope.effect).then(function() {
-                $scope.go('edit');
+                //$scope.go('edit');
                 flashMessageService.setMessage("Effect Saved Successfully");
             }, function(err) {
-                 if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(12);$scope.Ui.turnOn('login');}
                console.log(err);
             });
         };
 
         $scope.saveCollection = function() {
             soundsEditFactory.updateCollection($scope.collectionContent).then(function(response) {
-                $scope.go('edit');
+                //$scope.go('edit');
                 flashMessageService.setMessage("Collection Saved Successfully");
             }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(13);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
         };
 
         $scope.saveScene = function() {
+            if($scope.sceneContent.img.substring(0,10)=="data:image"){
+                $scope.sceneContent.file = Upload.dataUrltoBlob($scope.sceneContent.img, $scope.picFile.name);
+                        Upload.upload({
+                            url: '/api/sound/scene/update',
+                            data: $scope.sceneContent
+                        }).then(function(resp) {
+                            console.log(resp);
+
+                        });
+                        return;
+
+            }
             soundsEditFactory.updateScene($scope.sceneContent).then(function(response) {
                 flashMessageService.setMessage("Scene Saved Successfully");
-                $scope.go('edit');
+                //$scope.go('edit');
             }, function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(14);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
         };
@@ -475,34 +569,34 @@ angular.module('myApp.controllers', [])
     }
 ])
 
-.controller('MonstersCtrl', ['$scope', '$log', 'monsterFactory', '$filter', '$timeout', '$routeParams',
-    function($scope, $log, monsterFactory, $filter, $timeout, $routeParams) {
+.controller('MonstersCtrl', ['$scope', '$log', 'monsterFactory', '$filter', '$timeout', '$routeParams', 'Upload', '$sce',
+    function($scope, $log, monsterFactory, $filter, $timeout, $routeParams, Upload, $sce) {
 
 
         $scope.tinymceOptions = {
-            onChange: function(e) {},
             inline: false,
-            plugins: 'advlist autolink link image lists charmap print preview code',
+            plugins: 'advlist autolink link lists code',
             skin: 'lightgray',
             menubar: false,
             statusbar: false,
             toolbar_items_size: 'small',
             forced_root_block: "",
-            toolbar: 'undo redo | bold italic | link | bullist numlist | code'
+            toolbar: 'bold italic | link | bullist numlist | code'
         };
 
         $scope.tinymceOptionsWithButton = {
-            onChange: function(e) {},
             inline: false,
-            plugins: 'advlist autolink link image lists charmap print preview code',
+            plugins: 'advlist autolink link lists code',
             skin: 'lightgray',
             menubar: false,
             statusbar: false,
             toolbar_items_size: 'small',
             forced_root_block: "",
-            toolbar: 'undo redo | bold italic | link | bullist numlist | code | collapseButton'
+            toolbar: 'bold italic | bullist | code | collapseButton'
         };
-
+        $scope.trust = function(snippet) {
+          return $sce.trustAsHtml(snippet);
+        };  
         $scope.heading = "Add a new Monster";
         if ($routeParams.id !== 'new') {
             $scope.heading = "Update Monster";
@@ -513,8 +607,15 @@ angular.module('myApp.controllers', [])
             };
             monsterFactory.getMonsters(objectData).then(
                 function(response) {
+
+                    if(response.data.length==0) {
+                        $scope.go("/edit/monster/new");
+                        return;
+                    }
                     $scope.heading = "Update Monster";
+                    response.data.img = response.data.img.replace("{id}",response.data.id);
                     $scope.currentMonster = response.data;
+                    console.log(response);
 
                     // $log.info($scope.effect);
                 },
@@ -522,26 +623,50 @@ angular.module('myApp.controllers', [])
                     console.log(err);
                 });
         }
+        else{
+            $scope.currentMonster = {};
+            $scope.currentMonster.img = "";
+            $scope.currentMonster.skills = [];
+            $scope.currentMonster.attacks = [];
+
+        }
         $scope.loadMonster = function(monster) {
             $scope.currentMonster = monster;
-            $scope.go('editMonsters/' + $scope.currentMonster.id);
+            $scope.go('edit/monster/' + $scope.currentMonster.id,false);
         }
         $scope.newMonster = function() {
             $scope.currentMonster = [];
         }
         $scope.saveMonster = function() {
+            if($scope.currentMonster.img.substring(0,10)=="data:image"){
+                $scope.currentMonster.file = Upload.dataUrltoBlob($scope.currentMonster.img, $scope.picFile.name);
+                        Upload.upload({
+                            url: '/api/monster/update',
+                            data: $scope.currentMonster
+                        }).then(function(resp) {
+                            console.log(resp);
+
+                        });
+                        return;
+
+            }
             monsterFactory.updateMonster($scope.currentMonster).then(
                 function(response) {
                     console.log(response.data);
-                    return success(response.data);
+                    if(response.data!=$scope.currentMonster.id && response.data!=0) $scope.go("/edit/monster/"+response.data,false);
                 },
                 function(err) {
                     console.log(err);
                 });
         }
         $scope.addSpell = function(spell, subitem) {
-            subitem.submenu.push(spell);
-            $scope.spell = [];
+            console.log(subitem);
+            if (typeof subitem.submenu == 'undefined') {
+                subitem.submenu = [];
+             console.log(subitem);
+           }
+           console.log(spell);
+            subitem.submenu.push({"name":spell.name,"type":"ca","num":spell.num});
         }
         $scope.addSkill = function() {
             $scope.currentMonster.skills.push({
@@ -579,9 +704,11 @@ angular.module('myApp.controllers', [])
 
 
         $scope.addMulti = function(attack) {
+            console.log(attack);
             if (typeof attack.submenu == 'undefined') {
                 attack.submenu = [];
-            }
+             console.log(attack);
+           }
             attack.submenu.push({
                 "name": '',
                 "bonus": '',
@@ -589,59 +716,86 @@ angular.module('myApp.controllers', [])
             });
 
         }
+        $scope.$watch('cssFile', function() {
+            if ($scope.cssFile != null) {
+                $scope.files = [$scope.cssFile];
+                $scope.upload($scope.files);
+            }
+        });
+
+
+        $scope.upload = function(files) {
+            if (files && files.length) {
+                for (var i = 0; i < files.length; i++) {
+                    var file = files[i];
+                    if (!file.$error) {
+                        Upload.upload({
+                            url: '/api/monster/update',
+                            data: {
+                                settings: $scope.settings,
+                                file: Upload.dataUrltoBlob(dataUrl, name)
+                            }
+                        }).then(function(resp) {
+                            console.log(resp);
+
+                        });
+                    }
+                }
+            }
+        };
+            $scope.upload = function (dataUrl, name) {
+        Upload.upload({
+            url: 'https://angular-file-upload-cors-srv.appspot.com/upload',
+            data: {
+                file: Upload.dataUrltoBlob(dataUrl, name)
+            },
+        }).then(function (response) {
+            $timeout(function () {
+                $scope.result = response.data;
+            });
+        }, function (response) {
+            if (response.status > 0) $scope.errorMsg = response.status 
+                + ': ' + response.data;
+        }, function (evt) {
+            $scope.progress = parseInt(100.0 * evt.loaded / evt.total);
+        });
+    }
 
 
 
     }
 ])
 
-.controller('combatCtrl', ['$scope', '$compile', '$rootScope', 'filterFilter', '$filter', '$http', 'monsterFactory', 'mainFactory', '$timeout', '$sce', 'localStorageService', 'soundsEditFactory',
-    function($scope, $compile, $rootScope, filterFilter, $filter, $http, monsterFactory, mainFactory, $timeout, $sce, localStorageService, soundsFactory) {
+.controller('combatCtrl', ['$scope', '$compile', '$rootScope', 'filterFilter', '$filter', '$http', 'monsterFactory', 'mainFactory', '$timeout', '$sce', 'soundsEditFactory', 'localStorageService',
+    function($scope, $compile, $rootScope, filterFilter, $filter, $http, monsterFactory, mainFactory, $timeout, $sce, soundsFactory, localStorageService) {
         $scope.combatLog = '';
         $scope.status = {
             isopen: false
         };
         $scope.selectedRow = '';
-        $scope.groups = [];
-        $scope.groups.push({
-            "name": "The Party",
-            "group": [{
-                "name": "Savannah",
-                "turn": 0
-            }, {
-                "name": "Jason",
-                "turn": 0
-            }, {
-                "name": "Alex",
-                "turn": 0
-            }, {
-                "name": "Sarah",
-                "turn": 0
-            }]
-        });
+        if (localStorageService.get('groups')) $scope.groups = localStorageService.get('groups');
+        $scope.pushGroup = function(group){
+            console.log(group);
+        $scope.groups.push(group);
+            console.log($scope.groups);
+        };
         $scope.recentMonsters = [];
+        $scope.test = function(event){console.log(event);};
         $scope.toggleDropdown = function($event) {
             $event.preventDefault();
             $event.stopPropagation();
             $scope.status.isopen = !$scope.status.isopen;
         };
         if (localStorageService.get('combatants')) $scope.combatants = localStorageService.get('combatants');
-        else $scope.combatants = [{
-            "name": "Savannah",
-            "turn": 0
-        }, {
-            "name": "Jason",
-            "turn": 0
-        }, {
-            "name": "Alex",
-            "turn": 0
-        }, {
-            "name": "Sarah",
-            "turn": 0
-        }];
+
 
         $scope.$watch('combatants', function() {
             localStorageService.set('combatants', $scope.combatants);
+        }, true);
+
+        $scope.$watch('groups', function() {
+            console.log($scope.groups);
+            localStorageService.set('groups', $scope.groups);
         }, true);
 
         if (localStorageService.get('diceBagQuick')) $scope.diceBagQuick = localStorageService.get('diceBagQuick');
@@ -718,7 +872,97 @@ angular.module('myApp.controllers', [])
             }]
         ];
         $scope.blarg = function(scope){console.log(scope);}
+        $scope.combatOptions = [
+            ['Remove', function($itemScope) {
+                $scope.combatants.splice($itemScope.$index,1);
+            }, ""],
+            ['Roll Init', function($itemScope) {
+                $itemScope.combatant.init = eval(monsterFactory.rollDice("1d20+"+$itemScope.combatant.dex));
+            }, ""],
+            ['Roll Save', function($itemScope) {
+            },  [
+            ['Str', function ($itemScope) {
+                monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), $itemScope.combatant.name, "Str Save", "1d20+"+$itemScope.combatant.strSave, $scope);
+            }],
+            ['Dex', function ($itemScope) {
+                monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), $itemScope.combatant.name, "Dex Save", "1d20+"+$itemScope.combatant.dexSave, $scope);
+            }],
+            ['Con', function ($itemScope) {
+                monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), $itemScope.combatant.name, "Con Save", "1d20+"+$itemScope.combatant.conSave, $scope);
+            }],
+            ['Int', function ($itemScope) {
+                monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), $itemScope.combatant.name, "Int Save", "1d20+"+$itemScope.combatant.intSave, $scope);
+            }],
+            ['Wis', function ($itemScope) {
+                monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), $itemScope.combatant.name, "Wis Save", "1d20+"+$itemScope.combatant.wisSave, $scope);
+            }],
+            ['Cha', function ($itemScope) {
+                monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), $itemScope.combatant.name, "Cha Save", "1d20+"+$itemScope.combatant.chaSave, $scope);
+            }]
+        ]
+    ],
+            ['Roll Save for All', function($itemScope) {
+            },  [
+            ['Str', function ($itemScope) {
+                for (var i = 0; i < $scope.combatants.length; i++) {
+                    var combatant = $scope.combatants[i];
+                    if(typeof combatant.strSave=="undefined") continue;
+                     monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), combatant.name, "Str Save", "1d20+"+combatant.strSave, $scope);
+               }
+            }],
+            ['Dex', function ($itemScope) {
+                for (var i = 0; i < $scope.combatants.length; i++) {
+                    var combatant = $scope.combatants[i];
+                    if(typeof combatant.dexSave=="undefined") continue;
+                     monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), combatant.name, "Dex Save", "1d20+"+combatant.dexSave, $scope);
+               }
+            }],
+            ['Con', function ($itemScope) {
+                for (var i = 0; i < $scope.combatants.length; i++) {
+                    var combatant = $scope.combatants[i];
+                    if(typeof combatant.conSave=="undefined") continue;
+                     monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), combatant.name, "Con Save", "1d20+"+combatant.conSave, $scope);
+               }
+            }],
+            ['Int', function ($itemScope) {
+                for (var i = 0; i < $scope.combatants.length; i++) {
+                    var combatant = $scope.combatants[i];
+                    if(typeof combatant.intSave=="undefined") continue;
+                     monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), combatant.name, "Int Save", "1d20+"+combatant.intSave, $scope);
+               }
+            }],
+            ['Wis', function ($itemScope) {
+                for (var i = 0; i < $scope.combatants.length; i++) {
+                    var combatant = $scope.combatants[i];
+                    if(typeof combatant.wisSave=="undefined") continue;
+                     monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), combatant.name, "Wis Save", "1d20+"+combatant.wisSave, $scope);
+               }
+            }],
+            ['Cha', function ($itemScope) {
+                for (var i = 0; i < $scope.combatants.length; i++) {
+                    var combatant = $scope.combatants[i];
+                    if(typeof combatant.chaSave=="undefined") continue;
+                     monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), combatant.name, "Cha Save", "1d20+"+combatant.chaSave, $scope);
+               }
+            }]
+        ]
+    ],
+            ['Add Persistent Effect', function($itemScope) {
+                if(typeof $itemScope.combatant.pE == "undefined") $itemScope.combatant.pE = [];
+                $scope.contextCombatant = $itemScope.combatant;
+                $scope.Ui.turnOn('persistent');
 
+                // console.log("test");
+                // $scope.Ui.turnOn('persistentModal');
+            }, ""],
+            ['Save Board to Group', function($itemScope) {
+                var groupName=prompt("Group Name","");
+                var group = angular.copy($scope.combatants);
+                if(groupName!=null && groupName!="") $scope.groups.push({"name":groupName,"group":group});
+            }, ""],
+            ' '
+        ];
+ 
         $scope.hpOptions = [
             ['25', function($itemScope) {
                 $itemScope.combatant.hp -= 25;
@@ -758,8 +1002,6 @@ angular.module('myApp.controllers', [])
         //         alert("Example 1");
         //     }]];
 
-
-        $scope.contextClass = "hp-options";
 
         // To add to local storage
         // localStorageService.set('localStorageKey','Add this!');
@@ -804,7 +1046,7 @@ angular.module('myApp.controllers', [])
                         $scope.combatants[$scope.selectedRow].spell.fulltext = $sce.trustAsHtml($scope.combatants[$scope.selectedRow].spell.fulltext);
                     },
                     function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(15);$scope.Ui.turnOn('login');}
                         console.log(err);
                     });
             } else if (typeof scope.subitem != "undefined") {
@@ -845,8 +1087,13 @@ angular.module('myApp.controllers', [])
                 console.log($scope.combatants[$scope.selectedRow]);
                 var damage = $scope.combatants[$scope.selectedRow].spell.damage;
                 var attack = $scope.combatants[$scope.selectedRow].spell.attack;
+                        console.log(damage);
                 if (typeof damage == 'undefined') damage = '';
                 if (typeof attack == 'undefined') attack = '';
+                    else{
+                        attack = attack.replace("melee", $scope.combatants[$scope.selectedRow].subitem.meleespell);
+                        attack = attack.replace("ranged", $scope.combatants[$scope.selectedRow].subitem.rangedspell);
+                        }
                 if (damage.substring(0, 8) == '#summon#') {
                     var summon = damage.substring(8);
                     summon = summon.replace("#init#", 0);
@@ -859,6 +1106,7 @@ angular.module('myApp.controllers', [])
                 } else {
                     damage = damage.replace('{level}', $scope.combatants[$scope.selectedRow].casterLevel);
                     var preCalc = damage.match(/\{.*?\}/g);
+                    if(preCalc == null) preCalc = [];
                     for (var i = 0; i < preCalc.length; i++) {
                         console.log(damage);
                         console.log(preCalc[i]);
@@ -894,6 +1142,25 @@ angular.module('myApp.controllers', [])
         $scope.endTurn = function(combatant) {
             combatant.turn += 1;
             $scope.order();
+            if($scope.combatants[0].pE){
+                var com = $scope.combatants[0];
+                for (var i = 0; i < com.pE.length; i++) {
+                    com.pE[i].duration--;
+
+                    if(com.pE[i].duration%com.pE[i].frequency==0){
+                        var hpChange = '';
+                        if(typeof com.pE[i].hp != "undefined"){
+                            monsterFactory.rollDice(com.pE[i].hp);
+                            com.hp = eval(com.hp+hpChange);
+                            hpChange = " (HP: "+hpChange+")";
+                        }
+                        if(com.pE[i].duration == 0) hpChange = hpChange + " <-Effect Ends";
+                        monsterFactory.diceBag(angular.element(document.querySelector('#combatLog')), com.name, com.pE[i].name, com.pE[i].effect+hpChange, $scope);
+                    }
+                    if(com.pE[i].duration == 0) com.pE.splice(i,1);
+                }
+
+            }
         };
 
         $scope.startCombat = function() {
@@ -909,11 +1176,16 @@ angular.module('myApp.controllers', [])
         }
 
         $scope.addGroup = function(group) {
-            $scope.combatants = $scope.combatants.slice(0, 0).concat(group).concat($scope.combatants.slice(0));
+            console.log(group);
+            for (var i = 0; i < group.group.length; i++) {
+                $rootScope.loadMonster(group.group[i]);
+            }
+            // $scope.combatants = $scope.combatants.slice(0, 0).concat(group).concat($scope.combatants.slice(0));
             $scope.order();
         };
 
         $rootScope.loadMonster = function(monster) {
+            console.log(monster);
             var tempmon = JSON.parse(JSON.stringify(monster));
             var recentExists = false;
             for (var i = 0; i < $scope.recentMonsters.length; i++) {
@@ -930,29 +1202,60 @@ angular.module('myApp.controllers', [])
                 return n + (combatant.name.substring(0, tempmon.name.length) === tempmon.name);
             }, 0);
             count = count == 0 ? '' : ' ' + eval(count + 1);
-            $scope.combatants[$scope.combatants.length] = tempmon;
-            $scope.combatants[$scope.combatants.length - 1]['name'] = tempmon.name + count;
-            count = $scope.combatants.length - 1;
-            $scope.combatants[count]['hp'] = eval(monsterFactory.rollDice(tempmon.hp));
-            tempmon.initiative = tempmon.initiative > 0 ? '1d20' + tempmon.initiative : '1d20-' + tempmon.initiative;
-            $scope.combatants[count]['init'] = eval(monsterFactory.rollDice(tempmon.initiative));
-            $scope.combatants[count]['turn'] = $scope.currentTurn;
-            $scope.combatants[count]['ac'] = eval(monsterFactory.rollDice(tempmon.ac));
+            tempmon.ac=Number(tempmon.ac);
+            console.log(Number(tempmon.ac));
+            $scope.combatants.splice(0,0,tempmon);
+            $scope.combatants[0]['name'] = tempmon.name + count;
+            // console.log($scope.combatants[count]['initiative']);
+            // console.log(tempmon['initiative']);
+            $scope.combatants[0]['hp'] = eval(monsterFactory.rollDice(tempmon.hp));
+            if(typeof tempmon.initiative != "undefined" && tempmon.initiative != ""){
+            // tempmon.initiative = tempmon.initiative > 0 ? '1d20+' + tempmon.initiative : '1d20-' + tempmon.initiative;
+            $scope.combatants[0]['init'] = eval(monsterFactory.rollDice(tempmon.initiative.replace("--","-")));
+                        } 
+            $scope.combatants[0]['turn'] = $scope.currentTurn;
+            $scope.combatants[0]['ac'] = eval(monsterFactory.rollDice(tempmon.ac));
+            if(typeof $scope.combatants[0].attacks == "undefined")$scope.combatants[0].attacks=[];
+            if($scope.combatants[0].attacks.length == 0){
+                $scope.combatants[0].catt = {
+                                                    "name":"Generic Attack",
+                                                    "bonus":"+0",
+                                                    "damage":"<br> \
+                                                     d6:1d6+"+tempmon.str+" (ex: Shortsword, Mace, Spear)<br>\
+                                                     d8:1d8+"+tempmon.str+" (ex: Katana, Quarterstaff, Scythe)<br>\
+                                                    d10:1d10+"+tempmon.str+" (ex: Bastard Sword, Glaive)<br>\
+                                                    d12:1d12+"+tempmon.str+" (ex: GreatAxe, GreatSword, Maul)<br>\
+                                                    ","special":"Damage includes STR Bonus:"+tempmon.str
+                                                    };
+                }
+                else if(typeof $scope.combatants[0].attacks[0].submenu == 'undefined'){
+                    $scope.combatants[0].catt = $scope.combatants[0].attacks[0];
+                    }
+                    else{
+                        $scope.combatants[0].catt = $scope.combatants[0].attacks[0].submenu[0];
+                        }
         };
 
         $scope.setClickedRow = function(index) {
             $scope.selectedRow = index;
-            $scope.senses = $sce.trustAsHtml($scope.combatants[index].senses);
+            $scope.senses='';
+            if(typeof $scope.combatants[index].senses != 'undefined' && $scope.combatants[index].senses != null) $scope.senses = $sce.trustAsHtml($scope.combatants[index].senses.replace("darkvision","<strong>Darkvision</strong>").replace("passive Perception","<strong>Passive Perception</strong>"));
             $scope.special = $sce.trustAsHtml($scope.combatants[index].special);
+            $scope.desc = $sce.trustAsHtml($scope.combatants[index].desc);
+            $scope.img = $scope.combatants[index].img;
+            // var ca = false;
+            // if(typeof $scope.combatants[index].catt != 'undefined') if($scope.combatants[index].catt.type =='ca') ca = true;
+            // $scope.activeTabValue = $scope.senses?1:$scope.special?2:ca?3:0;
         }
+        if($scope.combatants.length>0) $scope.setClickedRow(0);
+
     }
 ])
 
-.controller('SoundCtrl', ['$scope', '$interval', '$timeout', '$http', 'soundsFactory', 'soundsEditFactory',
-    function($scope, $interval, $timeout, $http, soundsFactory, soundsEditFactory) {
+.controller('SoundCtrl', ['$scope', '$interval', '$timeout', '$http', 'soundsFactory', 'soundsEditFactory', 'localStorageService',
+    function($scope, $interval, $timeout, $http, soundsFactory, soundsEditFactory, localStorageService) {
 
         var stopTime = $interval(function() {}, 200);
-
 
         $scope.aS = [];
         var context;
@@ -993,9 +1296,21 @@ angular.module('myApp.controllers', [])
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        var objectData = {
-            "fields": "all"
-        };
+        if (localStorageService.get('collectionId')) {
+            $scope.collectionId = localStorageService.get('collectionId');
+            $scope.collectionName = localStorageService.get('collectionName');
+            var objectData = {
+                "fields": "all",
+                "collection": $scope.collectionId
+            };
+            }
+            else {
+                $scope.collectionId = "default";
+                var objectData = {
+                    "fields": "all",
+                    "collection": "default"
+                };
+                }
 
         soundsFactory.getScenes(objectData).then(
             function(response) {
@@ -1004,11 +1319,41 @@ angular.module('myApp.controllers', [])
                 console.log(soundsFactory);
             },
             function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(16);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
+            soundsEditFactory.getCollections().then(function(response) {
+                $scope.collections = response.data;
+            }, function(err) {
+                if(err.status == 401){console.log(17);$scope.Ui.turnOn('login');}
+                console.log(err);
+            });
+
+
+        $scope.changeCollection = function(collection){
+                var objectData = {
+                    "fields": "all",
+                    "collection": collection.id
+                };
+                $scope.collectionName = collection.name;
+         soundsFactory.getScenes(objectData).then(
+            function(response) {
+                $scope.allScenes = response.data;
+                soundsFactory.scenes = response.data;
+                console.log(soundsFactory);
+            localStorageService.set('collectionId', collection.id);
+            localStorageService.set('collectionName', collection.name);
+            },
+            function(err) {
+                if(err.status == 401){console.log(18);$scope.Ui.turnOn('login');}
+                console.log(err);
+            });
+         };
         $scope.toggleScene = function(scene) {
+            scene.active=!scene.active;
+                console.log(scene.active);
             soundsFactory.toggleScene(scene);
+
         };
 
     }
@@ -1052,7 +1397,7 @@ angular.module('myApp.controllers', [])
                 // $log.info($scope.sceneContent);
             },
             function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(19);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
         if ($scope.spell.id !== 'new') {
@@ -1069,13 +1414,13 @@ angular.module('myApp.controllers', [])
                     // $log.info($scope.sceneContent);
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(20);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
         }
         $scope.loadSpell = function(spell) {
             console.log(spell);
-            $scope.go('editSpells/' + spell.id);
+            $scope.go('edit/spell/' + spell.id,false);
 
             var objectData = {
                 "where": [{
@@ -1090,17 +1435,17 @@ angular.module('myApp.controllers', [])
                     // $log.info($scope.sceneContent);
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(21);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
 
 
         }
-        $scope.saveScene = function() {
-            spellFactory.updateScene($scope.sceneContent).then(
+        $scope.saveSpell = function() {
+            spellFactory.updateSpell($scope.spell).then(
                 function() {
                     //flashMessageService.setMessage("Page Saved Successfully");
-                    $scope.go('edit');
+                    //$scope.go('edit');
                 },
                 function() {
                     // $log.error('error saving data');
@@ -1123,10 +1468,11 @@ angular.module('myApp.controllers', [])
                     $scope.professions = response.data.professions;
                     $scope.races = response.data.races;
                     $scope.descriptives = response.data.descriptives;
+                    $scope.names = response.data.names;
                     console.log($scope.regions);
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(22);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
             $scope.raceCol = [{data: 'name', title: 'Race'}, 
@@ -1142,9 +1488,13 @@ angular.module('myApp.controllers', [])
                               {data: 'text', title: 'Text', width: 460}, 
                               {data: 'gender', title: 'Limit Gender (M/F)'}];
 
-            $scope.profCol = [{data: 'name', title: 'Profession'}, 
-                              {data: 'minAge', title: 'Minimum Age Group'}, 
-                              {data: 'maxAge', title: 'Maximum Age Group'}];
+            $scope.profCol = [{data: 'name', title: 'Prof'}, 
+                              {data: 'minAge', title: 'Min Age Grp'}, 
+                              {data: 'maxAge', title: 'Max Age Grp'}];
+
+            $scope.nameCol = [{data: 'name', title: 'Name'}, 
+                              {data: 'race', title: 'Race'}, 
+                              {data: 'gender', title: 'Gender'}];
         };
 
         $scope.ageRegion = function(region, years, index) {
@@ -1162,7 +1512,7 @@ angular.module('myApp.controllers', [])
                     $scope.regions[index].loading = false;
                 },
                 function(err) {
-                 if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(23);$scope.Ui.turnOn('login');}
                    console.log(err);
                 });
         };
@@ -1179,7 +1529,7 @@ angular.module('myApp.controllers', [])
                     $scope.regions[index].loading = false;
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(24);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
         };
@@ -1191,7 +1541,7 @@ angular.module('myApp.controllers', [])
             citizenFactory.updateRegion(pageData).then(
                 function(response) {},
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(25);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
         };
@@ -1205,7 +1555,7 @@ angular.module('myApp.controllers', [])
                     $scope.regions[index].stats = [];
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(26);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
         };
@@ -1221,26 +1571,100 @@ angular.module('myApp.controllers', [])
                     delete $scope.regions[index];
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(27);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
         };
 
-        $scope.settings = {
+
+        function deleteWorld(table,rowsArray,hot){
+            var dataSend = {};
+            dataSend.value = [];
+            dataSend.field = 'id';
+            for(var i=0;i<rowsArray.length;i++){
+                dataSend.value.push(hot.getDataAtRowProp(rowsArray[i],"id"));
+            }
+            citizenFactory.deleteNpcRecord(table,dataSend).then(function(response) {
+                console.log(response.data);
+                }, function() {console.log("error");
+                });
+            }
+
+        function updateWorld(table,changes,hot){
+                if(changes == null){return;}
+                for (var i = 0; i < changes.length; i++) {
+                    var change = changes[i];
+                     if(change[3] == change[2]){return;}
+                        var dataSend = new Object;
+                        dataSend['id'] = hot.getDataAtRowProp(change[0],"id");
+                        dataSend[change[1]] = change[3];
+                        citizenFactory.updateNpcRecord(table,dataSend).then(function(response) {
+                            console.log(response.data);
+                            hot.setDataAtRowProp(change[0],"id",response.data,"idUpdate");
+                            console.log(hot.getDataAtRowProp(change[0],"id"));
+                            }, function() {console.log("error");
+                            });
+               }
+        }
+
+        var settings = {
             height: 200,
             stretchH: 'all',
             colHeaders: true,
             rowHeaders: false,
-            minSpareRows: 1
+            minSpareRows: 1,
+            contextMenu: ['remove_row']
+            };
+        $scope.descriptivesSettings = angular.copy(settings);
+        $scope.descriptivesSettings.onAfterChange = function(changes,source){
+            if(source == "idUpdate") return;
+            updateWorld("descriptives",changes,hotRegisterer.getInstance('descriptives'));
         };
+        $scope.descriptivesSettings.onBeforeRemoveRow = function(index,amount,rowsArray) {
+                console.log(rowsArray);
+            deleteWorld("descriptives",rowsArray,hotRegisterer.getInstance('descriptives'));
+        };
+
+        $scope.namesSettings = angular.copy(settings);
+        $scope.namesSettings.onAfterChange = function(changes,source){
+            if(source == "idUpdate") return;
+            updateWorld("names",changes,hotRegisterer.getInstance('names'));
+        };
+        $scope.namesSettings.onBeforeRemoveRow = function(index,amount,rowsArray) {
+                console.log(rowsArray);
+            deleteWorld("names",rowsArray,hotRegisterer.getInstance('names'));
+        };
+
+        $scope.professionSettings = angular.copy(settings);
+        $scope.professionSettings.onAfterChange = function(changes,source){
+            if(source == "idUpdate") return;
+            updateWorld("profession",changes,hotRegisterer.getInstance('professions'));
+        };
+        $scope.professionSettings.onBeforeRemoveRow = function(index,amount,rowsArray) {
+                console.log(rowsArray);
+            deleteWorld("profession",rowsArray,hotRegisterer.getInstance('professions'));
+        };
+
+        $scope.raceSettings = angular.copy(settings);
+        $scope.raceSettings.onAfterChange = function(changes,source){
+            if(source == "idUpdate") return;
+            updateWorld("race",changes,hotRegisterer.getInstance('races'));
+        };
+        $scope.raceSettings.onBeforeRemoveRow = function(index,amount,rowsArray) {
+                console.log(rowsArray);
+            deleteWorld("race",rowsArray,hotRegisterer.getInstance('races'));
+        };
+
+
 
     }
 ])
 
-.controller('NpcCtrl', ['$rootScope', '$filter', '$scope', 'citizenFactory', '$routeParams',
-    function($rootScope, $filter, $scope, citizenFactory, $routeParams) {
+.controller('NpcCtrl', ['$rootScope', '$filter', '$scope', 'citizenFactory', '$routeParams', 'localStorageService',
+    function($rootScope, $filter, $scope, citizenFactory, $routeParams, localStorageService) {
 
         var orderBy = $filter('orderBy');
+
 
         $scope.region = $routeParams.region;
         $scope.selectedCitizen = null;
@@ -1263,7 +1687,7 @@ angular.module('myApp.controllers', [])
                     $scope.children = $scope.selectedCitizen.children;
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(28);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
             //$scope.selectedCitizen = citizen; //set selected row
@@ -1276,9 +1700,17 @@ angular.module('myApp.controllers', [])
                 $scope.professions = response.data.professions;
                 $scope.races = response.data.races;
                 $scope.descriptives = response.data.descriptives;
+                $scope.descriptives
+                $scope.lineage = $scope.descriptives.filter(function(value) {
+                      if (value.type == "Lineage") return true;
+                      return false;
+                  });
+                for (var i = 0; i < $scope.lineage.length; i++) {
+                    $scope.lineage[i]=$scope.lineage[i].text;
+                }
             },
             function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(29);$scope.Ui.turnOn('login');}
                 console.log(err);
             });
 
@@ -1311,7 +1743,7 @@ angular.module('myApp.controllers', [])
                     if ($scope.quirkLock != true) $scope.selectedCitizen.quirks = response.data['Quirk'];
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(30);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
         }
@@ -1372,7 +1804,7 @@ angular.module('myApp.controllers', [])
                     console.log("saved");
                 },
                 function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(31);$scope.Ui.turnOn('login');}
                     console.log(err);
                 });
         };
@@ -1383,10 +1815,16 @@ angular.module('myApp.controllers', [])
             return (citizen.alive == "1" ? 'Alive' : 'Dead') + "\nRace: " + citizen.race.name + "\nAge: " + citizen.age;
         }
 
-
+        $scope.setGrouping= function(grouping){
+            $scope.cGroup=grouping;
+        }
         $scope.setRegion = function(region){
           $scope.currentRegion = region;
           $scope.citizens = {};
+          $scope.raceGroups=[];
+          $scope.lineageGroups=[];
+          $scope.profGroups=[];
+          $scope.cities=[];
           var objectData = {
               "region": region.id
           };
@@ -1400,21 +1838,118 @@ angular.module('myApp.controllers', [])
                   $scope.citizens.alive = orderBy($scope.citizens.alive, ['age', 'name'], false);
                   for (var i in $scope.citizens.all) {
                       $scope.citizens.all[$scope.citizens.all[i].id] = $scope.citizens.all[i];
+                      if($scope.citizens.all[i].alive=="1"){
+                          if($scope.raceGroups.indexOf($scope.citizens.all[i].race)==-1) $scope.raceGroups.push($scope.citizens.all[i].race);
+                          if($scope.lineageGroups.indexOf($scope.citizens.all[i].lineage)==-1) $scope.lineageGroups.push($scope.citizens.all[i].lineage);
+                          if($scope.profGroups.indexOf($scope.citizens.all[i].profession)==-1 && $scope.citizens.all[i].profession.indexOf("Retired")==-1) $scope.profGroups.push($scope.citizens.all[i].profession);
+                          if($scope.cities.indexOf($scope.citizens.all[i].residentCity)==-1) $scope.cities.push($scope.citizens.all[i].residentCity);
+                      }
                   }
+                  $scope.raceGroups.sort();
+                  $scope.lineageGroups.sort();
+                  $scope.profGroups.sort();
+                  $scope.cities.sort();
+        $scope.cGroups = {"Age":{
+                            "field":"ageGroup",
+                            "groups":['Youth','Adult','MiddleAged','Old'],
+                            "headers":['Youth','Adult','Middle Aged','Old Age & Venerable']},
+                        "Profession":{
+                            "field":"profession",
+                            "groups":$scope.profGroups,
+                            "headers":$scope.profGroups
+                        },
+                        "City":{
+                            "field":"residentCity",
+                            "groups":$scope.cities,
+                            "headers":$scope.cities
+                        },
+                        "Race":{
+                            "field":"race",
+                            "groups":$scope.raceGroups,
+                            "headers":$scope.raceGroups
+                        },
+                        "Lineage":{
+                            "field":"lineage",
+                            "groups":$scope.lineageGroups,
+                            "headers":$scope.lineageGroups
+                        }};
+        if (localStorageService.get('cGroup')) $scope.setGrouping(localStorageService.get('cGroup'));
+            else $scope.setGrouping($scope.cGroups['Age'])
+
+        $scope.$watch('cGroup', function() {
+            localStorageService.set('cGroup', $scope.cGroup);
+        }, true);
               },
               function(err) {
-                if(err.status == 401) $scope.Ui.turnOn('login');
+                if(err.status == 401){console.log(32);$scope.Ui.turnOn('login');}
                   console.log(err);
               });
           };
 
-        $scope.setRegion({"id":$scope.region});
+
+        if (localStorageService.get('currentRegion')) $scope.setRegion(localStorageService.get('currentRegion'));
+            else $scope.setRegion({"id":$scope.region});
+
+
+        $scope.$watch('currentRegion', function() {
+            localStorageService.set('currentRegion', $scope.currentRegion);
+        }, true);
     }
 ])
 
-.controller('SettingsCtrl', ['$scope', '$rootScope', 'Upload', 'siteFactory',
-    function($scope, $rootScope, Upload, siteFactory) {
-            
+.controller('SettingsCtrl', ['$scope', '$rootScope', 'Upload', 'siteFactory', '$ocLazyLoad',
+    function($scope, $rootScope, Upload, siteFactory, $ocLazyLoad) {
+             $ocLazyLoad.load('https://js.stripe.com/v2/stripe.js');
+
+
+            $scope.verify = function(){
+                var a = Stripe.bankAccount.validateRoutingNumber($scope.paymentForm.routing, 'US') && Stripe.bankAccount.validateAccountNumber($scope.paymentForm.account, 'US');
+                var b = Stripe.card.validateCardNumber($scope.paymentForm.number) && Stripe.card.validateExpiry($scope.paymentForm.exp_month, $scope.paymentForm.exp_year) && Stripe.card.validateCVC($scope.paymentForm.cvc) ;
+                console.log(!(a || b));
+                return !(a || b);
+            };
+
+           $scope.createMembership = function(){
+                 Stripe.setPublishableKey('pk_test_E33MMEqwrwIu5p15UG9oT8zt');
+            if($scope.paymentForm.type.substring(0,4) == "bank"){
+                 var payData = {
+                      country: 'US',
+                      currency: 'USD',
+                      routing_number: $scope.paymentForm.routing,
+                      account_number: $scope.paymentForm.account,
+                      account_holder_name: $scope.paymentForm.name,
+                      account_holder_type: 'individual'
+                     };
+                Stripe.bankAccount.createToken(payData, function(status,response){
+                    console.log(status);
+                    response.payType = $scope.paymentForm.type;
+                    console.log(response)
+                    siteFactory.startMembership(response).then(function(response){
+                        console.log(response);
+                    });
+                }
+                );
+                }    
+            else{
+                 
+                 var payData = {
+                      number: $scope.paymentForm.number,
+                      cvc: $scope.paymentForm.cvc,
+                      exp_month: $scope.paymentForm.exp_month,
+                      exp_year: $scope.paymentForm.exp_year
+                   };
+                Stripe.card.createToken(payData, function(status,response){
+                    console.log(status);
+                    response.payType = $scope.paymentForm.type;
+                    if($scope.paymentForm.quantity>20) response.quantity = $scope.paymentForm.quantity;
+                   console.log(response)
+                   siteFactory.startMembership(response).then(function(response){
+                        console.log(response);
+                    });
+                }
+                );
+                }
+           }
             $scope.$watchCollection('settings', function(newValue, oldValue) {
                 console.log(newValue + "|" + oldValue);
                 if (newValue != null && newValue != '' && newValue != oldValue) {
@@ -1449,6 +1984,14 @@ angular.module('myApp.controllers', [])
             }
         });
 
+        $scope.resetPassword = function(oldPw, newPw) {
+            siteFactory.resetPassword({
+                "old": oldPw,
+                "new": newPw
+            }).then(function(response) {
+
+            });
+        };
 
         $scope.upload = function(files) {
             if (files && files.length) {
@@ -1473,13 +2016,14 @@ angular.module('myApp.controllers', [])
     }
 ])
 
-.controller('ImageGetCtrl', ['$scope', '$http', 
+
+.controller('PcCtrl', ['$scope', '$http', 
     function($scope, $http) {
-            
-$http.get('http://res.cloudinary.com/bwa-designs/video/list/synth.json').then(function(response){
-    $scope.resources = response.data.resources;
-    console.log(response.data);
-});
+    $scope.aMod = function(ability){
+        if(ability == null) return '';
+        var mod =  Math.floor((ability/2)-5);
+        return mod>0? "+"+mod:mod;
+        }
 
     }
 ])

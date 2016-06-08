@@ -1,7 +1,61 @@
-<ul class="list-unstyled row">
-	<li  ng-repeat="scene in allScenes | orderBy:key" class="col-md-6 col-sm-4 col-xs-3 scene"  ng-right-click="sceneOptions(scene)"><img src="/images/{{scene.img}}" style="width:100%;border-radius:26%;" ng-click="toggleScene(scene)" /></li>
+      <div class="btn-group">
+      <a ui-turn-on='selectCollection' class='btn btn-xs btn-primary'>
+      {{collectionName || 'Change Collection'}} <span class="fa fa-caret-down"> </span>
+      </a>
+      <ul 
+      class="dropdown-menu"
+      ui-outer-click="Ui.turnOff('selectCollection')"
+      ui-outer-click-if="Ui.active('selectCollection')"
+      role="menu"
+      ui-show="selectCollection" 
+      ui-state="selectCollection"
+      ui-turn-off="selectCollection">
+
+      <li ng-repeat="collection in collections"><a ng-click="changeCollection(collection)">{{collection.name}}</a></li>
+      </ul>
+      </div>
+
+<ul class="list-unstyled"  width="100%" ng-slimscroll horizontal-scroll="true" >
+	<li  ng-repeat="scene in allScenes | orderBy:key" class="scene"  ng-right-click="sceneOptions(scene)" on-long-press="sceneOptions(scene)"><img src="{{scene.img}}" style="width:100%;border-radius:26%;" ng-click="toggleScene(scene)" ng-class="{'glowing-border' : scene.active}"/></li>
 </ul>
 
 <i ng-if="windowWidth<768" ng-click="slideScreen(screenSlide)" style="z-index:100;position:fixed;right:3px;font-size:30px;opacity:.7;-webkit-transition: top 2s, bottom 2s, -webkit-transform 2s;
 transition: top 2s, bottom 2s, -webkit-transform 2s;" ng-class="{'fa-arrow-circle-up' : screenSlide, 'fa-arrow-circle-down' : !screenSlide, slid : screenSlide, notSlid : !screenSlide}" class="fa"></i>
 
+<style>
+body { -webkit-touch-callout: none !important; }
+img { -webkit-user-select: none !important; }
+.glowing-border {
+    border: 2px solid #9ecaed;
+    border-radius: 7px;
+    outline: none;
+    box-shadow: 0 0 10px #9ecaed;
+}
+
+
+</style>
+
+
+<div ui-content-for="modals">  
+  <div class="modal" ui-if='soundOptions' ui-state='soundOptions'>
+    <div class="modal-dialog sound-options-modal" ui-outer-click="Ui.turnOff('soundOptions')" style="top: {{modalY}}px; left: {{modalX}}px;">
+      <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" ui-turn-off="soundOptions">&times;</button>
+        <h4 class="modal-title">Options</h4>
+      </div>
+      <div class="modal-body" >
+        <div ng-repeat="effect in $parent.$parent.$parent.sceneOpt.effects">
+
+          <ui-switch class="pull-right" ng-model="effect.active" ng-if="effect.optional=='1'" ng-init="effect.active=effect.active==null?true:effect.active"></ui-switch>
+          <label>{{effect.name}}</label>
+          <rzslider rz-slider-options="slider.options.percent" rz-slider-model="effect.vol"></rzslider>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="soundOptions" class="btn btn-primary">Close</button>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -166,7 +166,6 @@ crop.factory('cropAreaCircle', ['cropArea', function(CropArea) {
 crop.factory('cropAreaSquare', ['cropArea', function(CropArea) {
   var CropAreaSquare = function() {
     CropArea.apply(this, arguments);
-
     this._resizeCtrlBaseRadius = 10;
     this._resizeCtrlNormalRatio = 0.75;
     this._resizeCtrlHoverRatio = 1;
@@ -192,11 +191,12 @@ crop.factory('cropAreaSquare', ['cropArea', function(CropArea) {
 
   CropAreaSquare.prototype._calcSquareCorners=function() {
     var hSize=this._size/2;
+    var widthMult=this._widthMult*this._widthMult;
     return [
       [this._x-hSize, this._y-hSize],
-      [this._x+hSize, this._y-hSize],
+      [this._x+(hSize*widthMult), this._y-hSize],
       [this._x-hSize, this._y+hSize],
-      [this._x+hSize, this._y+hSize]
+      [this._x+(hSize*widthMult), this._y+hSize]
     ];
   };
 
@@ -205,7 +205,7 @@ crop.factory('cropAreaSquare', ['cropArea', function(CropArea) {
     return {
       left: this._x-hSize,
       top: this._y-hSize,
-      right: this._x+hSize,
+      right: this._x+(hSize*(this._widthMult*this._widthMult)),
       bottom: this._y+hSize
     };
   };
@@ -229,9 +229,9 @@ crop.factory('cropAreaSquare', ['cropArea', function(CropArea) {
     return res;
   };
 
-  CropAreaSquare.prototype._drawArea=function(ctx,centerCoords,size){
+  CropAreaSquare.prototype._drawArea=function(ctx,centerCoords,size,widthMult){
     var hSize=size/2;
-    ctx.rect(centerCoords[0]-hSize,centerCoords[1]-hSize,size,size);
+    ctx.rect(centerCoords[0]-hSize,centerCoords[1]-hSize,size*widthMult,size);
   };
 
   CropAreaSquare.prototype.draw=function() {
@@ -383,6 +383,8 @@ crop.factory('cropArea', ['cropCanvas', function(CropCanvas) {
 
     this._minSize=80;
 
+    this._widthMult=1;
+
     this._cropCanvas=new CropCanvas(ctx);
 
     this._image=new Image();
@@ -416,6 +418,13 @@ crop.factory('cropArea', ['cropCanvas', function(CropCanvas) {
     this._dontDragOutside();
   };
 
+  CropArea.prototype.getWidthMult = function () {
+    return this._widthMult;
+  };
+  CropArea.prototype.setWidthMult = function (widthMult) {
+    this._widthMult = eval(widthMult);
+  };
+
   CropArea.prototype.getSize = function () {
     return this._size;
   };
@@ -435,6 +444,7 @@ crop.factory('cropArea', ['cropCanvas', function(CropCanvas) {
 
   /* FUNCTIONS */
   CropArea.prototype._dontDragOutside=function() {
+    return;
     var h=this._ctx.canvas.height,
         w=this._ctx.canvas.width;
     if(this._size>w) { this._size=w; }
@@ -449,7 +459,7 @@ crop.factory('cropArea', ['cropCanvas', function(CropCanvas) {
 
   CropArea.prototype.draw=function() {
     // draw crop area
-    this._cropCanvas.drawCropArea(this._image,[this._x,this._y],this._size,this._drawArea);
+    this._cropCanvas.drawCropArea(this._image,[this._x,this._y],this._size,this._widthMult,this._drawArea);
   };
 
   CropArea.prototype.processMouseMove=function() {};
@@ -559,7 +569,7 @@ crop.factory('cropCanvas', [function() {
 
     /* Crop Area */
 
-    this.drawCropArea=function(image, centerCoords, size, fnDrawClipPath) {
+    this.drawCropArea=function(image, centerCoords, size, widthMult, fnDrawClipPath) {
       var xRatio=image.width/ctx.canvas.width,
           yRatio=image.height/ctx.canvas.height,
           xLeft=centerCoords[0]-size/2,
@@ -569,7 +579,7 @@ crop.factory('cropCanvas', [function() {
       ctx.strokeStyle = colors.areaOutline;
       ctx.lineWidth = 2;
       ctx.beginPath();
-      fnDrawClipPath(ctx, centerCoords, size);
+      fnDrawClipPath(ctx, centerCoords, size, widthMult);
       ctx.stroke();
       ctx.clip();
 
@@ -579,7 +589,7 @@ crop.factory('cropCanvas', [function() {
       }
 
       ctx.beginPath();
-      fnDrawClipPath(ctx, centerCoords, size);
+      fnDrawClipPath(ctx, centerCoords, size, widthMult);
       ctx.stroke();
       ctx.clip();
 
@@ -1405,6 +1415,9 @@ crop.factory('cropHost', ['$document', 'cropAreaCircle', 'cropAreaSquare', 'crop
     // Result Image size
     var resImgSize=200;
 
+    // Result Image size
+    var resWidthMult=1;
+
     // Result Image type
     var resImgFormat='image/png';
 
@@ -1535,7 +1548,7 @@ crop.factory('cropHost', ['$document', 'cropAreaCircle', 'cropAreaSquare', 'crop
       var temp_ctx, temp_canvas;
       temp_canvas = angular.element('<canvas></canvas>')[0];
       temp_ctx = temp_canvas.getContext('2d');
-      temp_canvas.width = resImgSize;
+      temp_canvas.width = resImgSize*resWidthMult;
       temp_canvas.height = resImgSize;
       if(image!==null){
         temp_ctx.drawImage(image, (theArea.getX()-theArea.getSize()/2)*(image.width/ctx.canvas.width), (theArea.getY()-theArea.getSize()/2)*(image.height/ctx.canvas.height), theArea.getSize()*(image.width/ctx.canvas.width), theArea.getSize()*(image.height/ctx.canvas.height), 0, 0, resImgSize, resImgSize);
@@ -1664,6 +1677,14 @@ crop.factory('cropHost', ['$document', 'cropAreaCircle', 'cropAreaSquare', 'crop
       }
     };
 
+    this.setResultWidthMult=function(mult) {
+      //mult=parseInt(mult,10);
+      if(!isNaN(mult)) {
+        theArea.setWidthMult(mult);
+        resWidthMult=mult;
+      }
+    };
+
     this.setResultImageFormat=function(format) {
       resImgFormat = format;
     };
@@ -1768,6 +1789,7 @@ crop.directive('imgCrop', ['$timeout', 'cropHost', 'cropPubSub', function($timeo
       areaType: '@',
       areaMinSize: '=',
       resultImageSize: '=',
+      resultWidthMult: '=',
       resultImageFormat: '@',
       resultImageQuality: '=',
 
@@ -1848,6 +1870,10 @@ crop.directive('imgCrop', ['$timeout', 'cropHost', 'cropPubSub', function($timeo
         cropHost.setResultImageSize(scope.resultImageSize);
         updateResultImage(scope);
       });
+      scope.$watch('resultWidthMult',function(){
+        cropHost.setResultWidthMult(scope.resultWidthMult);
+        updateResultImage(scope);
+      });
       scope.$watch('resultImageFormat',function(){
         cropHost.setResultImageFormat(scope.resultImageFormat);
         updateResultImage(scope);
@@ -1863,8 +1889,8 @@ crop.directive('imgCrop', ['$timeout', 'cropHost', 'cropPubSub', function($timeo
           return [element[0].clientWidth, element[0].clientHeight];
         },
         function (value) {
-          cropHost.setMaxDimensions(value[0],value[1]);
-          updateResultImage(scope);
+          // cropHost.setMaxDimensions(value[0],value[1]);
+          // updateResultImage(scope);
         },
         true
       );

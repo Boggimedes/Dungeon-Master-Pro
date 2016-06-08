@@ -57,55 +57,61 @@
         <input id="seq" type="checkbox" ng-model="effect.seq" ng-change="slider.options.chance.disabled=effect.seq" />
         <label> </label>
       </div>
-      <label style="padding-left:40px;" for="loop" title="'Loops' are single, generally ambient, effects that play back to back">Loop</label>
+      <label style="padding-left:40px;" for="loop" title="">Repeat</label>
       <div class="switch" style="display: inline-block;width: 20px;height: 20px;top: 5px;">
         <input id="loop" type="checkbox" ng-model="effect.loop" />
         <label> </label>
       </div>
       <div style="border:1px solid darkgrey;padding:0px 0px 5px 10px;">
-        <div class="form-group">
-          <label class="col-md-2">Name</label>
-          <label class="col-md-2">file</label>
-          <label class="col-md-1 text-center">Volume %</label>
-          <label class="col-md-2 text-center">Pitch</label>
-          <label class="col-md-2 text-center">Pitch Var</label>
-          <label class="col-md-1 text-center" title="This is the relative likelihood of a sound playing.  So if all sounds are set at 100 (or all set at 1 for that matter) then they all have an equal chance of playing.  However if one sound is set at 50 and the others are at 100, then that sound is less likely to play than the others">Chance</label>
-          <label class="col-md-1 text-center" title="Fade duration (in seconds)">Fade In/Out</label>
-          <label class="col-md-1 text-center">Rand Loc</label>
-        </div>
         <div ng-repeat="sound in effect.sounds" class="row">
 
           <div class="form-group col-md-2">
-            <input class="form-control" type="text" ng-model="sound.name" />
+          <label ng-if="$index==0" class="">Name</label>
+            <div style="position:relative;"><i ng-click="effect.sounds.splice($index,1)" class="fa fa-times-circle x-close top-right"></i><input class="form-control" type="text" ng-model="sound.name" /></div>
           </div>
-          <div class="form-group col-md-2"><a ui-turn-on="soundPicker" ng-click="$parent.selectedSound=$index" style="float:right;margin-top:2px;font-size: 25px;"><i class="fa fa-folder"></i></a>
-            <input style="width:80%;" class="form-control" type="text" ng-model="sound.file" />
+          <div class="form-group col-md-1">          
+                      <label ng-if="$index==0" class="" style="display:block">file</label>
+            <button type="button" style="float:right;margin-top:5px;" class="btn btn-xs" ng-click="playSound(sound,effect)">
+              <i class="fa {{soundPlaying[sound.name]? 'fa-stop' : 'fa-play'}}"></i>
+            </button>
+      <a ui-turn-on="soundPicker" ng-click="$parent.selectedSound=$index" style="font-size: 25px;"><i class="fa fa-folder"></i></a>
+            <input class="form-control" type="hidden" ng-model="sound.file" />
           </div>
           <div class="form-group col-md-1">
+          <label ng-if="$index==0" class="text-center">Vol %</label>
             <rzslider rz-slider-options="slider.options.percent" rz-slider-model="sound.vol"></rzslider>
           </div>
           <div class="form-group col-md-2">
+          <label ng-if="$index==0" class="text-center">Pitch</label>
             <rzslider rz-slider-options="slider.options.pitchSet" rz-slider-model="sound.pitchSet"></rzslider>
           </div>
-          <div class="form-group col-md-2">
+          <div class="form-group col-md-1">
+          <label ng-if="$index==0" class="text-center">Pitch Var</label>
             <rzslider rz-slider-options="slider.options.pitchVar" rz-slider-model="sound.pitchVar"></rzslider>
           </div>
           <div class="form-group col-md-1">
+          <label ng-if="$index==0" class="text-center" title="This is the relative likelihood of a sound playing.  So if all sounds are set at 100 (or all set at 1 for that matter) then they all have an equal chance of playing.  However if one sound is set at 50 and the others are at 100, then that sound is less likely to play than the others">Chance</label>
             <rzslider rz-slider-options="slider.options.chance" rz-slider-model="sound.chance"></rzslider>
           </div>
           <div class="form-group col-md-1 inline">
-            <input class="form-control" style="width:40%" type="text" ng-model="sound.fadeIn" />/
-            <input class="form-control" style="width:40%" type="text" ng-model="sound.fadeOut" />
+           <label ng-if="$index==0" class="text-center" title="Fade duration (in seconds)">Fade In/Out</label>
+           <input class="form-control" ng-disabled="sound.loop" style="width:40%" type="text" ng-model="sound.fadeIn" />/
+            <input class="form-control" ng-disabled="sound.loop" style="width:40%" type="text" ng-model="sound.fadeOut" />
           </div>
           <div class="form-group col-md-1 inline">
-            <input class="form-control" style="display:none" type="checkbox" ng-model="sound.reverb" />
+          <label ng-if="$index==0" class="text-center">Loop</label>
+            <div class="switch">
+              <input type="checkbox" ng-model="sound.loop" ng-click="sound.fadeIn=0;sound.fadeOut=0;" />
+              <label> </label>
+            </div>
+          </div>
+          <div class="form-group col-md-1 inline">
+          <label ng-if="$index==0" class="text-center"  style="display:block">Rand Loc</label>
+            <input class="form-control" ng-disabled="sound.loop" style="display:none" type="checkbox" ng-model="sound.reverb" />
             <div class="switch">
               <input type="checkbox" ng-model="sound.randLoc" />
               <label> </label>
             </div>
-            <button type="button" style="position: absolute;top: 18px;right: 0px;" class="btn btn-xs" ng-click="playSound(sound,effect)">
-              <i class="fa {{soundPlaying[sound.name]? 'fa-stop' : 'fa-play'}}"></i>
-            </button>
           </div>
         </div>
         <button type="button" ng-click="addSound()" style="display: block;" class="btn btn-xs btn-default"><span class="fa fa-plus"></span>
@@ -117,18 +123,25 @@
         <rzslider rz-slider-options="slider.options.percent" rz-slider-model="effect.vol"></rzslider>
       </div>
 
-      <div class="form-group col-md-5 text-center">
+      <div class="form-group col-md-5 text-center" ng-if="!sound.loop">
         <label>Delay Range</label>
-        <rzslider rz-slider-model="delayL" rz-slider-high="delayH" rz-slider-options="slider.options.delay"></rzslider>
+        <rzslider  rz-slider-model="delayL" rz-slider-high="delayH" rz-slider-options="slider.options.delay"></rzslider>
       </div>
-      <div class="form-group col-md-4 text-center">
+      <div class="form-group col-md-4 text-center" ng-if="!sound.loop">
         <label>Pre Delay</label>
         <rzslider rz-slider-model="preDelay" rz-slider-options="slider.options.preDelay"></rzslider>
       </div>
 
       <input type="submit" class="btn btn-success" value="Save">
     </form>
-  </div>
+<br><br><br>
+  <p>Given the time required to gather and catalog sounds I started with what I thought would be most useful, but more can (and will be) added with time. If you cannot find the sound you need for your scene there are several good sources out there.  </p>
+
+  <p><a href="http://soundbible.com">SoundBible.com</a> has lots of royalty free sounds available (then MUST be royalty free if you have any intention of sharing your scenes or effects).</p>
+  <p><a href="https://www.freesound.org">www.FreeSound.org</a> is another good source, though it can be hard to find exactly what you are looking for.</p>
+  <p>Finally <a href="https://www.audioblocks.com">www.AudioBlocks.com</a> has a large and well organized selection of sounds.  At LEAST for the first year, and possibly for longer if it is useful to my users, I have a paid account to pull sounds from AudioBlocks.  If you find sounds there that you would like please contact me and I will download them and add them to the public sound files and notify you of their upload.</p>
+
+    </div>
 </div>
 
 <div ui-content-for="navbarAction">
@@ -138,40 +151,127 @@
 <div ui-content-for="modals">
   <div class="modal" ui-if='soundPicker' ui-state='soundPicker'>
     <div class="modal-dialog" style="z-index: 1050;">
-      <div class="modal-content">
+      <div class="modal-content"  >
         <div class="modal-header">
           <button class="close" ui-turn-off="soundPicker">&times;</button>
           <h4 class="modal-title">Select Sound</h4>
         </div>
         <div class="modal-body">
 
-          <div ui-state="activeTab" default="1">
+          <div ui-state="activeTab" >
             <ul class="nav nav-tabs">
               <li ui-class="{'active': activeTab == 1}">
-                <a ui-set="{'activeTab': 1}">Existing Sound</a>
+                <a ui-set="{'activeTab': 1}">FX</a>
               </li>
               <li ui-class="{'active': activeTab == 2}">
-                <a ui-set="{'activeTab': 2}">Upload Sound</a>
+                <a ui-set="{'activeTab': 2}">Ambience</a>
+              </li>
+              <li ui-class="{'active': activeTab == 3}">
+                <a ui-set="{'activeTab': 3}">Music</a>
+              </li>
+              <li ui-class="{'active': activeTab == 4}">
+                <a ui-set="{'activeTab': 4}">Upload Sound</a>
               </li>
             </ul>
-            <div ui-if="activeTab == 1" style="padding:10px;">
-              <div> <span ng-if="pathDepth>0" ng-click="setActive(backPath,'Music',-1)">Back</span>
-              </div>
-              <div class="file-list" ng-repeat="(key,item) in activeSet" ng-click="setActive(item,key,1)">
-                <i class="fa fa-{{pathIcon}}"><span>{{key}}</span><span ng-if="item.name"></i>
+            <div   ui-if="activeTab == 1"  style="padding:10px;">
+            <div class="row">
+            <input type="text" class="form-control col-md-3" ng-model="fxFilter.name">
+            <button class="btn btn-xs btn-primary" style="margin:1px;" ng-click="fxFilter.tags = ''" >All</button>
+            <button class="btn btn-xs btn-primary" style="margin:1px;" ng-click="fxFilter.tags = tag" ng-repeat="tag in tags.fx">{{tag|titlecase}}</button>
+            </div>
+              <div style="max-height:500px;overflow:auto"> 
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Tags</th>
+                    <th>Waveform</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="cursor:pointer" ng-repeat="sound in fx | filter:fxFilter" ng-mouseover="setRange($index)" on-double-click="loadSound(sound)" >
+                    <td class="col-md-3">{{sound.name}}</td>
+                    <td class="col-md-1">{{sound.tags}}</td>
+                    <td class="col-md-8" style="position:relative;height:60px;" ng-mouseleave="hoverStop()" >
+                    <div ng-if="hoverIndex==$index" style="position:absolute;height:100%;background-color:rgba(0,0,0,0.5);top:0;width:{{(soundPosition/soundDuration)*99}}%"></div>
+                    <img ng-if="$index>(hoverRow-12) && $index<(hoverRow+12)" style="height:100%;width:100%" ng-mouseover="hoverPlay(sound,$index)" ng-src="/api/get-waveform?file=/sounds/{{sound.category}}/{{sound.file}}">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               </div>
             </div>
 
-            <div ui-if="activeTab == 2">
-              <h3 class="page-header">Tab 2</h3>
+            <div   ui-if="activeTab == 2"   style="padding:10px;">
+            <div class="row">
+            <input type="text" class="form-control col-md-3" ng-model="ambFilter.name">
+            <button class="btn btn-xs btn-primary" style="margin:1px;" ng-click="ambFilter.tags = ''" >All</button>
+            <button class="btn btn-xs btn-primary" style="margin:1px;" ng-click="ambFilter.tags = tag" ng-repeat="tag in tags.ambience">{{tag|titlecase}}</button>
+            </div>
+              <div style="max-height:500px;overflow:auto"> 
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Tags</th>
+                    <th>Waveform</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="cursor:pointer" ng-repeat="sound in ambience | filter:ambFilter" ng-mouseover="setRange($index)" on-double-click="loadSound(sound)" >
+                    <td class="col-md-3">{{sound.name}}</td>
+                    <td class="col-md-1">{{sound.tags}}</td>
+                    <td class="col-md-8" style="position:relative;height:60px;" ng-mouseleave="hoverStop()" >
+                    <div ng-if="hoverIndex==$index" style="position:absolute;height:100%;background-color:rgba(0,0,0,0.5);top:0;width:{{(soundPosition/soundDuration)*99}}%"></div>
+                    <img ng-if="$index>(hoverRow-12) && $index<(hoverRow+12)" style="height:100%;width:100%" ng-mouseover="hoverPlay(sound,$index)" ng-src="/api/get-waveform?file=/sounds/{{sound.category}}/{{sound.file}}">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+
+
+            <div   ui-if="activeTab == 3"   style="padding:10px;">
+            <div class="row">
+            <input type="text" class="form-control col-md-3" ng-model="musFilter.name">
+            <button class="btn btn-xs btn-primary" style="margin:1px;" ng-click="musFilter.tags = ''" >All</button>
+            <button class="btn btn-xs btn-primary" style="margin:1px;" ng-click="musFilter.tags = tag" ng-repeat="tag in tags.music">{{tag|titlecase}}</button>
+            </div>
+              <div style="max-height:500px;overflow:auto"> 
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Tags</th>
+                    <th>Waveform</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style="cursor:pointer" ng-repeat="sound in music | filter:musFilter" ng-mouseover="hoverRow = $index" on-double-click="loadSound(sound)" >
+                    <td class="col-md-3">{{sound.name}}</td>
+                    <td class="col-md-1">{{sound.tags}}</td>
+                    <td class="col-md-8" style="position:relative;height:60px;" ng-mouseleave="hoverStop()" >
+                    <div ng-if="hoverIndex==$index" style="position:absolute;height:100%;background-color:rgba(0,0,0,0.5);top:0;width:{{(soundPosition/soundDuration)*99}}%"></div>
+                    <img ng-if="$index>(hoverRow-12) && $index<(hoverRow+12)" style="height:100%;width:100%" ng-mouseover="hoverPlay(sound,$index)" ng-src="/api/get-waveform?file=/sounds/{{sound.category}}/{{sound.file}}">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              </div>
+            </div>
+
+            <div ui-if="activeTab == 4">
+              <h3 class="page-header">Coming Soon!</h3>
               <p>
-                <!-- ... -->
+                This will absolutely be ready by Beta launch, but is not done yet.
               </p>
             </div>
           </div>
 
         </div>
         <div class="modal-footer">
+        <sound-manager></sound-manager>
           <button ui-turn-off="soundPicker" class="btn btn-default">Close</button>
           <button ui-turn-off="soundPicker" ng-click="addDie(new)" class="btn btn-primary">Save</button>
         </div>

@@ -30,6 +30,18 @@ function __construct($account, $param, $db) {
 		            }
 		            $result->close();
 		}
+		$query  = "SELECT * FROM profession WHERE account = '{$this->account}'";
+
+		/* execute multi query */
+		if ($result = $this->mysqli->query($query)) {
+		        /* store first result set */
+		            while ($row = $result->fetch_object ()) {
+		            	// print_r($row);
+		                $this->professions[$row->id] = $row;
+		                $this->professions[$row->name] = $row;
+		            }
+		            $result->close();
+		}
 		if($param == null) $param = [];
  		if(array_key_exists("region",$param)) $this->region = $param['region'];
  			else $this->region = 'default';
@@ -125,6 +137,7 @@ function getNames(){
 		var_dump($this->mysqli->error); 
 		} 
 		$this->citizenNames = $names;
+		return $names;
     }
 
    
@@ -153,7 +166,7 @@ function getDescriptives($data){
 		echo "Mysqli failed.\n"; 
 		var_dump($this->mysqli->error); 
 		} 
-		//$this->mysqli->close();
+		//
 		return $descriptives;
     }
 
@@ -182,7 +195,7 @@ function getProfessions($data){
 		echo "Mysqli failed.\n"; 
 		var_dump($this->mysqli->error); 
 		} 
-		//$this->mysqli->close();
+		//
 		return $profession;
     }
 
@@ -231,6 +244,7 @@ function getCitizenDetails($data = null){
 
 		if ($result = $this->mysqli->query($query)) {
 			while($row=$result->fetch_object()){
+			                $row->features = json_decode($row->features);
 			                $this->citizen = $row;
 			            }
 			            $result->close();
@@ -240,7 +254,7 @@ function getCitizenDetails($data = null){
 		var_dump($this->mysqli->error); 
 		} 
 
-		$this->citizen->features = json_decode($this->citizen->features);
+		//$this->citizen->features = json_decode($this->citizen->features);
 		if($this->citizen->race && array_key_exists($this->citizen->race, $this->races)) $this->citizen->race 		= $this->races[$this->citizen->race];
 		$this->citizen->children = explode(",",$this->citizen->children);
 		return $this->citizen;
@@ -249,7 +263,7 @@ function getCitizenDetails($data = null){
 function getCitizens($data = null){
 	$whereStr = null;
 	$where = null;
-		if(is_array($data)) if(array_key_exists("where", $data)) $where = $data['where'][0];
+		if(is_array($data)) if(array_key_exists("where", $data)) $where = $data['where'];
 		$this->citizens=[];
 		if($where){
 			$whereStr='';
@@ -285,18 +299,19 @@ function getCitizens($data = null){
     }
 
 function getCitizensArray($data){
-	$whereStr = null;
-	$where = null;
+		$whereStr = null;
+		$where = null;
 		if(is_array($data)) if(array_key_exists("where", $data)) $where = $data['where'][0];
 		$this->citizens=[];
 		if($where){
 			$whereStr='';
 			foreach($where as $key=>$value){
-				$whereStr.="and `$key` = '$value' ";
+		if($value === 0 || $value === 1) $whereStr.="and `$key` = $value ";
+			else $whereStr.="and `$key` = '$value' ";
 			}
 		}
 		$this->getRegion($this->region);
-		$query  = "SELECT firstName, lastName, gender, age, alive, race, profession, lineage, excluded, metParty, id FROM citizen WHERE region = {$this->region->id} AND account = $this->account $whereStr";
+		$query  = "SELECT firstName, lastName, gender, age, alive, race, profession, lineage, excluded, metParty, residentCity, id FROM citizen WHERE region = {$this->region->id} AND account = $this->account $whereStr";
 
 		if ($result = $this->mysqli->query($query)) {
 			while($row=$result->fetch_assoc()){
@@ -308,16 +323,19 @@ function getCitizensArray($data){
 		echo "Mysqli failed.\n"; 
 		var_dump($this->mysqli->error); 
 		} 
-		//$this->mysqli->close();
+		//
 		// print_r($this->citizens);
 
 		foreach($this->citizens as &$citizen){
 
-		if($citizen['race'] && array_key_exists($citizen['race'], $this->races)) $citizen['race'] = $this->races[$citizen['race']];
-		if($citizen['age']<$citizen['race']->adulthood) $citizen['ageGroup'] = "Youth";
-		if($citizen['age']>=$citizen['race']->adulthood && $citizen['age']<$citizen['race']->middleAge) $citizen['ageGroup'] = "Adult";
-		if($citizen['age']>=$citizen['race']->middleAge && $citizen['age']<$citizen['race']->oldAge) $citizen['ageGroup'] = "MiddleAged";
-		if($citizen['age']>=$citizen['race']->oldAge) $citizen['ageGroup'] = "Old";
+		if($citizen['race'] && array_key_exists($citizen['race'], $this->races)){
+			$race = $this->races[$citizen['race']];
+			$citizen['race'] = $race->name;
+		} 
+		if($citizen['age']<$race->adulthood) $citizen['ageGroup'] = "Youth";
+		if($citizen['age']>=$race->adulthood && $citizen['age']<$race->middleAge) $citizen['ageGroup'] = "Adult";
+		if($citizen['age']>=$race->middleAge && $citizen['age']<$race->oldAge) $citizen['ageGroup'] = "MiddleAged";
+		if($citizen['age']>=$race->oldAge) $citizen['ageGroup'] = "Old";
 
 
 
@@ -337,7 +355,7 @@ function seedRegion(){
 		        $mannerisms  = $this->mysqli->real_escape_string($aspects['Manner']);
 		        $lineage     = $this->mysqli->real_escape_string($aspects['Lineage']);
 		        if(!strcasecmp($lineage, "demigod") || !strcasecmp($lineage, "fiend") || !strcasecmp($lineage, "demon") || !strcasecmp($lineage, "angel"))
-		        	$lineage = $lineage.", `immortal` = 1 ";
+		        	$lineage = $lineage."', `immortal` = '1 ";
 		        $quirks      = $this->mysqli->real_escape_string($aspects['Quirk']);
 		        $features     = $this->mysqli->real_escape_string($aspects['features']);
 				$race = $key;
@@ -385,10 +403,11 @@ function seedRegion(){
 			}
 	 $this->region->stats = json_encode($this->region->stats);
 	 $this->region->racialBalance = json_encode($this->region->racialBalance);
+	 $this->region->profBalance = json_encode($this->region->profBalance);
 	 $this->upsertRecord($this->region,"region");
 	 return $this->region->stats;
 		/* close connection */
-		// $this->mysqli->close();
+		// 
 }
 
 private function deathCheck(&$currentCitizen)  {
@@ -484,7 +503,7 @@ $x = ($currentCitizen->age*100)/$currentCitizen->race->maxAge;
  }
 function ageRegion($years){
 
-	$this->getCitizens(json_decode('{"alive":1,"excluded":0}'));
+	$this->getCitizens(array("where"=>array("excluded"=>0)));
 	for($y=0;$y<$years;$y++){
 		$this->yearlyBirths=0;
 		$this->region->epoch++;
@@ -525,6 +544,7 @@ function ageRegion($years){
 			//$currentCitizen = $this->newChild($currentCitizen); 
 			$this->weddingBells($currentCitizen);  
 			$this->newChild($currentCitizen); 
+			if($currentCitizen->alive && $currentCitizen->age>$currentCitizen->race->adulthood/2) $this->ratRace($currentCitizen);
 		// }
 		// else{spliceDead->push(i);}
 		}
@@ -567,10 +587,62 @@ function ageRegion($years){
 	 $return = json_encode($this->region);
 	 $this->region->stats = json_encode($this->region->stats);
 	 $this->region->racialBalance = json_encode($this->region->racialBalance);
+	 $this->region->profBalance = json_encode($this->region->profBalance);
 	 $this->upsertRecord($this->region,"region");
-	 $this->mysqli->close(); 
+	  
 	 return $return;
 }
+
+private function ratRace(&$currentCitizen){
+
+			if($currentCitizen->profession != ""){
+				if(array_key_exists($currentCitizen->profession, $this->professions)){
+				$maxAge = $this->professions[$currentCitizen->profession]->maxAge;
+				if($maxAge == "none") $maxAge=9999;
+					else $maxAge = $currentCitizen->race->$maxAge;
+					if($currentCitizen->age >= $maxAge){
+						if(mt_rand(1,12) == 1) {
+							$currentCitizen->notes.="Retired at ".$currentCitizen->age.".\n";
+							$currentCitizen->profession = "Retired ".$currentCitizen->profession;
+						}
+					}
+
+				}
+				return;
+			}
+			$getAJob = 10;
+			if($currentCitizen->age < $currentCitizen->race->adulthood) $getAJob = 30;
+			if(mt_rand(1,$getAJob)==1){
+				$profBalance = $this->region->profBalance;
+				$balanceTotal=0;
+				$profList=[];
+				if(!is_array($profBalance)) return;
+				foreach($profBalance as $prof){
+					$tmpValue = $prof->value;
+						if(@$this->citizens[$currentCitizen->father]->profession == $prof->prof || @$this->citizens[$currentCitizen->father]->profession == "Retired ".$prof->prof ||
+							@$this->citizens[$currentCitizen->mother]->profession == $prof->prof || @$this->citizens[$currentCitizen->mother]->profession == "Retired ".$prof->prof ) $tmpValue = $prof->value*3;
+						$balanceTotal += $tmpValue;
+						$profList[]=array($prof->prof,$tmpValue);
+				}
+				$randResult = mt_rand(0,$balanceTotal);
+				foreach($profList as $prof){
+					$balanceTotal -= $prof[1];
+					$minAge = $this->professions[$prof[0]]->minAge;
+					if($minAge == "none") $minAge=0;
+						else $minAge = $currentCitizen->race->$minAge;
+					$maxAge = $this->professions[$prof[0]]->maxAge;
+					if($maxAge == "none") $maxAge=9999;
+						else $maxAge = $currentCitizen->race->$maxAge;
+
+					if($randResult>=$balanceTotal && $currentCitizen->age >= $minAge && $currentCitizen->age < $maxAge){
+						$currentCitizen->notes.="Became a/an $prof[0] at ".$currentCitizen->age."\n";
+						$currentCitizen->profession = $prof[0];
+						return;
+					}
+				}
+			}
+}
+
 private function weddingBells(&$currentCitizen)  {
         if($currentCitizen->married || ($currentCitizen->gender == "female" &&  mt_rand(1,20) > 1) || $currentCitizen->age < $currentCitizen->race->adulthood ) return $currentCitizen;
         if(mt_rand(1,100) > (($currentCitizen->race->maxAge-$currentCitizen->age)/max($currentCitizen->race->middleAge-$currentCitizen->age,1)/4)) return $currentCitizen;
@@ -655,6 +727,7 @@ function getRegion($region){
         $result->close();
 	}
 	$this->region->racialBalance = json_decode($this->region->racialBalance);
+	$this->region->profBalance = json_decode($this->region->profBalance);
 	$this->region->stats = json_decode($this->region->stats);
 	if ($this->mysqli->errno) { 
 	echo "Mysqli failed.\n"; 
@@ -713,6 +786,7 @@ function newCitizen($age, $race, $gender, $generation, $mother = null, $father =
 	        $newCitizen->generation			= $generation;
 	        $newCitizen->birthYear			= $this->region->epoch - $age;
 	        $newCitizen->account			= $this->account;
+            $newCitizen->profession				= '';
             $newCitizen->notes				= '';
             $newCitizen->children  			= '';
             $newCitizen->spouse 			= '';
@@ -753,6 +827,7 @@ function updateNPCRecord($recordType,$data){
 			unset($data['account']);
 		$data['stats'] = json_encode($data['stats']);
 		$data['racialBalance'] = json_encode($data['racialBalance']);
+		$data['profBalance'] = json_encode($data['profBalance']);
 	}
 	$set = " account = $this->account";
 	foreach($data as $key=>$value){
@@ -766,15 +841,15 @@ function updateNPCRecord($recordType,$data){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
-	return "updated";
+	
+	return $this->mysqli->insert_id;
  }
 
 
 function addNPCRecord($recordType, $data){
 	$query = "INSERT INTO $recordType SET account = $this->account";
 	foreach($data as $key=>$value){
-		if(is_numeric($value)) $query .= $key." = ".$value.",";
+		if(is_numeric($value)) $query .= ",".$key." = ".$value;
 			else $query .= ', '.$key." = '".$this->mysqli->real_escape_string($value)."'";
 		}
 	$this->mysqli->query($query);
@@ -782,19 +857,20 @@ function addNPCRecord($recordType, $data){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
+	
 	return "added";
 }
 
 function deleteNPCRecord($recordType, $id){
-	$query = "DELETE FROM $recordType WHERE account = $this->account AND ".$id['field']." = '".$id['value']."'";
+	$values = "'".implode("','",$id['value'])."'";
+	$query = "DELETE FROM $recordType WHERE account = $this->account AND ".$id['field']." IN($values)";
 	$this->mysqli->query($query);
 	if ($this->mysqli->errno) { 
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	$this->mysqli->close();
-	return "Deleted record ".$id['value'];
+	
+	return "Deleted record ".$values;
 }
 
 function getRegions($data){
@@ -811,6 +887,7 @@ function getRegions($data){
 	$query = "SELECT * FROM region WHERE account = $this->account ".$whereStr;
 	if ($result = $this->mysqli->query($query)) {
 		while($row=$result->fetch_assoc()){
+			$row['profBalance']=json_decode($row['profBalance']);
 			$row['racialBalance']=json_decode($row['racialBalance']);
 			$row['stats'] = json_decode($row['stats']);
 			$regions[]=$row;
@@ -822,7 +899,7 @@ function getRegions($data){
 	echo "Mysqli failed.\n"; 
 	var_dump($this->mysqli->error); 
 	} 
-	//$this->mysqli->close();
+	//
 	return $regions;
 }
 
@@ -882,9 +959,8 @@ private function newChild(&$currentCitizen)  {
         $br->final = $birthRate;
         $br->yearlyBirths = $this->yearlyBirths;
        if($currentCitizen->immortal == 1) $birthRate = 3;
-        if($currentCitizen->spouse != null)
+        if($currentCitizen->spouse != null && is_object($currentCitizen->spouse))
 	        if($currentCitizen->spouse->immortal == 1) $birthRate = 3;
-        error_log(print_r($br,true));
 	    if($this->yearlyBirths>=($racialBalance/10)) $birthRate = 20;
 		if($randResult > $birthRate) return;
 		$this->yearlyBirths++;
@@ -912,11 +988,11 @@ private function newChild(&$currentCitizen)  {
         //     return true;
         // });
 		$fatherOptions=[];
-        foreach($this->fathers as &$k){
+        foreach($this->fathers as $k){
             if($k->age < $currentCitizen->race->adulthood ) continue;
             if(in_array($k->id,$family)) continue;
             if($k->race->id != $currentCitizen->race->id && mt_rand(1,20) > max(1,20-$racialBalance)) continue;
-            $fatherOptions[]=&$k;
+            $fatherOptions[]=$k;
         }
 
         if(count($fatherOptions) == 0) {
@@ -926,6 +1002,7 @@ private function newChild(&$currentCitizen)  {
             $mailOrderFather->children = explode(",",$mailOrderFather->children);
             $this->citizens[$mailOrderFather->id] = $mailOrderFather;
             $father =&$this->citizens[$mailOrderFather->id];
+		print_r($father);
         }
         
         if(!isset($mailOrderFather)){
@@ -936,15 +1013,16 @@ private function newChild(&$currentCitizen)  {
             if($aR>$bR) return 1;
             if($aR==$bR) return $a->age-$b->age;
         });
-        $father =&$fatherOptions[0];
+            $father =&$this->citizens[$fatherOptions[0]->id];
         
 			unset($this->fathers[$father->id]);
-
         }
 	    }
         
 		$childLineage = null;
 		$childRace = $currentCitizen->race;
+		if(!is_object($currentCitizen->race)) $this->races[$currentCitizen->race];
+		if(!is_object($father->race)) $this->races[$father->race];
         if($father->race->id == $currentCitizen->race->id){$childRace = $currentCitizen->race;}
             else{
 

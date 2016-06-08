@@ -1,0 +1,41 @@
+{
+  "name": "angu-fixed-header-table",
+  "version": "1.2.1",
+  "description": "AngularJS fixed header scrollable table directive",
+  "main": "angu-fixed-header-table.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "homepage": "http://pointblankdevelopment.com.au/blog/angularjs-fixed-header-scrollable-table-directive",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/cornflourblue/angu-fixed-header-table.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cornflourblue/angu-fixed-header-table/issues"
+  },
+  "keywords": [
+    "AngularJS",
+    "Fixed Header Table"
+  ],
+  "author": {
+    "name": "Jason Watmore",
+    "email": "jason@pointblankdevelopment.com.au"
+  },
+  "dependencies": {
+    "angular": ">=1.2.16"
+  },
+  "license": "MIT",
+  "readme": "angu-fixed-header-table\n=======================\n\nAn AngularJS fixed header scrollable table directive\n\n###Demo\n\nTo see a demo and further details go to http://pointblankdevelopment.com.au/blog/angularjs-fixed-header-scrollable-table-directive\n\n###Installation\n\nInstall using bower: `bower install angu-fixed-header-table`\n\nAlternatively download the code and include the angu-fixed-header-table.js file in your page.\n\nAdd the 'anguFixedHeaderTable' directive as a dependency of your AngularJS application:\n\n```javascript\nangular.module('myApp', ['anguFixedHeaderTable']);\n```\n\n###Usage\n\nSimply add the *fixed-header* attribute to any tables you'd like to have a fixed header:\n\n```html\n<table fixed-header>\n...\n</table>\n```\n\nThe table height can be set using CSS on the table element or by adding a *table-height* attribute to the table element eg: table-height=\"500px\".",
+  "readmeFilename": "README.md",
+  "_id": "angu-fixed-header-table@1.2.1",
+  "dist": {
+    "shasum": "9d785d71696d42ed9952093590feb8033a8d4321"
+  },
+  "_from": "angu-fixed-header-table@",
+  "_resolved": "https://registry.npmjs.org/angu-fixed-header-table/-/angu-fixed-header-table-1.2.1.tgz"
+}

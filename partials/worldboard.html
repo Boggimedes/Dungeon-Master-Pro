@@ -25,7 +25,7 @@
     padding: 0px 6px;
   }
   </style>
-<div class="scrollable" ng-init="init();">
+<div class="scrollable section" ng-init="init();">
   <div class="scrollable-content col-md-6">
           <a class="btn btn-success pull-left" style="margin-top:10px;" ng-click="regions.splice(0,0,[])">Add New Region</a>
 
@@ -85,7 +85,7 @@
 
       </div>
       <div class="form-group col-md-6" >
-        <label style="float:left;margin-right:5px;" for="citizenFirstName">Racial Balance </label> 
+        <label style="float:left;margin-right:5px;">Racial Balance </label> 
         <select style="height:23px;margin-right:5px;padding: 0px;padding-left: 3px;" placeholder="Race" class="col-md-3 form-control" type="text" ng-change="blarg(add.race)" ng-click="blarg(add.race)" ng-model="raceIndex">
         <option ng-repeat="race in races" value="{{$index}}">{{race.name}}</option>
         <input style="height:23px;margin-right:5px;padding: 0px;padding-left: 3px;" placeholder="value" type="number" class="col-md-3 form-control" ng-model="raceNum">
@@ -97,41 +97,56 @@
       </div>
       </div>
       <div class="form-group col-md-6">
-        <label for="citizenFirstName">Profession Balance</label>
-        <div style="display: flex;flex-wrap: wrap;border:1px solid darkgrey;padding:10px;border-radius:5px;">
-        <div class="subitem" style="margin-bottom:3px;" ng-repeat="(key, value) in region.profBalance">
-        <span ng-bind="key"></span><input type="number" min="10" max="100" style="width:50px;" ng-model="value"><i ng-click="deleteProf($index,key,$parent.$index)"  class="fa fa-times-circle"></i>
-        </div>
-      </div>
+        <label style="float:left;margin-right:5px;">Profession Balance</label>
+        <select style="height:23px;margin-right:5px;padding: 0px;padding-left: 3px;" placeholder="Race" class="col-md-3 form-control" type="text" ng-change="blarg(add.prof)" ng-click="blarg(add.prof)" ng-model="profIndex">
+        <option ng-repeat="prof in professions" value="{{$index}}">{{prof.name}}</option>
+        <input style="height:23px;margin-right:5px;padding: 0px;padding-left: 3px;" placeholder="value" type="number" class="col-md-3 form-control" ng-model="profNum">
+        <button  type="button" class="btn btn-xs" ng-click="region.profBalance[professions[profIndex].id]= {'prof':professions[profIndex].name,'value':profNum};console.log(region);"><i class="fa fa-plus"></i></button>
+        <div class="col-md-12" style="display: flex;flex-wrap: wrap;border:1px solid darkgrey;padding:10px;border-radius:5px;">
+        <div class="subitem" style="margin-bottom:3px;" ng-repeat="prof in region.profBalance">
+        <span ng-bind="prof.prof"></span><input type="number" min="10" max="100" style="width:50px;" ng-model="prof.value"><i ng-click="region.profBalance.splice($index,1)"  class="fa fa-times-circle"></i>
            </div>
       </div>
 
+    </div>
+    </div>
     </div>
    <div class="scrollable-content col-md-6">
    <h2 style="padding-top:20px;">World Races</h2>
      <hot-table
     hot-id="races"
-      settings="settings"
+      settings="raceSettings"
       min-spare-rows="minSpareRows"
       datarows="races"
       columns="raceCol"
       filters>
   </hot-table>
-
+  <div class="col-md-6">
    <h2 style="padding-top:20px;">World Professions</h2>
     <hot-table
     hot-id="professions"
-      settings="settings"
+      settings="professionSettings"
       min-spare-rows="minSpareRows"
       datarows="professions"
       columns="profCol"
       filters>
   </hot-table>
-
-   <h2 style="padding-top:20px;">Descriptive Text</h2>
+</div>
+  <div class="col-md-6">
+   <h2 style="padding-top:20px;">NPC Names</h2>
+    <hot-table
+    hot-id="names"
+      settings="namesSettings"
+      min-spare-rows="minSpareRows"
+      datarows="names"
+      columns="nameCol"
+      filters>
+  </hot-table>
+</div>
+   <h2 style="padding-top:20px;clear: both;">Descriptive Text</h2>
     <hot-table
     hot-id="descriptives"
-      settings="settings"
+      settings="descriptivesSettings"
       min-spare-rows="minSpareRows"
       datarows="descriptives"
       columns="descCol"

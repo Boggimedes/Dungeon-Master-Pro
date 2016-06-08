@@ -10,12 +10,12 @@
 
 <div  ui-content-for="rightSide"><div class="scrollable" id="spellscroll">
   <div class="scrollable-content" style="overflow: hidden;" >
-      <div class="list-group" style="height:100%;/*height: 100vh;
+<input type="text" placeholder="Filter by Name..." ng-model="filterName.name" style="width: 70%;border:1px solid black;background-color:white;max-width:70%;position:fixed;top:-1px;border-bottom-right-radius:6px;border-bottom-left-radius:6px;height:34px;" autocomplete="off" />
+<input type="text" placeholder="Level..." ng-model="filterLevel.level" style="width: 30%;border:1px solid black;background-color:white;max-width:30%;position:fixed;top:-1px;border-bottom-right-radius:6px;border-bottom-left-radius:6px;height:34px;left: 70%;" autocomplete="off" />
+      <div class="list-group"  ui-turn-off='uiSidebarRight' style="height:100%;/*height: 100vh;
                                       margin-bottom: 0px;
                                       top: 0;
                                       position: absolute;*/" >
-<input type="text" placeholder="Filter by Name..." ng-model="filterName.name" style="width: 70%;border:1px solid black;background-color:white;max-width:70%;position:fixed;top:-1px;border-bottom-right-radius:6px;border-bottom-left-radius:6px;height:34px;" autocomplete="off" />
-<input type="text" placeholder="Level..." ng-model="filterLevel.level" style="width: 30%;border:1px solid black;background-color:white;max-width:30%;position:fixed;top:-1px;border-bottom-right-radius:6px;border-bottom-left-radius:6px;height:34px;left: 70%;" autocomplete="off" />
     <ul style="height: 100%;margin-top:32px;overflow:auto;padding-bottom:32px" class="list-unstyled section">
       <li ng-repeat="spell in spells | filter:filterName | filter:filterLevel" style="text-align:center;" is-loading="loading" class="spell-box" ng-click="loadSpell(spell)">{{spell.name}} <small style="font-size:70%">(Level{{spell.level}})</small></li>
     </ul>
@@ -27,7 +27,8 @@
 
 <div class="scrollable">
   <div class="scrollable-content section">
-<form role="form" id="add-page" ng-submit="saveEffect()">
+<form role="form" id="add-page" ng-submit="saveSpell()">
+<div class="row">
 <div class="form-group col-md-4">
 <label>Spell Name</label>
 <input class="form-control" type="text" ng-model="spell.name"/>
@@ -36,9 +37,9 @@
 </div>
   <div class="form-group col-md-8">
   <label>Full Text</label>
-  <textarea class="form-control" ui-tinymce="tinymceOptions" type="text" ng-model="spell.fulltext" rows="5"></textarea>
+  <textarea class="form-control" ui-tinymce="tinymceOptions" type="text" ng-model="spell.fulltext" rows="10"></textarea>
   </div>
-
+</div>
 <div class="form-group col-md-1 text-center">
 <label>Level</label>
 <input class="form-control"type="text" ng-model="spell.level"/>
@@ -76,18 +77,18 @@
 
 <div class="form-group col-md-3 text-center">
 <label>Attack</label>
-<input class="form-control"type="text" ng-model="spell.attack"/>
+<input class="form-control"type="text" placeholder="'melee' or 'ranged' for default, or static  ('+2','+4',etc)" ng-model="spell.attack"/>
 </div>
 
 <div class="form-group col-md-6 text-center">
-<label>Damage/Effect</label>
-<input class="form-control"type="text" ng-model="spell.damage"/>
+<label title="Can use static roll text, or 'level' logic string. {((({level}+1)/6)+0.5)}d8 equals additional die at 5th, 11th, and 17th.  The level variable is replaced, then the bracketed value is rounded before the die is rolled.">Damage/Effect</label>
+<input class="form-control"type="text" placeholder="Text damage string. eg: 2d6+5, 1d10." ng-model="spell.damage"/>
 </div>
 
 
 
 
-<input type="submit" class="btn btn-success" value="Save">
+<input type="submit" class="form-group col-md-12 btn btn-success" value="Save">
 </div>
 </form>
 </div>

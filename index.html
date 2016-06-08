@@ -4,7 +4,8 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Softrope</title>
+    <meta name="pinterest" content="nopin" />
+    <title>Game Master Pro</title>
      <base href="/">
      <meta name='viewport' content='width=device-width, initial-scale=1.0' >
     <link rel="stylesheet" href="bower_components/mobile-angular-ui/dist/css/mobile-angular-ui-base.min.css" />
@@ -19,7 +20,8 @@
     <link ng-if="css=='custom'" rel="stylesheet" ng-href="user/{{user.id}}/user.css" />
     <link ng-if="css=='dark'" rel="stylesheet" ng-href="css/dark.css" />
           <script src="bower_components/handsontable/dist/handsontable.full.js"></script>
-</head>
+
+ </head>
 
  <body ui-prevent-touchmove-defaults >
 
@@ -36,8 +38,15 @@
          ui-swipe-left='Ui.turnOff("uiSidebarLeft")'>
 
       <!-- Navbars -->
-
-      <div ng-if="!hideMenu" class="navbar navbar-app navbar-absolute-top">
+        <div class="help-text" ng-show="helpOverlay" ng-include="tutorial[helpStep]"></div>
+        <div class="btn-group" id="helpBtnGroup">
+        <button class="btn btn-primary" ng-hide="helpStep==0||!helpOverlay||helpStep==7" ng-click="moveTutorial(-1)">Prev</button>
+        <button class="btn btn-primary" ng-hide="!helpOverlay" ng-click="helpOverlay=false;helpStep=null">Close</button>
+        <button class="btn btn-primary" ng-hide="helpStep==10||!helpOverlay" ng-click="moveTutorial(1)">Next</button>
+        </div>
+      <div class="help-overlay" ng-show="helpOverlay">
+      </div>
+      <div  class="navbar navbar-app navbar-absolute-top"  ng-class="{'help-shown' : helpStep==0}">
         <div class="navbar-brand navbar-brand-center" ui-yield-to="title">
         
         </div>
@@ -84,6 +93,13 @@
     </div>
   </div>
 </div>
+<!-- 
+<script type = "text/javascript" src = "/scripts.php?build=1000&load=bower_components/handsontable/dist/handsontable.full,bower_components/tinymce-dist/tinymce.min,bower_components/angular/angular,bower_components/angular-ui-tinymce/dist/tinymce.min,bower_components/angular-route/angular-route.min,bower_components/angular-drag-and-drop-lists/angular-drag-and-drop-lists.min,bower_components/angular-bootstrap/ui-bootstrap-tpls.min,bower_components/mobile-angular-ui/dist/js/mobile-angular-ui.min,bower_components/mobile-angular-ui/dist/js/mobile-angular-ui.gestures.min,bower_components/angular-local-storage/dist/angular-local-storage.min,bower_components/angular-bootstrap-contextmenu/contextMenu,bower_components/angularjs-slider/dist/rzslider.min,bower_components/ng-file-upload/ng-file-upload.min,bower_components/ng-file-upload/ng-img-crop,bower_components/angular-soundmanager2/dist/angular-soundmanager2.min,js/ui-scroll,js/ui-scroll-jqlite,js/ngHandsontable,js/app,js/services,js/controllers,js/filters,js/directives"> </script>
+ -->
+<!-- 
+<script type = "text/javascript" src = "/scripts.php?build=1000&load=bower_components/handsontable/dist/handsontable.full,bower_components/tinymce-dist/tinymce.min,bower_components/angular/angular,bower_components/angular-ui-tinymce/dist/tinymce.min,bower_components/angular-route/angular-route.min,bower_components/angular-drag-and-drop-lists/angular-drag-and-drop-lists.min,bower_components/angular-bootstrap/ui-bootstrap-tpls.min,bower_components/mobile-angular-ui/dist/js/mobile-angular-ui.min,bower_components/mobile-angular-ui/dist/js/mobile-angular-ui.gestures.min,bower_components/angular-local-storage/dist/angular-local-storage.min,bower_components/angular-bootstrap-contextmenu/contextMenu,bower_components/angularjs-slider/dist/rzslider.min,bower_components/ng-file-upload/ng-file-upload.min,bower_components/ng-file-upload/ng-img-crop,bower_components/angular-soundmanager2/dist/angular-soundmanager2.min,js/ui-scroll,js/ui-scroll-jqlite,js/ngHandsontable,bower_components/ngSlimscroll/src/js/min/ngSlimscroll"> </script> 
+ -->
+
 <script type="text/javascript" src="bower_components/tinymce-dist/tinymce.js"></script>
     <script src="bower_components/angular/angular.js"></script>
 <script type="text/javascript" src="bower_components/angular-ui-tinymce/src/tinymce.js"></script>
@@ -92,13 +108,14 @@
     <script src="bower_components/angular-bootstrap/ui-bootstrap-tpls.min.js"></script>
     <script src="bower_components/mobile-angular-ui/dist/js/mobile-angular-ui.min.js"></script>
     <script src="bower_components/mobile-angular-ui/dist/js/mobile-angular-ui.gestures.min.js"></script>
-    <script src="bower_components/angular-ui-router/release/angular-ui-router.min.js"></script>
     <script src="bower_components/angular-local-storage/dist/angular-local-storage.js"></script>
     <script src="bower_components/angular-bootstrap-contextmenu/contextMenu.js"></script>
     <script src="bower_components/angularjs-slider/dist/rzslider.min.js"></script>
     <script src="bower_components/ng-file-upload/ng-file-upload.min.js"></script>
     <script src="bower_components/ng-file-upload/ng-img-crop.js"></script>
+    <script src="bower_components/ngSlimscroll/src/js/min/ngSlimscroll.js"></script>
     <script src="bower_components/angular-soundmanager2/dist/angular-soundmanager2.js"></script>
+    <script src="bower_components/oclazyload/dist/ocLazyLoad.min.js"></script>
     <script src="js/ui-scroll.js"></script>
     <script src="js/ui-scroll-jqlite.js"></script>
    <script src="js/ngHandsontable.js"></script>

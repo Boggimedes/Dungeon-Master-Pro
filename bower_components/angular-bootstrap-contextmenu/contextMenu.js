@@ -132,13 +132,9 @@ angular.module('ui.bootstrap.contextMenu', [])
             if (leftCoordinate > menuWidth && winWidth - leftCoordinate < menuWidth) {
                 leftCoordinate = event.pageX - menuWidth;
             }
-
-            // $ul.css({
-            //     display: 'block',
-            //     position: 'absolute',
-            //     left: leftCoordinate + 'px',
-            //     top: topCoordinate + 'px'
-            // });
+            var elementName="";
+            if (typeof event.srcElement != "undefined") elementName = event.srcElement.name;
+            if(elementName == "hp-options"){
             var boundingBox = event.target.getBoundingClientRect();
             $ul.css({
                 display: 'block',
@@ -146,6 +142,15 @@ angular.module('ui.bootstrap.contextMenu', [])
                 left: boundingBox.left + 'px',
                 top: boundingBox.top-10 + 'px'
             });
+            }
+            else{
+            $ul.css({
+                display: 'block',
+                position: 'absolute',
+                left: leftCoordinate + 'px',
+                top: topCoordinate + 'px'
+            });
+            }
         });
 
     };
@@ -195,13 +200,13 @@ angular.module('ui.bootstrap.contextMenu', [])
                 });
             });
 
-            $li.on('mouseover', function ($event) {
-                $scope.$apply(function () {
-                    if (nestedMenu) {
-                        openNestedMenu($event);
-                    }
-                });
-            });
+            // $li.on('mouseover', function ($event) {
+            //     $scope.$apply(function () {
+            //         if (nestedMenu) {
+            //             openNestedMenu($event);
+            //         }
+            //     });
+            // });
         } else {
             $li.on('click', function ($event) {
                 $event.preventDefault();
@@ -218,10 +223,6 @@ angular.module('ui.bootstrap.contextMenu', [])
         if (!$) { var $ = angular.element; }
         $(event.currentTarget).addClass('context');
         var $contextMenu = $('<div>');
-        console.log(event);
-        console.log(event.target.getBoundingClientRect());
-        console.log(event.srcElement.parentElement.offsetTop);
-        console.log(event.srcElement.parentElement.offsetLeft);
         if ($currentContextMenu) {
             $contextMenu = $currentContextMenu;
         } else {
@@ -230,7 +231,7 @@ angular.module('ui.bootstrap.contextMenu', [])
         }
         var $ul = $('<ul>');
         $ul.addClass('dropdown-menu');
-        $ul.addClass($scope.$parent.$parent.contextClass);
+        if(typeof event.srcElement != "undefined") $ul.addClass(event.srcElement.name);
         $ul.attr({ 'role': 'menu' });
         $ul.css({
             display: 'block',

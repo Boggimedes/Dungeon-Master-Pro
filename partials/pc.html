@@ -1,0 +1,254 @@
+<style>
+.stat-block{
+	position:relative;
+	display:inline-block;
+	 float: left
+}
+#cut-diamond {
+    border-style: solid;
+    border-color: transparent transparent red transparent;
+    border-width: 0 25px 25px 25px;
+    height: 0;
+    width: 50px;
+    position: relative;
+    margin: 20px 0 50px 0;
+}
+#cut-diamond:after {
+    content: "";
+    position: absolute;
+    top: 25px;
+    left: -25px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-color: red transparent transparent transparent;
+    border-width: 70px 50px 0 50px;
+}
+
+.stat-block label{
+	position: absolute;
+    top: 54%;
+    width: 100%;
+    left: 0;
+    text-align: center;
+    font-size: 0.7vw;
+	}
+.stat-block span{
+	position: absolute;
+    top: 76%;
+    width: 100%;
+    left: -2%;
+    text-align: center;
+    font-size: 0.7vw;
+	}
+
+.stat-block input[type="number"] {
+    position: absolute;
+    top: 20%;
+    width: 100%;
+    height: 36%;
+    left: -2%;
+    border: 0px solid grey;
+    text-align: center;
+    background-color: transparent;
+    font-size: 2.5vw;
+    }
+
+.stat-block input:active, .stat-block input:focus{
+	border:0px;
+	outline-width:0px;
+    }
+.c-sheet-group{
+background-color:white;
+border:2px solid grey; 
+border-radius:12px;
+margin-left: 40.5vw;
+margin-top:5vw;
+width:48vw;
+font-size:0.7vw;
+}
+.form-group{padding:1%;}
+.form-control{padding:0.5%;max-height:34px;height:;}
+.c-sheet-group input{
+    border:0px;
+    border-bottom:1px solid grey;
+    border-radius:0px;
+}
+.character-name{
+    position: absolute;
+    top: 9.2vw;
+    left: 11.5vw;
+    width: 25vw;
+    height: 2.5vw;
+    max-height: 34px;
+    background-color: transparent;
+    border: 0px;
+    font-size: 2vw;
+}
+</style>
+<div class="scrollable" ng-controller="PcCtrl">
+	<div class="section scrollable-content">
+    <div class="col-md-12 col-xs-12" style="position:relative">
+    <img src="/img/sheetheader.png" style="position:absolute;padding-left:3%;width:95.5%">
+<input class="form-control character-name" type="text" ng-model="pc.name">
+    <div class="form-group c-sheet-group col-md-6 col-xs-6" style="">
+<div class="form-group col-md-4 col-xs-4">
+<input class="form-control" type="text" ng-model="pc.classes">
+<label>Classes</label>
+</div>
+<div class="form-group col-md-1 col-xs-1">
+<input class="form-control text-center" type="number" ng-model="pc.charLevel">
+<label>Total</label>
+</div>
+<div class="form-group col-md-2 col-xs-2">
+<input class="form-control" type="text" ng-model="pc.race">
+<label>Race</label>
+</div>
+<div class="form-group col-md-2 col-xs-2">
+<input class="form-control" type="text" ng-model="pc.background">
+<label>Background</label>
+</div>
+<div class="form-group col-md-3 col-xs-3">
+<input class="form-control" type="text" ng-model="pc.player">
+<label>Player</label>
+</div>
+<div class="form-group col-md-2 col-xs-2">
+<input class="form-control" type="text" ng-model="pc.alignment">
+<label>Alignment</label>
+</div>
+<div class="form-group col-md-1 col-xs-1">
+<input class="form-control text-center" type="number" ng-model="pc.age">
+<label>Age</label>
+</div>
+<div class="form-group col-md-2 col-xs-2">
+<input class="form-control" type="text" ng-model="pc.gender">
+<label>Gender</label>
+</div>
+<div class="form-group col-md-2 col-xs-2">
+<input class="form-control" type="number" ng-model="pc.xp">
+<label>XP</label>
+</div>
+<div class="form-group col-md-3 col-xs-3">
+<input class="form-control" type="text" ng-model="pc.campaign">
+<label>Campaign</label>
+</div>
+<div class="form-group col-md-2">
+<input class="form-control" type="text" ng-model="pc.languages">
+<label>Languages</label>
+</div>
+    </div>
+    </div>
+
+<div class="col-md-2 col-md-offset-1" style="margin-top:40px">
+<div class="form-group" ng-repeat="ab in [['Strength','str','strSave'],['Dexterity','dex','dexSave'],['Constitution','con','conSave'],['Intelligence','int','intSave'],['Wisdom','wis','wisSave'],['Charisma','cha','chaSave']]" style="padding: 0;max-width: 394px;" >
+<div class="stat-block"    style="width: 36.54%;">
+<img src="/img/charsheet1.png" >
+<label >{{ab[0]}}</label>
+<input type="number" ng-model="pc[ab[1]]">
+<span>{{aMod(pc[ab[1]])}}</span>
+</div>
+<div class="stat-block"  style="width: 63.45%;">
+<img src="/img/charsheet2.png" >
+<input type="checkbox" ng-model="pc[ab[2]]">
+
+</div>
+</div>
+
+</div>
+
+
+<div class="form-group col-md-3">
+<label>Speed</label>
+<input class="form-control" type="text" ng-model="pc.speed">
+</div>
+<div class="form-group col-md-2">
+<label>Size</label>
+<input class="form-control" type="text" ng-model="pc.size">
+</div>
+<div class="form-group col-md-3">
+<label>Initiative Bonus</label>
+<input class="form-control" type="number" ng-model="pc.init">
+</div>
+
+<div class="form-group col-md-2">
+<label>HP</label>
+<input class="form-control" type="number" ng-model="pc.hp">
+</div>
+<div class="form-group col-md-2">
+<label>AC</label>
+<input class="form-control" type="number" ng-model="pc.ac">
+</div>
+<div class="form-group col-md-4">
+<label>Skills</label>
+<input class="form-control" type="text" ng-model="pc.skills">
+</div>
+<div class="form-group col-md-4">
+<label>Proficient Tools</label>
+<input class="form-control" type="text" ng-model="pc.tools">
+</div>
+<div class="form-group col-md-1">
+<label>Height</label>
+<input class="form-control" type="text" ng-model="pc.height">
+</div>
+<div class="form-group col-md-1">
+<label>Weight</label>
+<input class="form-control" type="text" ng-model="pc.weight">
+</div>
+<div class="form-group col-md-2">
+<label>Eyes</label>
+<input class="form-control" type="text" ng-model="pc.eyes">
+</div>
+<div class="form-group col-md-2">
+<label>Hair</label>
+<input class="form-control" type="text" ng-model="pc.hair">
+</div>
+<div class="form-group col-md-2">
+<label>Skin</label>
+<input class="form-control" type="text" ng-model="pc.skin">
+</div>
+<div class="form-group col-md-4">
+<label>Senses</label>
+<input class="form-control" type="text" ng-model="pc.senses">
+</div>
+<div class="form-group col-md-8">
+<label>Spells</label>
+<input class="form-control" type="text" ng-model="pc.spells">
+</div>
+<div class="form-group col-md-8">
+<label>Abilities</label>
+<input class="form-control" type="text" ng-model="pc.abilities">
+</div>
+<div class="form-group col-md-8">
+<label>Armor</label>
+<input class="form-control" type="text" ng-model="pc.armor">
+</div>
+<div class="form-group col-md-8">
+<label>Inventory</label>
+<input class="form-control" type="text" ng-model="pc.inventory">
+</div>
+<div class="form-group col-md-8">
+<label>Currency</label>
+<input class="form-control" type="text" ng-model="pc.currency">
+</div>
+<div class="form-group col-md-8">
+<label>Personality</label>
+<input class="form-control" type="text" ng-model="pc.personality">
+</div>
+<div class="form-group col-md-8">
+<label>Ideals</label>
+<input class="form-control" type="text" ng-model="pc.ideals">
+</div>
+<div class="form-group col-md-8">
+<label>Bonds</label>
+<input class="form-control" type="text" ng-model="pc.bonds">
+</div>
+<div class="form-group col-md-8">
+<label>Flaws</label>
+<input class="form-control" type="text" ng-model="pc.flaws">
+</div>
+<div class="form-group col-md-8">
+<label>Features &amp; Traits</label>
+<input class="form-control" type="text" ng-model="pc.featuresTraits">
+</div>
+</div>
+</div>
