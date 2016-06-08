@@ -616,7 +616,7 @@ private function ratRace(&$currentCitizen){
 				$profBalance = $this->region->profBalance;
 				$balanceTotal=0;
 				$profList=[];
-				if(!is_array($profBalance)) return;
+				if(!is_object($profBalance)) return;
 				foreach($profBalance as $prof){
 					$tmpValue = $prof->value;
 						if(@$this->citizens[$currentCitizen->father]->profession == $prof->prof || @$this->citizens[$currentCitizen->father]->profession == "Retired ".$prof->prof ||
