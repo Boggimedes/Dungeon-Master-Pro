@@ -1,0 +1,417 @@
+<div class="col-md-7 combat-grid"  ng-class="{'help-shown' : helpStep==2 || helpStep==3}">
+
+<div style="    max-height: 51.6%;
+    height: 100%;
+    overflow: hidden;" >
+<div ng-slimscroll opacity="0.4" height="100%">
+            <form class="quickEntry" ng-show="qEntry">
+    <input type="text" class="form-control" ng-model="new.Name" placeholder="name">
+    <input type="text" class="form-control" ng-model="new.AC" placeholder="AC">
+    <input type="text" class="form-control" ng-model="new.HP" placeholder="HP">
+    <input type="text" class="form-control" ng-model="new.Init" placeholder="init">
+    <input type="text" class="form-control" ng-model="new.Attack" placeholder="attack">
+    <input type="text" class="form-control" ng-model="new.Damage" placeholder="damage">
+    <input type="submit" class="btn btn-sm btn-primary" ng-click="loadMonster({'name':new.Name,'ac':new.AC,'hp':new.HP,'initiative':new.Init,'attacks':[{'name':'Quick Attack','bonus':new.Attack,'damage':new.Damage,'special':''}]});order();new=[];">
+  </form>
+    <table id="combatTable" class="combatant table table-striped">
+    <thead> 
+      <tr>
+        <th>
+          <button type="button" ng-click="qEntry = !qEntry" class="btn-xs btn btn-primary ">
+            <span class="fa fa-plus" ng-hide="qEntry"></span> 
+            <span class="fa fa-minus" ng-show="qEntry"></span> 
+          </button>
+
+        </th>
+        <th><span class="pull-left">Name</span>
+
+      <div class="btn-group hidden-xl-up">
+      <a ui-turn-on='myDropdown' class='btn btn-xs'>
+      <i class="fa fa-ellipsis-v"></i>
+      </a>
+      <ul 
+      class="dropdown-menu"
+      ui-outer-click="Ui.turnOff('myDropdown')"
+      ui-outer-click-if="Ui.active('myDropdown')"
+      role="menu"
+      ui-show="myDropdown" 
+      ui-state="myDropdown"
+      ui-turn-off="myDropdown">
+
+      <li><a  ng-click="startCombat(combatants)">Start Combat</a></li>
+      <li><a ng-click="combatants.splice(0, 99);combatLog=''">Clear</a></li>
+      </ul>
+      </div>
+          <div class="btn-group m-x-1">
+            <a ui-turn-on='Group' class='btn btn-xs btn-primary'>
+              <span nclass="ng-binding">Add Group</span> <span class="fa fa-caret-down"> </span>
+            </a>
+            <ul class="dropdown-menu"
+            ui-outer-click="submenu=null;Ui.turnOff('Group')"
+            ui-outer-click-if="Ui.active('Group')"
+            role="menu"
+            ui-show="Group" 
+            ui-state="Group">
+              <li  ng-repeat="group in groups" >
+                <a ng-click="addGroup(group);"><span ui-turn-off="Group">{{group.name}}</span><i ng-click="groups.splice($index,1)" class="fa fa-minus pull-right"></i></a>
+              </li>
+              <li>
+                <a ui-turn-on="addgroup" ui-turn-off="Group"><i class="fa fa-plus"></i></a>
+              </li>
+            </ul>
+        <button class="btn btn-primary btn-xs hidden-lg-down" ng-click="combatants.splice(0, 99);combatLog=''">Clear</button>
+        <button class="btn btn-primary btn-xs hidden-lg-down" ng-click="startCombat(combatants)">Start Combat</button>
+          </div>
+        </th>
+        <th>Status</th>
+        <th class="numberRow">AC</th>
+        <th class="numberRow">HP</th>
+        <th class="numberRow">Init</th>
+        <th class="numberRow">Round</th>
+      </tr>
+    </thead>    <tbody>
+<!--     ui-set="{activeTab: activeTabValue}"  -->
+      <tr ng-class="{'selected':$index == selectedRow}" ng-click="setClickedRow($index)" ng-repeat="combatant in combatants track by $index">
+        <td>
+          <button class="btn-xs  btn  btn-primary" style="float:left" ng-click="endTurn(combatant)">
+            <span class="fa fa-level-down"></span>
+          </button>
+        </td>
+        <td>
+          <input type="text" ng-model="combatant.name"  context-menu="combatOptions" ondblclick="this.readOnly='';" onblur="this.readOnly=true" readonly >
+        </td>
+        <td >
+          <input type="text" ng-model="combatant.status" >
+        </td>
+        <td class="numberRow">
+          <input type="number" ondblclick="this.readOnly='';" onblur="this.readOnly=true" ng-model="combatant.ac" readonly>
+        </td>
+        <td class="numberRow" >
+          <input type="number" name="hp-options" context-menu="hpOptions" ng-model="combatant.hp" ng-change="deathCheck(combatant.hp,$index)"   >
+        </td>
+        <td class="numberRow">
+          <input type="number"  ondblclick="this.readOnly='';" onblur="this.readOnly=true" ng-model="combatant.init" readonly>
+        </td>
+        <td class="numberRow">
+          <input type="number"  ondblclick="this.readOnly='';" onblur="this.readOnly=true" ng-model="combatant.turn" ng-change="order()" readonly>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </div>
+
+ 
+  <div class="p-6 pull-left" style="position:relative">
+  <i class="fa fa-question-circle-o top-left" ng-class="{'help-question':cButtonHelp}" style="left:-5px" ng-click="cButtonHelp=!cButtonHelp"><span ng-show="cButtonHelp">These buttons and dropdowns are for the creature selected in the table above.  They automatically roll the skill or attack selected.  The <i class="fa fa-chevron-down"></i> will roll with disadvantage, the <i class="fa fa-minus"></i> rolls normally, and the <i class="fa fa-chevron-up"></i> rolls with advantage.</span></i>
+    <div class="btn-group" >
+      <a ui-turn-on='combatantDropdown' class='btn btn-sm btn-primary'>
+      <span ng-bind="combatants[selectedRow].catt.name || 'Select Attack'"></span> <span class="fa fa-caret-down"> </span>
+      </a>
+      <ul class="dropdown-menu"
+            ui-outer-click="submenu=null;Ui.turnOff('combatantDropdown')"
+            ui-outer-click-if="Ui.active('combatantDropdown')"
+            role="menu"
+            ui-show="combatantDropdown" 
+            ui-state="combatantDropdown">
+        <li  ng-repeat="attack in combatants[selectedRow].attacks" ng-init="visible = false" ng-class="{'dropdown-submenu': attack.submenu && attack.submenu.length}">
+          <a ng-show="attack.submenu && attack.submenu.length" ng-click="visible=!visible"><i class="fa fa-chevron-right"></i>{{attack.name}}</a>
+          <a ng-hide="attack.submenu && attack.submenu.length" ng-click="preAction(this)">{{attack.name}}</a>
+          <ul ng-show="visible" class="dropdown-menu">
+            <li class="subitem-table" ng-repeat="subitem in attack.submenu" ng-init="svisible = false" ng-class="{'dropdown-submenu': subitem.submenu && subitem.submenu.length}">
+              <a ng-show="subitem.submenu && subitem.submenu.length" ng-click="svisible=!svisible"><span style="padding-top:3px;">{{subitem.name}}</span><span>{{subitem.num?subitem.num:''}}</span><i class="fa fa-chevron-right"></i></a>
+              <a ng-hide="subitem.submenu && subitem.submenu.length" ng-click="preAction(this)">{{subitem.name}}<span>{{subitem.num?subitem.num:''}}</span></a>
+              <ul  ng-show="svisible" class="dropdown-menu">
+                <li class="subitem-table" ng-repeat="subsubitem in subitem.submenu">
+                  <a ng-click="preAction(this)"><span>{{subsubitem.name}}</span><span>{{subsubitem.num?subsubitem.num:''}}</span></a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+          <li ng-show="attack.submenu && attack.submenu.length" class="divider"></li>
+      </ul>
+    <style>
+    .subitem-table{
+      display:table;
+      width:100%;
+    }
+    .subitem-table a{
+      display:table-row !important;
+      width:100%;
+    }
+    .subitem-table a>span:first-child{
+      width:100%;
+      padding:0px 0px 0px 10px;
+   }
+    .subitem-table a span{
+      padding:0px 16px 0px 8px;
+      display:table-cell;
+    }
+
+
+    </style>
+    <button type="button" title="Attack roll with Disadvantage" ng-if="$parent.settings.advDisAdv" ng-click="Action(combatants[selectedRow].name,combatants[selectedRow].catt,'d')" class="btn-sm btn btn-default ">
+    <span class="fa fa-chevron-down" aria-hidden="true"></span> 
+    </button>
+    <button type="button" title="Normal Attack Roll" ng-click="Action(combatants[selectedRow].name,combatants[selectedRow].catt)" class="btn-sm btn btn-default ">
+    <span class="fa fa-minus" aria-hidden="true"></span> 
+    </button>
+    <button type="button" title="Attack roll with Advantage" ng-if="settings.advDisAdv" ng-click="Action(combatants[selectedRow].name,combatants[selectedRow].catt,'a')" class="btn-sm btn btn-default ">
+    <span class="fa fa-chevron-up" aria-hidden="true"></span> 
+    </button>
+    </div>
+    </div>
+
+
+  <div class="p-6 pull-left">
+          <div class="btn-group m-x-1">
+            <a ui-turn-on='selectSkill' class='btn btn-sm btn-primary'>
+              <span ng-bind="combatants[selectedRow].cskill.name || 'Select Skill'"></span> <span class="fa fa-caret-down"> </span>
+            </a>
+            <ul class="dropdown-menu"
+            ui-outer-click="submenu=null;Ui.turnOff('selectSkill')"
+            ui-outer-click-if="Ui.active('selectSkill')"
+            role="menu"
+            ui-show="selectSkill" 
+            ui-state="selectSkill"
+            ui-turn-off="selectSkill">
+              <li  ng-repeat="skill in combatants[selectedRow].skills" >
+                <a ng-click="combatants[selectedRow].cskill = skill">{{skill.name}}</a>
+              </li>
+            </ul>
+
+    <button type="button" title="Skill roll with Disadvantage" ng-if="$parent.settings.advDisAdv" ng-click="Action(combatants[selectedRow].name,combatants[selectedRow].cskill,'d')" class="btn-sm btn btn-default ">
+      <span class="fa fa-chevron-down" aria-hidden="true"></span> 
+    </button>
+    <button type="button" title="Normal skill roll" ng-click="Action(combatants[selectedRow].name,combatants[selectedRow].cskill)" class="btn-sm btn btn-default ">
+      <span class="fa fa-minus" aria-hidden="true"></span> 
+    </button>
+    <button type="button" title="Skill roll with Advantage" ng-if="$parent.settings.advDisAdv" ng-click="Action(combatants[selectedRow].name,combatants[selectedRow].cskill,'a')" class="btn-sm btn btn-default ">
+      <span class="fa fa-chevron-up" aria-hidden="true"></span> 
+    </button>
+    </div>
+    </div>
+  <div class="col-md-12" id="combatLog"  ></div>
+</div>
+
+<div class="col-xs-5 combat-side hidden-sm-down" ng-class="{'help-shown' : helpStep==4 || helpStep==5}">
+  <div class="top-right hidden-lg-down" style="text-align: right;z-index: 1000;">
+    <h5 style="text-shadow: 1px 1px 0px #B2B0B0;">Recently Added Monsters</h5>
+    <div ng-repeat="monster in recentMonsters" style="float:right">
+      <img style="" on-double-click="loadMonster(monster)" src="{{monster.img}}" title="{{monster.name}}(CR{{monster.cr}})">
+    </div>
+  </div>
+  <div class="p-t-4 hidden-lg-down"></div>
+  <div ui-state="activeTab" default="4" >
+    <ul class="nav nav-tabs">
+      <li ui-class="{'active': activeTab == 4}">
+        <a ui-set="{'activeTab': 4}">Desc</a>
+      </li>
+      <li ng-if="special" ui-class="{'active': activeTab == 2}">
+        <a ui-set="{'activeTab': 2}">Special</a>
+      </li>
+      <li ng-if="combatants[selectedRow].catt.type=='ca'" ui-class="{'active': activeTab == 3}">
+        <a ui-set="{'activeTab': 3}">Spell/Ability</a>
+      </li>
+      <li ng-if="combatants[selectedRow].pE" ui-class="{'active': activeTab == 5}">
+        <a ui-set="{'activeTab': 5}">Effects</a>
+      </li>
+    </ul>
+    <div ng-slimscroll border-radius="10px" distance="8px" opacity="0.4" ui-if="activeTab == 4" class="monster-info">
+      <div class="col-md-6" ng-if="img"><img style="height: auto;max-height: 50%;cursor:auto" ng-src="{{img}}"></div>
+      <div class="col-md-6" ng-if="combatants[selectedRow].str">
+
+        <div class = "input-group">
+         <span class = "input-group-addon" style="padding: 7px;border: 0px;">Ability</span>
+         <span class="form-control" style="width:50%;text-align:center;border: 0px;">Modifier</span>
+         <span class="form-control" style="width:50%;text-align:center;border: 0px;" >Save</span>
+      </div>
+        <div class = "input-group">
+         <span class = "input-group-addon" style="width: 56px;">STR</span>
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].str">
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].strSave">
+      </div>
+        <div class = "input-group">
+         <span class = "input-group-addon" style="width: 56px;">DEX</span>
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].dex">
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].dexSave">
+      </div>
+        <div class = "input-group">
+         <span class = "input-group-addon" style="width: 56px;">CON</span>
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].con">
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].conSave">
+      </div>
+        <div class = "input-group">
+         <span class = "input-group-addon" style="width: 56px;">INT</span>
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].int">
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].intSave">
+      </div>
+        <div class = "input-group">
+         <span class = "input-group-addon" style="width: 56px;">WIS</span>
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].wis">
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].wisSave">
+      </div>
+        <div class = "input-group">
+         <span class = "input-group-addon" style="width: 56px;">CHA</span>
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].cha">
+         <input type="text" class="form-control input-group-addon" style="width:50%" ng-model="combatants[selectedRow].chaSave">
+      </div>
+      <p ng-bind-html="senses"><!-- ... --></p>
+      </div>
+      <p ng-bind-html="desc"><!-- ... --></p>
+    </div>
+    <div ng-slimscroll border-radius="10px" distance="8px" opacity="0.4" ng-show="special" ui-if="activeTab == 2" class="monster-info">
+      <h4 class="page-header">Special Features/Attributes</h4>
+      <p ng-bind-html="special"><!-- ... --></p>
+    </div>
+    <div ui-if="activeTab == 3" class="monster-info">
+      <h3 class="page-header" ng-bind="combatants[selectedRow].catt.name"></h3>
+      <table class="table table-striped">
+        <tbody class="spell-block">
+          <tr><td>Level:</td><td ng-bind="combatants[selectedRow].spell.level"></td></tr>
+          <tr><td>School:</td><td ng-bind="combatants[selectedRow].spell.school"></td></tr>
+          <tr><td>Components:</td><td ng-bind="combatants[selectedRow].spell.components"></td></tr>
+          <tr><td>Range:</td><td ng-bind="combatants[selectedRow].spell.range"></td></tr>
+          <tr><td>Casting Time:</td><td ng-bind="combatants[selectedRow].spell.casttime"></td></tr>
+          <tr><td>Duration:</td><td ng-bind="combatants[selectedRow].spell.duration"></td></tr>
+        </tbody>
+      </table>
+      <p ng-bind-html="combatants[selectedRow].spell.fulltext"><!-- ... --></p>
+    </div>
+    <div ui-if="activeTab == 5" class="monster-info">
+      <h3 class="page-header">Persistent Effects</h3>
+      <table class="table table-striped">
+      <thead>
+      <tr><th>Name</th><th>Freq</th><th>Text</th><th>Dam/Heal</th><th>Rounds Left</th></tr></thead>
+        <tbody class="spell-block">
+          <tr ng-repeat="effect in combatants[selectedRow].pE">
+            <td>{{effect.name}}</td>
+            <td>{{effect.frequency}}</td>
+            <td>{{effect.effect}}</td>
+            <td>{{effect.hp}}</td>
+            <td>{{effect.duration}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+    <div class="p-t-1" style="position:relative;text-shadow: 1px 1px 0px #B2B0B0;">
+    <i class="fa fa-question-circle top-left" ng-class="{'help-question':diceBagHelp}" style="left:-5px" ng-click="diceBagHelp=!diceBagHelp"><span ng-show="diceBagHelp">The dice bag is what you use to roll dice manually (as opposed to using auto attacks or skills).  In the input box you can type a string that includes dice rolls, for example "2d6 slashing damage plus 1d6 fire" will roll both die sets and show the result in the combat log.  The "die" icons below are for quick single click rolls.  they can be added to (via the + button) or edited/removed via right clicking on them.</span></i>
+    <h3 class="col-md-12 hidden-lg-down">Dice Bag</h3>
+    <h4 class="pull-left hidden-xl-up" >Dice Bag </h4>
+      
+    <input ng-model="dicebag" type="text" placeholder="Type a roll. eg. 2d6+12, 6d6, etc" class="col-md-6 form-control">
+    <button type="button" ng-click="diceBag(dicebag)" class="btn btn-primary col-md-2">roll</button>
+    <div class="col-md-12" width="100%" ng-slimscroll opacity="0.2" horizontal-scroll="true" style="overflow: auto;white-space: nowrap;">
+      <li type="button" ng-repeat="roll in diceBagQuick track by $index" context-menu="diceOptions" ng-model="message" ng-click="diceBag(roll.roll)" class="hb-xs-margin" style="position:relative;"><span class="hb hb-xs">{{roll.name}}</span></li>
+      <i class="fa fa-plus"  style="position: relative;top: -18px;" ui-turn-on="diceBag"></i>
+    </div>
+  </div>
+</div>
+
+<div ui-content-for="modals">
+  <div class="modal" ui-if='addgroup' ui-state='addgroup'>
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button class="close" ui-turn-off="addgroup">&times;</button>
+          <h4 class="modal-title">Enter roll</h4>
+        </div>
+        <div class="modal-body" ng-init="group={};group.group=[];"> 
+          <label>Name</label>
+          <input ng-model="group.name" autofocus style="text-align:left" >
+          <label>Group Members <i class="fa fa-plus" ng-click="group.group.push({})"></i></label>
+          <div ng-repeat="member in group.group">
+          <input ng-model="member.name" tyle="text" class="form-control col-md-4" placeholder="Name">
+          <input ng-model="member.initiative" tyle="number" class="form-control col-md-2" placeholder="Init">
+          <input ng-model="member.ac" tyle="number" class="form-control col-md-2" placeholder="AC">
+          <input ng-model="member.hp" tyle="number" class="form-control col-md-2" placeholder="HP">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button ui-turn-off="addgroup" class="btn btn-primary">Close</button>
+          <button ui-turn-off="addgroup" ng-click="pushGroup(group)" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal" ui-if='diceBag' ui-state='diceBag'>
+    <div class="modal-dialog dice-bag-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button class="close" ui-turn-off="diceBag">&times;</button>
+          <h4 class="modal-title">Enter roll</h4>
+        </div>
+        <div class="modal-body"> 
+          <label>Label</label>
+          <input ng-model="new.name" autofocus style="text-align:left" >
+          <label>Roll</label>
+          <input ng-model="new.roll" autofocus style="text-align:left" placeholder="ex. 3d6+6, 1d2, 1d8+1d12">
+        </div>
+        <div class="modal-footer">
+          <button ui-turn-off="diceBag" class="btn btn-primary">Close</button>
+          <button ui-turn-off="diceBag" ng-click="addDie(new)" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal" ui-if='soundOptions' ui-state='soundOptions'>
+    <div class="modal-dialog sound-options-modal" ui-outer-click="Ui.turnOff('soundOptions')" style="top: {{modalY}}px; left: {{modalX}}px;">
+      <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" ui-turn-off="soundOptions">&times;</button>
+        <h4 class="modal-title">Options</h4>
+      </div>
+      <div class="modal-body" >
+        <div ng-repeat="effect in $parent.$parent.$parent.sceneOpt.effects">
+
+          <ui-switch class="pull-right" ng-model="effect.active" ng-if="effect.optional=='1'" ng-init="effect.active=effect.active==null?true:effect.active"></ui-switch>
+          <label>{{effect.name}}</label>
+          <rzslider rz-slider-options="slider.options.percent" rz-slider-model="effect.vol"></rzslider>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="soundOptions" class="btn btn-primary">Close</button>
+      </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" ui-if='persistent' ui-state='persistent'>
+    <div class="modal-dialog" >
+      <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" ui-turn-off="persistent">&times;</button>
+        <h4 class="modal-title">Options</h4>
+      </div>
+      <div class="modal-body" >
+      <label>Effect Name</label>
+      <input ng-model="persistent.name" placeholder="Blarg!" class="form-control">
+      <label>Frequency</label>
+      <input ng-model="persistent.frequency" type="number" placeholder="1 for every round, 2 for every other round, etc" class="form-control">
+      <label>Effect Text</label>
+      <input ng-model="persistent.effect" placeholder="Something posted to combat board" class="form-control">
+      <label>HP Change</label>
+      <input ng-model="persistent.hp" placeholder="Added or subtraced from HP. ex. -1d10, +2d4, etc." class="form-control">
+      <label>Duration</label>
+      <input ng-model="persistent.duration" type="number" Placeholder="total number of rounds" class="form-control">
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="persistent" class="btn btn-primary">Close</button>
+        <button ui-turn-off="persistent" ng-click="$parent.$parent.contextCombatant.pE.push(persistent);echo($parent.$parent.contextCombatant);" class="btn btn-primary">Save</button>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.monster-info table input {
+    width: 100%;
+}
+.input-group {
+    margin-bottom: 3px;
+}
+</style>

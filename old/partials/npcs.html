@@ -1,0 +1,257 @@
+<div class="col-md-4 col-xs-4"  ng-class="{'help-shown' : helpStep==7}" style="height:99.5%"  >
+    <div class="row">
+    <div class="btn-group btn btn-xs btn-primary pull left" style="margin-left:20px;margin-bottom: 3px;">
+    <span  ui-turn-on='Region' style="color:white;">{{currentRegion.name? currentRegion.name:'Change Region'}} <i  ui-turn-on='Grouping' class="fa fa-caret-down"> </i></span> 
+
+  <ul 
+    class="dropdown-menu"
+    ui-outer-click="Ui.turnOff('Region')"
+    ui-outer-click-if="Ui.active('Region')"
+    role="menu"
+    ui-show="Region" 
+    ui-state="Region"
+    ui-turn-off="Region">
+<li  ng-repeat="region in regions" ng-click="setRegion(region)" >
+ <a ng-bind="region.name"> </a>
+</li>
+</ul>
+</div>
+    <div class="btn-group btn btn-xs btn-primary pull left" style="margin-left:20px;margin-bottom: 3px;">
+    <span ui-turn-on='Grouping' style="color:white;">Group By <i  ui-turn-on='Grouping' class="fa fa-caret-down"> </i></span> 
+
+  <ul 
+    class="dropdown-menu"
+    ui-outer-click="Ui.turnOff('Grouping')"
+    ui-outer-click-if="Ui.active('Grouping')"
+    role="menu"
+    ui-show="Grouping" 
+    ui-state="Grouping"
+    ui-turn-off="Grouping">
+<li  ng-repeat="(groupname,grouping) in cGroups" ng-click="setGrouping(grouping)" >
+ <a><i ng-if="grouping.field==cGroup.field" class="fa fa-check"></i> {{groupname}}</a>
+</li>
+</ul>
+</div>
+</div>  
+
+<style>
+.panel{
+max-height: 65%;
+    overflow: auto;
+}
+</style>
+
+<div class="panel-group" ui-state="groupedCitizens" >
+
+
+  <div class="panel panel-default" ng-class="{'selected-panel':groupedCitizens=={{$index}}}" ng-repeat="i in cGroup.headers">
+    <div ui-if="groupedCitizens != {{$index}}" class="panel-heading"   ui-set="{'groupedCitizens': {{$index}}}">        
+      <h4 class="panel-title"  >
+          {{i? i:'None'}}
+      </h4>
+    </div>
+    <div ui-if="groupedCitizens == {{$index}}" class="panel-heading"   ui-set="{'groupedCitizens': 99}">        
+      <h4 class="panel-title"  >
+          {{i? i:'None'}}
+      </h4>
+    </div>
+    <div ui-if="groupedCitizens == {{$index}}" class="panelFill">
+      <div class="panel-body" >
+      <table class="table table-striped table-hover"  ng-title="{{fObj}}" ng-init="field=$parent.cGroup.field;groups=$parent.cGroup.groups[$parent.$index];fObj[field] = groups;">
+      <thead>
+      <tr><th>First Name</th><th>Age</th><th>M/F</th><th>Race</th><th>Profession</th><th></th></tr></thead>
+      <tr ng-class="{'selected':$index == selectedRow[$parent.$index]}" ng-click="setClickedRow($index,$parent.$index,citizen.id)"  ng-repeat="citizen in citizens.alive|citizenFilter: field:groups" ng-title="{{$parent.fObj}}"><td>{{citizen.firstName}}</td><td>{{citizen.age}}</td><td>{{citizen.gender.substr(0,1).toUpperCase()}}</td><td>{{citizen.race}}</td><td>{{citizen.profession}}</td><td><i class="fa fa-universal-access" ng-if="citizen.lineage!=''" title="{{citizen.lineage}}"></i> <i class="fa fa-dot-circle-o" ng-if="citizen.metParty=='1'" title="Has met the party"></i> <i class="fa fa-lock" ng-if="citizen.excluded=='1'" title="Excluded from aging or mass deletion"></i></td></tr>
+      </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+ </div>
+
+    <div class="col-md-8 col-xs-8 citizen-details p-x-0" ng-class="{'help-shown' : helpStep==8}">
+    <div class="page-cover" ng-if="selectedCitizen == null" ><span>Select NPC to the left or click "New NPC" button in the top menu</span></div>
+<div  ng-slimscroll style="background-color:white;border-radius:10px;padding:5px;height:93vh;">
+      <div class="form-group col-md-2 padded" >
+        <label>First Name</label>
+        <input type="text" class="form-control" name="data.firstName" ng-model="selectedCitizen.firstName">
+      </div>
+      <div class="form-group col-md-2 padded">
+        <label>Last Name</label>
+        <input type="text" class="form-control" name="data.lastName" ng-model="selectedCitizen.lastName">
+      </div>
+      <div class="form-group col-md-2 padded center">
+        <label>Race</label>
+        <select type="text" class="form-control" name="data.race" ng-model="selectedCitizen.race.id">
+        <option ng-repeat="race in races" value="{{race.id}}">{{race.name}}</option>
+        </select>
+      </div> 
+      <div class="form-group col-md-1 padded">
+        <label>Sex</label>
+        <select type="text" class="form-control" name="data.lastName" ng-model="selectedCitizen.gender">
+        <option value="male">M</option>
+        <option value="female">F</option>
+        </select>
+
+      </div>
+      <div class="form-group col-md-3 padded">
+        <label>Lineage</label> <i style="width:13px" ng-class="{'fa fa-lock':lineageLock,'fa fa-unlock':!lineageLock}" ng-click="lineageLock=!lineageLock"></i>
+        <input type="text" class="form-control" name="data.lineage" ng-model="selectedCitizen.lineage">
+      </div>
+     <div class="form-group col-md-1 padded text-center">
+        <label>Age</label>
+        <input type="text" style="padding: 6px 0px;" class="form-control text-center" ng-change="selectedCitizen.birthYear = currentRegion.epoch - selectedCitizen.age" ng-model="selectedCitizen.age">
+      </div>
+      <div class="form-group col-md-1 padded center" >
+        <label>Alive</label>
+        <input type="checkbox" ng-true-value="'1'" ng-false-value="'0'" class="form-control" style="width:60%;" name="data.alive" ng-model="selectedCitizen.alive">
+      </div> 
+           <div class="col-md-8 m-l-1" style="margin-right: -25px;">
+      <div class="row">
+  
+      <div class="form-group col-md-6 padded center">
+        <label>City</label>
+        <input type="text" class="form-control" ng-model="selectedCitizen.residentCity">
+      </div>
+      <div class="form-group col-md-6 padded center">
+        <label>Profession</label>
+        <input type="text" class="form-control" name="data.lastName" ng-model="selectedCitizen.profession">
+      </div>
+      <div class="form-group col-md-5 padded center">
+        <label>Quirks</label> <i style="width:13px" ng-class="{'fa fa-lock':quirkLock,'fa fa-unlock':!quirkLock}" ng-click="quirkLock=!quirkLock"></i>
+        <textarea type="text" rows="1" class="form-control" name="data.quirks" ng-model="selectedCitizen.quirks"></textarea>
+      </div>
+      <div class="form-group col-md-3 padded" style="padding-top: 8px;">
+      <br>
+        <label >Spouse</label>:
+        <a style="color:{{spouse.alive=='1'?'green':'black'}}" ng-click="setClickedRow(0,0,spouse.id)" title="{{citizenInfo(spouse.id)}}" ng-bind="spouse.firstName"></a><br>
+        <label>Mother</label>:
+        <a style="color:{{mother.alive=='1'?'green':'black'}}" ng-click="setClickedRow(0,0,mother.id)" title="{{citizenInfo(mother.id)}}" ng-bind="mother.firstName"></a><br>
+        <label>Father</label>:
+        <a style="color:{{father.alive=='1'?'green':'black'}}" ng-click="setClickedRow(0,0,father.id)" title="{{citizenInfo(father.id)}}" ng-bind="father.firstName"></a>
+      </div>
+      <div class="form-group col-md-4 padded text-center">
+        <label style="width:100%;">Children</label>
+        <span ng-repeat="child in children"><a style="width:100%;text-align:center;color:{{citizens.all[child].alive=='1'?'green':'black'}}" ng-click="setClickedRow(0,0,citizens.all[child].id)" title="{{citizenInfo(citizens.all[child].id)}}" >{{citizens.all[child].firstName}}</a><span ng-if="!$last">, </span></span>
+      </div>
+
+      </div>
+      <div class="row">
+
+
+      <div class="form-group col-md-6 padded center">
+        <label>Mannerisms</label> <i style="width:13px" ng-class="{'fa fa-lock':mannerLock,'fa fa-unlock':!mannerLock}" ng-click="mannerLock=!mannerLock"></i>
+
+        <textarea type="text" class="form-control" name="data.mannerisms" ng-model="selectedCitizen.mannerisms"></textarea>
+      </div>
+      <div class="form-group col-md-6 padded center">
+        <label>Abilities</label>
+
+        <textarea type="text" class="form-control" name="data.abilities" ng-model="selectedCitizen.abilities"></textarea>
+      </div>
+      </div>
+      <style>
+
+          .featGroup{
+            display:inline-block;
+
+          }
+          .featGroup > input{
+            display:inline-block;
+            width:60%;
+            height:20px;
+          }
+          .featGroup > label{
+            display:inline-block;
+            width:24%;
+            height:20px;
+            margin-bottom:1px;
+            font-size:0.8vw;
+          }
+
+      </style>
+       </div>
+     <div class="form-group col-md-4 padded center featGroup p-t-2 p-x-0">
+      <i class="fa fa-random" style="position:absolute;right:40px;top:0" ng-click="getAspects()"></i>
+        <label>Special</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Special']">
+        <i style="width:13px" ng-class="{'fa fa-lock':specialLock,'fa fa-unlock':!specialLock}" ng-click="specialLock=!specialLock"></i>
+        <label>Face Shape</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Face Shape']">
+        <i style="width:13px" ng-class="{'fa fa-lock':faceLock,'fa fa-unlock':!faceLock}" ng-click="faceLock=!faceLock"></i>
+        <label>Skin Desc</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Skin Complexion']">
+        <i style="width:13px" ng-class="{'fa fa-lock':skinDLock,'fa fa-unlock':!skinDLock}" ng-click="skinDLock=!skinDLock"></i>
+        <label>Skin Color</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Skin Color']">
+        <i style="width:13px" ng-class="{'fa fa-lock':skinCLock,'fa fa-unlock':!skinCLock}" ng-click="skinCLock=!skinCLock"></i>
+        <label>Hair Desc</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Hair Description']">
+        <i style="width:13px" ng-class="{'fa fa-lock':hairDLock,'fa fa-unlock':!hairDLock}" ng-click="hairDLock=!hairDLock"></i>
+        <label>Hair Color</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Hair Color']">
+        <i style="width:13px" ng-class="{'fa fa-lock':hairCLock,'fa fa-unlock':!hairCLock}" ng-click="hairCLock=!hairCLock"></i>
+        <label>Eye Desc</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Eye Description']">
+        <i style="width:13px" ng-class="{'fa fa-lock':eyeDLock,'fa fa-unlock':!eyeDLock}" ng-click="eyeDLock=!eyeDLock"></i>
+        <label>Eye Color</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Eye Color']">
+        <i style="width:13px" ng-class="{'fa fa-lock':eyeCLock,'fa fa-unlock':!eyeCLock}" ng-click="eyeCLock=!eyeCLock"></i>
+        <label>Clothing</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Clothing']">
+        <i style="width:13px" ng-class="{'fa fa-lock':clothingLock,'fa fa-unlock':!clothingLock}" ng-click="clothingLock=!clothingLock"></i>
+        <label>Body Type</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Body Type']">
+        <i style="width:13px" ng-class="{'fa fa-lock':bodyLock,'fa fa-unlock':!bodyLock}" ng-click="bodyLock=!bodyLock"></i>
+        <label>Body Desc</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Body Description']">
+        <i style="width:13px" ng-class="{'fa fa-lock':bodyLock,'fa fa-unlock':!bodyLock}" ng-click="bodyLock=!bodyLock"></i>
+      </div>
+      <div class="row">
+      <div class="form-group col-md-12 padded center m-l-1 p-r-1">
+        <label>Notes</label>
+        <textarea type="text" class="form-control" style="height:200px;" name="data.notes" ng-model="selectedCitizen.notes"></textarea>
+      </div>
+    </div>
+      <div style="display:block">
+      <input type="submit" class="btn btn-success" style="float: right; margin-bottom: 5px;margin-right:20px;" value="Save" ng-click="updateCitizen(selectedCitizen)">
+      <a ng-click="extended = !extended">Toggle Extended Details</a>
+      </div>
+      <div ng-if="extended">
+      <div class="form-group">
+      <label>Region</label>
+      <select class="form-control" ng-model="selectedCitizen.region">
+      <option ng-repeat="region in regions" ng-click="currentRegion = region" ng-init="regionInit(region)" value="{{region.id}}">{{region.name}}</option>
+      </select>
+      </div>
+      <div class="form-group">
+      <label>Birth Year</label>
+      <input class="form-control" ng-model="selectedCitizen.birthYear">
+      </div>
+
+      <div class="form-group">
+      <label title="If this is set to a numerical value this citizen will be deleted when over 10 generations old">Generation</label>
+      <input class="form-control"  ng-change="generationChange()" ng-model="selectedCitizen.generation">
+      </div>
+
+      <div class="form-group col-md-2 text-center">
+      <label title="The citizen will never die and will have much fewer children">Immortal</label>
+      <input type="checkbox" ng-true-value="'1'"
+       ng-false-value="'0'" class="form-control"  ng-model="selectedCitizen.immortal">
+      </div>
+
+      <div class="form-group col-md-2 text-center">
+      <label title="If this is set to a numerical value this citizen will be deleted when over 10 generations old">Excluded</label>
+      <input type="checkbox" ng-true-value="'1'"
+       ng-false-value="'0'" class="form-control" ng-model="selectedCitizen.excluded">
+      </div>
+
+      <div class="form-group col-md-2  text-center">
+      <label >Met Party</label>
+      <input type="checkbox" ng-true-value="'1'"
+       ng-false-value="'0'" class="form-control" ng-model="selectedCitizen.metParty">
+      </div>
+
+      </div>
+      </div>
+      </div>

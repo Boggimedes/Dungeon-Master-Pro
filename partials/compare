@@ -1,6 +1,0 @@
-<ul class="list-unstyled row">
-  <li  ng-repeat="scene in allScenes | orderBy:key" class="col-md-6 col-sm-4 col-xs-3 scene"  ng-right-click="sceneOptions(scene)"><img src="/images/{{scene.img}}" style="width:100%;border-radius:26%;" ng-click="toggleScene(scene)" /></li>
-</ul>
-
-<i ng-if="windowWidth<768" ng-click="slideScreen(screenSlide)" style="z-index:100;position:fixed;right:3px;font-size:30px;opacity:.7;-webkit-transition: top 2s, bottom 2s, -webkit-transform 2s;
-transition: top 2s, bottom 2s, -webkit-transform 2s;" ng-class="{'fa-arrow-circle-up' : screenSlide, 'fa-arrow-circle-down' : !screenSlide, slid : screenSlide, notSlid : !screenSlide}" class="fa"></i>

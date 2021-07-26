@@ -1,0 +1,206 @@
+<div ui-content-for="title">
+  <span>User Settings</span>
+</div>
+<div class="scrollable">
+  <div class="scrollable-content section" ng-controller="SettingsCtrl">
+  <div class="row">
+  <div class="col-md-12"><h1>Settings/Options</h1></div>
+  <div class="col-md-3">
+    <div class="form-group">
+      <label>Name</label>
+      <input type="text" class="form-control" ng-model="name">
+    </div>
+    <div class="form-group">
+      <label>Email address (/User Name)</label>
+      <input type="email" class="form-control" ng-model="email">
+    </div>
+    <div class="form-group">
+      <a ui-turn-on="passReset">Reset Password</a>
+    </div>
+  </div>
+    <div class="form-group col-md-2 text-center">
+      <label>Monster Images <i class="fa fa-question-circle-o" ng-init="monsterImages=false" ng-click="monsterImages=!monsterImages"></i></label><div ng-if="monsterImages" class="info-box">This enables or disables usage of monster images.  There are two likely scenarios for disabling monster images: <br>1. Slow computer or slow internet speed, <br>2. If you have not uploaded images for a large portion of monsters it may be preferable to only show the monster name until you have uploaded more images</div>
+      <div class="switch">
+        <input class="form-control"  type="checkbox" ng-model="settings.monsterImages"/>
+        <label> </label>
+      </div>
+      </div>
+    <div class="form-group col-md-2 text-center">
+      <label>Advantage/Disadvantage <i class="fa fa-question-circle-o" ng-init="advDisAdv=false" ng-click="advDisAdv=!advDisAdv"></i></label><div ng-if="advDisAdv" class="info-box">Turns on/of the additional combat buttons for using the Advantage/Disadvantage system for 5th edition D&amp;D</div>
+      <div class="switch">
+        <input class="form-control"  type="checkbox" ng-model="settings.advDisAdv"/>
+        <label> </label>
+      </div>
+    </div>
+    <div class="form-group col-md-2 text-center">
+      <label>Include Default Monsters <i class="fa fa-question-circle-o" ng-init="defaultMonsters=false" ng-click="defaultMonsters=!defaultMonsters"></i></label><div ng-if="defaultMonsters" class="info-box">Disable this if you want to do a fully custom creature set.  For example say you are doing a modern setting with only humanoid opponents.</div>
+      <div class="switch">
+        <input class="form-control"  type="checkbox" ng-model="settings.defaultMonsters"/>
+        <label> </label>
+      </div>
+    </div>
+    <div class="form-group col-md-2 text-center">
+      <label>Include Default Spells <i class="fa fa-question-circle-o" ng-init="defaultSpells=false" ng-click="defaultSpells=!defaultSpells"></i></label><div ng-if="defaultSpells" class="info-box">Disable this if you want to do a fully custom spell library.</div>
+      <div class="switch">
+        <input class="form-control"  type="checkbox" ng-model="settings.defaultSpells"/>
+        <label> </label>
+      </div>
+    </div>
+    <div class="form-group col-md-2 text-center">
+      <label>Custom/Alternate Styling <i class="fa fa-question-circle-o" ng-init="customCSS=false" ng-click="customCSS=!customCSS"></i></label><div ng-if="customCSS" class="info-box">Don't like the look and feel of the site? Change it! You can upload a custom CSS file to modify any visual aspect of the site. Obviously this takes some basic CSS coding knowledge so the plan is to provide some templates to use for those who don't have a web design background.</div>
+      <select type="text" ng-model="settings.customCSS" class="form-control">
+        <option value="default">Default</option>
+        <option value="dark">Dark</option>
+        <option value="custom">Custom</option>
+      </select>
+       <div class="button" accept=".css" ngf-select ng-model="cssFile" ng-show="settings.customCSS=='custom'" ngf-multiple="false">Select File</div>
+
+  </div>
+  </div>
+
+
+    <div class="row">
+    <div class="col-md-12">
+    <h1>Paid Membership Options</h1>
+      <form method="POST" id="payment-form">
+  <span class="payment-errors"></span>
+<div ui-state="activeTab" default="0">
+  <ul class="nav nav-tabs">
+    <li ui-class="{'active': activeTab == 1}">
+      <a ui-set="{'activeTab': 1}" ng-click="paymentForm.type='monthly'">Monthly ($2.36)</a>
+    </li>
+<!--     <li ui-class="{'active': activeTab == 2}">
+      <a ui-set="{'activeTab': 2}" ng-click="paymentForm.type='bank-monthly'">Monthly by Bank ($2.02)</a>
+    </li>
+ -->    
+    <li ui-class="{'active': activeTab == 3}">
+      <a ui-set="{'activeTab': 3}" ng-click="paymentForm.type='yearly'">Yearly ($20.88)</a>
+    </li>
+    <li ui-class="{'active': activeTab == 5}">
+      <a ui-set="{'activeTab': 5}" ng-click="paymentForm.type='custom'">More?</a>
+    </li>
+<!--     <li ui-class="{'active': activeTab == 4}">
+      <a ui-set="{'activeTab': 4}" ng-click="paymentForm.type='bank-yearly'">Yearly by Bank ($20.16)</a>
+    </li>
+ -->  </ul>
+
+  <div ui-if="activeTab == 2 || activeTab == 4">
+    <h3 class="page-header">Pay by Bank Account</h3>
+    <p>While paying by bank transfer (ACH) is less expensive, it is more complicated to setup.  After you enter your information your account has to be "verified" by entering in the amount of two very small deposits that are made for this purpose.  So you enter your information here, check your online bank account after a few days, and come back and enter the amounts you see (they will have a name of "Verification"). Once the bank is verified on your account though it is simple to make changes to your subscription if you need to.  Can only accept US banks.
+
+  <div class="form-group">
+    <label>Account Holder Name</label>
+      <input type="text" class="form-control" ng-model="paymentForm.name">
+  </div>
+
+ <div class="form-group">
+    <label>Routing Number</label>
+      <input type="text" size="20" class="form-control" ng-model="paymentForm.routing">
+  </div>
+
+  <div class="form-group">
+    <label>Account Number</label>
+    <input type="text" size="20" class="form-control" ng-model="paymentForm.account">
+  </div>
+
+  </div>
+
+  <div ui-if="activeTab == 1 || activeTab == 3 || activeTab == 5">
+    <h3 class="page-header"></h3>
+    <p ui-if="activeTab == 5">So perhaps I am delusional (my wife would agree with you if you thought "yes"), but I imagine there are a handful of people out there that are so very excited about what I'm doing here that they don't think the modest amount I am charging is enough, and want to give more so that I will be able to DO more with this project.  If you are one of those rare (imaginary?) people then you can pay whatever you would like, and I'll try to come up with some substantial way to thank you for your generosity </p>
+  <div class="form-group col-xs-2" ui-if="activeTab == 5">
+    <label>Yearly Amount</label>
+  <div class = "input-group">
+         <span class = "input-group-addon">$</span>
+         <input type="number" min="21" ng-init="paymentForm.quantity=25" class="form-control" ng-model="paymentForm.quantity">
+      </div>
+  </div>
+
+  <div class="form-group col-xs-6" style="max-width: 230px;">
+    <label>Card Number</label>
+      <input type="text" size="20" class="form-control" ng-model="paymentForm.number">
+  </div>
+
+  <div class="form-group col-xs-2" style="max-width: 110px;text-align: center;">
+    <label>Expiration</label>
+    <div><input type="text" size="2" style="width:40px;float:left" placeholder="MM" class="form-control" ng-model="paymentForm.exp_month">
+    <span style="float:left;font-size: 26px;"> / </span>
+    <input type="text" size="2" style="width:40px" class="form-control" placeholder="YY" ng-model="paymentForm.exp_year"></div>
+  </div>
+
+  <div class="form-group col-xs-2" style="max-width:100px">
+    <label>CVC</label>
+      <input type="text" size="4" style="width:60px;" class="form-control" ng-model="paymentForm.cvc">
+  </div>
+      <small><i class="fa fa-question-circle-o"></i> What is with the weird charge amounts?  Check out the <a href="/faq#creditcards">FAQ</a></small>
+  </div>
+
+  <div ui-if="activeTab !=0">
+  <input type="submit"  class="btn form-control btn-success" ng-disabled="verify()" ng-click="createMembership();" value="Submit Payment">  
+  </div>
+</div>
+
+</form>
+</div>
+</div>
+  <div class="row" style="padding-top:100px;">
+  <div class="col-md-12">
+  <h1>Reset/Clear Data</h1>
+      <div class="form-group col-md-2 text-center">
+      <i class="fa fa-question-circle-o top-right" ng-init="defaultReset=false" ng-click="defaultReset=!defaultReset"></i><div ng-if="defaultReset" class="info-box">This button will reset your account to defaults, so all monsters, spells, and sounds will be reset.  This will remove all custom work you have done (with the exception of Citizens).</div>
+      <input class="btn btn-primary"  type="button" value="Reset to Defaults" ui-turn-on="defaultResetUI"/>
+      
+      </div>
+</div>
+</div>
+</div>
+</div>
+<div ui-content-for="modals">
+  <div class="modal" ui-if='defaultResetUI' ui-state='defaultResetUI'>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" 
+                ui-turn-off="defaultResetUI">&times;</button>
+        <h4 class="modal-title">Are you SURE?</h4>
+      </div>
+      <div class="modal-body">
+       This function will reset your account to defaults, so all monsters, spells, and sounds will be reset.  This will remove all custom work you have done (with the exception of Citizens).
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="defaultResetUI" class="btn btn-danger">Yes I'm Sure</button>
+        <button ui-turn-off="defaultResetUI" class="btn btn-success">I've changed my mind</button>
+      </div>
+    </div>
+  </div>
+</div>
+  <div class="modal" ui-if='passReset' ui-state='passReset'>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" 
+                ui-turn-off="passReset">&times;</button>
+        <h4 class="modal-title">Are you SURE?</h4>
+      </div>
+      <div class="modal-body">
+<div class="form-group">
+<label>Old Password</label>
+<input type="password" class="form-control" ng-model="password" name="oldPw">
+</div>
+<div class="form-group">
+<label>NewPassword</label>
+<input type="password" class="form-control" ng-model="password" name="newPw">
+</div>
+<div class="form-group">
+<label>Confirm</label>
+<input type="password" class="form-control" ng-model="confirm">
+</div>
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="passReset" ng-disabled="newPw!=confirm" ng-click="resetPassword(oldPw,newPw)" class="btn btn-danger">Reset</button>
+        <button ui-turn-off="passReset" class="btn btn-success">Leave it Alone</button>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
