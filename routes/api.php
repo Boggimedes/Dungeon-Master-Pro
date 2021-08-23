@@ -15,3 +15,15 @@ Route::group([
     Route::post('refresh', 'AuthController@refresh');
     Route::get('user-profile', 'AuthController@userProfile');
 });
+
+Route::group(['middleware' => ['api']], function ($router) {
+	Route::get('monsters/{term?}', 'MonsterController@getMonsters');
+	Route::post('monster', 'MonsterController@addMonster');
+	Route::put('monster', 'MonsterController@updateMonster');
+	Route::delete('monster', 'MonsterController@deleteMonster');
+
+	Route::get('campaigns/{term?}', 'StoryController@getCampaigns');
+	Route::get('campaign', 'StoryController@getCampaign');
+	Route::post('map', 'StoryController@getMap');
+
+});

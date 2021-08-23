@@ -1,0 +1,12 @@
+<div ui-content-for="title">
+  <span>Sound Board</span>
+</div>
+<div class="scrollable">
+<div class="scrollable-content section dark-background">
+      <div ng-include="'/partials/sounds.html'" id="playController" class="col-md-12 col-sm-12" ng-class="{slid : screenSlide}"  ng-controller="SoundCtrl"></div>
+</div>
+</div>
+</div>
+<div ui-content-for="modals">
+  <div sound-options-modal class="modal" ui-if='soundOptions' ui-state='soundOptions'></div>
+  </div>

@@ -3,10 +3,11 @@
 namespace App\Models;
 
 use \Illuminate\Database\Eloquent\Model;
+use App\Traits\SecureUpdatable;
 
-
-class Citizen extends Model
+class Monster extends Model
 {
+    use SecureUpdatable;
     /**
      * The attributes that are mass assignable.
      *
@@ -46,8 +47,8 @@ class Citizen extends Model
         'legendary',
         'legendary_actions',
         'image',
+        'user_id',
 ];
-
     /**
      * The attributes that should be hidden for arrays.
      *
@@ -62,8 +63,11 @@ class Citizen extends Model
      * @var array
      */
     protected $casts = [
-        'skills' => 'object',
-        'attacks' => 'object',
+        'skills' => 'array',
+        'attacks' => 'array',
+        'multiattacks' => 'array',
+        'legendary_actions' => 'array',
+        'spellcasting' => 'object',
     ];
 
 

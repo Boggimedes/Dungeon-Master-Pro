@@ -8,6 +8,15 @@ import { CustomizerService } from '../services/customizer.service';
 import { FormControl } from '@angular/forms';
 import { LISTITEMS } from '../data/template-search';
 import { Router } from '@angular/router';
+import { faDragon } from '@fortawesome/free-solid-svg-icons';
+import { faHatWizard } from '@fortawesome/free-solid-svg-icons';
+import { faUserFriends } from '@fortawesome/free-solid-svg-icons';
+import { faSlidersH } from '@fortawesome/free-solid-svg-icons';
+import { faCogs } from '@fortawesome/free-solid-svg-icons';
+import { faGlobe } from '@fortawesome/free-solid-svg-icons';
+import { faMap } from '@fortawesome/free-solid-svg-icons';
+import { faBookOpen } from '@fortawesome/free-solid-svg-icons';
+import { faCaretSquareDown } from '@fortawesome/free-regular-svg-icons';
 
 @Component({
   selector: "app-navbar",
@@ -30,7 +39,13 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   public isCollapsed = true;
   layoutSub: Subscription;
   configSub: Subscription;
-
+  faHatWizard = faHatWizard;
+  faUserFriends = faUserFriends;
+  faMap = faMap;
+  faCaretSquareDown = faCaretSquareDown;
+  faSlidersH = faSlidersH;
+  faBookOpen = faBookOpen;
+  faGlobe = faGlobe;
   @ViewChild('search') searchElement: ElementRef;
   @ViewChildren('searchResults') searchResults: QueryList<any>;
 
@@ -42,14 +57,13 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   listItems = [];
   control = new FormControl();
-
+  faDragon = faDragon;
   public config: any = {};
 
   constructor(public translate: TranslateService,
     private layoutService: LayoutService,
     private router: Router,
     private configService: ConfigService, private cdr: ChangeDetectorRef) {
-
     const browserLang: string = translate.getBrowserLang();
     translate.use(browserLang.match(/en|es|pt|de/) ? browserLang : "en");
     this.config = this.configService.templateConf;

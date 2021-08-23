@@ -1,0 +1,493 @@
+
+<div class="row pt-3">
+	<div class="pt-2 col-2 px-0">
+		<i class="fa fa-question-circle" ng-class="{'help-question':diceBagHelp}" style="left:-5px" (click)="diceBagHelp=!diceBagHelp"><span *ngIf="diceBagHelp">The dice bag is what you use to roll dice manually (as opposed to using auto attacks or skills).  In the input box you can type a string that includes dice rolls, for example "2d6 slashing damage plus 1d6 fire" will roll both die sets and show the result in the combat log.  The "die" icons below are for quick single click rolls.  they can be added to (via the + button) or edited/removed via right clicking on them.</span></i>
+		<h3 class="col-12">Dice Bag</h3>
+		<div class="col-12">
+			<div class="input-group">
+				<input [(ngModel)]="freeRoll" type="text" name="freeRoll" placeholder="2d6+12, 6d6, etc" class="form-control">
+				<div class="input-group-append">
+					<button type="button" (click)="combatTurn(freeRoll,freeRoll)" class="btn btn-primary">roll</button>
+				</div>
+			</div>
+			</div>
+		<div class="col-12">
+			<div type="button" *ngFor="let dice of diceBagQuick; index as i" context-menu="diceOptions" [(ngModel)]="message" (click)="combatTurn(dice?.name,dice?.roll)" class="dice bg-primary d-inline spin">{{dice.name}}</div>
+			<i class="fa fa-plus"  style="position: relative;top: -18px;"></i>
+		</div>
+	</div>
+<div class="combat-grid card col-6">
+		<div class="row pt-2">
+			<div class="quickEntry col-12" *ngIf="qEntry">
+				<div class="input-group d-flex">
+					<input type="text" class="form-control" name="new.name" style="flex-grow: 4;" [(ngModel)]="new.name" placeholder="name">
+					<input type="text" class="form-control" name="new.name" [(ngModel)]="new.armor_class" placeholder="AC">
+					<input type="text" class="form-control" name="new.name" [(ngModel)]="new.hit_points" placeholder="HP">
+					<input type="text" class="form-control" name="new.name" [(ngModel)]="new.initiative" placeholder="Init">
+					<input type="text" class="form-control" name="new.name" [(ngModel)]="new.attack" placeholder="Atk">
+					<input type="text" class="form-control" name="new.name" [(ngModel)]="new.damage" placeholder="Dmg">
+					<div class="input-group-append">
+						<button type="button" class="btn btn-primary" (click)="new.str=new.damage;new.dex=new.damage;loadCombatant(new,true)">Add</button>
+					</div>
+				</div>
+			</div>
+			<perfect-scrollbar class="scroll-container col-12" style="position: relative;max-height: 45vh;" fxFlex="auto" [config]="config">
+				<div class="scrollable-content">
+					<table id="combatTable" class="combatant table table-striped">
+				<thead> 
+					<tr>
+						<th class="position-relative">
+							<div class="btn-group-vertical" style="position: absolute; left: 0px; top: 1px;">
+								<button type="button" (click)="qEntry = !qEntry" class="btn-sm btn btn-primary ">
+								<span class="fa fa-plus" *ngIf="!qEntry"></span>
+								<span class="fa fa-minus" *ngIf="qEntry"></span>
+								</button>
+								<div ngbDropdown class="vertical-buttons" container="body">
+									<button class="btn btn-sm btn-outline-primary" ngbDropdownToggle></button>
+									<div ngbDropdownMenu >
+										<div class="btn-group">
+											<button ngbDropdownItem class="btn btn-outline-primary float-left" (click)="startCombat()">Start Combat</button>
+											<button ngbDropdownItem class="btn btn-outline-primary float-left" (click)="clearCombat()">Clear</button>
+											<ng-container ngbDropdown>
+												<button class="btn btn-outline-primary float-left" ngbDropdownToggle>Add Group</button>
+												<div ngbDropdownMenu>
+													<button class="btn dropdown-item" *ngFor="let group of groups" (click)="addGroup(group)">{{group.name}}</button>
+												</div>
+											</ng-container>
+										</div>
+									</div>
+								</div>
+							</div>
+							<span>Name</span>
+						</th>
+						<th>Status</th>
+						<th class="numberRow">AC</th>
+						<th class="numberRow">HP</th>
+						<th class="numberRow">Init</th>
+						<th class="numberRow">Round</th>
+					</tr>
+				</thead>
+				<tbody>
+					<ng-container *ngFor="let combatant of combatants; index as i" >
+						<tr 
+						(click)="selectedRow = i" 
+						[ngClass]="{'active': selectedRow == i}" 
+						(contextmenu)="open(event, combatant, i)"
+						>
+							<td class="text-capitalize">{{combatant.name}}</td>
+							<td>{{combatant.status}}</td>
+							<td>{{combatant.armor_class}}</td>
+							<td>{{combatant.hp}}</td>
+							<td>{{combatant.initiative}}</td>
+							<td>{{combatant.turn}}</td>
+						</tr>
+					</ng-container>
+				</tbody>
+				</table>
+			</div>
+		</perfect-scrollbar>
+			<div class="col-12 p-1 d-flex">
+				<i class="fa fa-question-circle-o"  (click)="cButtonHelp=!cButtonHelp">
+					<span *ngIf="cButtonHelp">These buttons and dropdowns are for the creature selected in the table above.  They automatically roll the skill or attack selected.  The <i class="fa fa-chevron-down"></i> will roll with disadvantage, the <i class="fa fa-minus"></i> rolls normally, and the <i class="fa fa-chevron-up"></i> rolls with advantage.</span>
+				</i>
+				<div class="btn-group mr-auto" >
+					<div ngbDropdown>
+						<button class="btn btn-outline-primary" style="border-bottom-right-radius: 0px; border-top-right-radius: 0px;" ngbDropdownToggle>{{ selectedAttack?.name || 'Select Attack'}}</button>
+						<div ngbDropdownMenu>
+							<ng-container *ngFor="let attack of selectedCombatant.attacks" >
+								<button ngbDropdownItem class="dropdown-item w-100" (click)="selectedAttack = attack; attackFunction = combatTurn;">{{attack.name}}</button>
+							</ng-container>
+							<div class="dropdown-divider">Multiattacks</div>
+							<ng-container *ngFor="let multiattack of selectedCombatant.multiattacks" >
+								<button ngbDropdownItem class="dropdown-item w-100" (click)="selectedAttack = multiattack; attackFunction = combatTurn;">{{multiattack.name}}</button>
+							</ng-container>
+							<div class="dropdown-divider">Spells</div>
+							<ng-container *ngFor="let spell of selectedCombatant.spells" >
+								<button ngbDropdownItem class="dropdown-item w-100" (click)="selectedAttack = spell; attackFunction = castSpell;">{{spell.name}}</button>
+							</ng-container>
+						</div>
+					</div>
+					<button type="button" title="Attack roll with Disadvantage" *ngIf="world.advDisAdv" (click)="attackFunction(selectedCombatant,selectedAttack,'d')" class="btn btn-primary">
+						<span class="fa fa-chevron-down" aria-hidden="true"></span> 
+					</button>
+					<button type="button" title="Normal Attack Roll" (click)="attackFunction(selectedCombatant,selectedAttack,'')" class="btn btn-primary ">
+						<span class="fa fa-minus" aria-hidden="true"></span> 
+					</button>
+					<button type="button" title="Attack roll with Advantage" *ngIf="world.advDisAdv" (click)="attackFunction(selectedCombatant,selectedAttack,'a')" class="btn btn-primary">
+						<span class="fa fa-chevron-up" aria-hidden="true"></span> 
+					</button>
+				</div>
+				<div class="btn-group" >
+
+					<div ngbDropdown>
+						<button class="btn btn-outline-primary" style="border-bottom-right-radius: 0px; border-top-right-radius: 0px;" ngbDropdownToggle>{{ selectedSkill?.name || 'Select Skill'}}</button>
+						<div ngbDropdownMenu>
+							<ng-container *ngFor="let skill of selectedCombatant.skills" >
+								<button  ngbDropdownItem class="dropdown-item w-100" (click)="selectedSkill = skill">{{skill.name}}</button>
+							</ng-container>
+						</div>
+					</div>
+
+
+					<button type="button" title="Skill roll with Disadvantage" *ngIf="world.advDisAdv" (click)="combatTurn(selectedCombatant,cskill,'d')" class="btn btn-primary ">
+						<span class="fa fa-chevron-down" aria-hidden="true"></span> 
+					</button>
+					<button type="button" title="Normal skill roll" (click)="combatTurn(selectedCombatant,selectedSkill)" class="btn btn-primary ">
+						<span class="fa fa-minus" aria-hidden="true"></span> 
+					</button>
+					<button type="button" title="Skill roll with Advantage" *ngIf="world.advDisAdv" (click)="combatTurn(selectedCombatant,cskill,'a')" class="btn btn-primary ">
+						<span class="fa fa-chevron-up" aria-hidden="true"></span> 
+					</button>
+				</div>
+			</div>
+			<perfect-scrollbar class="scroll-container combat-log pt-2 col-12" style="position: relative;max-height: 28vh;" fxFlex="auto" [config]="config">
+				<div class="scrollable-content">
+					<app-combat-log ></app-combat-log>
+				</div>
+			</perfect-scrollbar>
+		</div>
+	</div>
+	<div class="col-4 combat-side">
+		<div class="row">
+		<div class="pb-3 col-12" *ngIf="combatSide == 'details'">
+			<div class="card-content">
+				<div class="card-body pt-0">
+					<nav ngbNav #combatantNav="ngbNav" class="nav-tabs">
+						<ng-container ngbNavItem>
+							<a ngbNavLink>Details</a>
+							<ng-template ngbNavContent>
+							<div class="row combatant">
+								<div class="col-12 picture" *ngIf="selectedCombatant?.image">
+									<img src="https://s3.us-west-2.amazonaws.com/game-master-pro/monsters/{{selectedCombatant.image}}" style="height:14rem">
+								</div>
+								<div class="col-12 mb-0">
+									<input type="text" name="combatant.name" class="form-control text-capitalize text-small-caps text-smallCaps non-input pl-0 name"  style="font-variant: small-caps;" id="combatantName" [ngModel]="selectedCombatant.name" (change)="updateCombatant($event, 'name')">
+									<span>{{selectedCombatant.size}}</span>
+								</div>
+								<svg height="5" width="100%" class="tapered-rule">
+									<polyline points="0,0 550,2.5 0,5"></polyline>
+								</svg>
+								<div class="col-12">
+									<strong for="combatantAC" class="d-inline">Armor Class: </strong>
+									<input type="text" name="combatant.armor_class" class="form-control non-input d-inline" style="width:3rem;" id="combatantAC" [ngModel]="selectedCombatant.armor_class" (change)="updateCombatant($event, 'armor_class')">
+									|<input type="text" name="combatant.armor_class_notes" class="form-control non-input d-inline" style="width:13rem;" [ngModel]="selectedCombatant.armor_class_notes" (change)="updateCombatant($event, 'armor_class_notes')">
+								</div>
+								<div class="col-12">
+									<strong for="combatantHP" class="d-inline">Hit Points: </strong>
+									<input type="text" name="combatant.hp" class="form-control non-input d-inline" style="width:10rem;" id="combatantHP" [ngModel]="selectedCombatant.hp" (change)="updateCombatant($event, 'hp')">
+								</div>
+								<div class="col-12">
+									<strong for="combatantSpeed" class="d-inline">Speed: </strong>
+									<span>{{selectedCombatant.speed}}</span>
+								</div>
+								<svg height="5" width="100%" class="tapered-rule">
+									<polyline points="0,0 450,2.5 0,5"></polyline>
+								</svg>
+								<div class="col-12 pt-3 pb-2" *ngIf="selectedCombatant">
+									<div class = "attrib-labels row text-center">
+										<div class="col">
+											STR
+										</div>
+										<div class="col">
+											DEX
+										</div>
+										<div class="col">
+											CON
+										</div>
+										<div class="col">
+											INT
+										</div>
+										<div class="col">
+											WIS
+										</div>
+										<div class="input-group-append col">
+											CHA
+										</div>
+									</div>
+									<div class = "input-group">
+										<div class="input-group-prepend">
+											<span class="input-group-text" style="width: 4em">Mod</span>
+											</div>
+										<input type="text" name="combatant.str" class="form-control text-center" (change)="updateCombatant($event, 'str')" [ngModel]="selectedCombatant.str">
+										<input type="text" name="combatant.dex" class="form-control text-center" (change)="updateCombatant($event, 'dex')" [ngModel]="selectedCombatant.dex">
+										<input type="text" name="combatant.con" class="form-control text-center" (change)="updateCombatant($event, 'con')" [ngModel]="selectedCombatant.con">
+										<input type="text" name="combatant.int" class="form-control text-center" (change)="updateCombatant($event, 'int')" [ngModel]="selectedCombatant.int">
+										<input type="text" name="combatant.str" class="form-control text-center" (change)="updateCombatant($event, 'wis')" [ngModel]="selectedCombatant.wis">
+										<input type="text" name="combatant.str" class="form-control text-center" (change)="updateCombatant($event, 'cha')" [ngModel]="selectedCombatant.cha">
+									</div>
+									<div class = "input-group">
+										<div class="input-group-prepend">
+											<span class="input-group-text" style="width: 4em">Save</span>
+										</div>
+										<input type="text" name="combatant.str_save" class="form-control text-center" (change)="updateCombatant($event, 'str_save')" [ngModel]="selectedCombatant.str_save">
+										<input type="text" name="combatant.dex_save" class="form-control text-center" (change)="updateCombatant($event, 'dex_save')" [ngModel]="selectedCombatant.dex_save">
+										<input type="text" name="combatant.con_save" class="form-control text-center" (change)="updateCombatant($event, 'con_save')" [ngModel]="selectedCombatant.con_save">
+										<input type="text" name="combatant.int_save" class="form-control text-center" (change)="updateCombatant($event, 'int_save')" [ngModel]="selectedCombatant.int_save">
+										<input type="text" name="combatant.wis_save" class="form-control text-center" (change)="updateCombatant($event, 'wis_save')" [ngModel]="selectedCombatant.wis_save">
+										<input type="text" name="combatant.cha_save" class="form-control text-center" (change)="updateCombatant($event, 'cha_save')" [ngModel]="selectedCombatant.cha_save">
+									</div>
+									<h5>Senses</h5>
+									<p [innerHTML]="senses"></p>
+								</div>
+								<svg height="5" width="100%" class="tapered-rule">
+									<polyline points="0,0 450,2.5 0,5"></polyline>
+								</svg>
+								<h5>Description</h5>
+								<p [innerHTML]="selectedCombatant.desc"></p>
+							</div>
+							</ng-template>
+						</ng-container>
+						<ng-container ngbNavItem>
+							<a *ngIf="special" ngbNavLink>Special</a>
+							<ng-template ngbNavContent>
+								<h4 class="page-header">Special Features/Attributes</h4>
+								<p [innerHTML]="special"></p>
+							</ng-template>
+						</ng-container>
+						<ng-container ngbNavItem>
+							<a *ngIf="selectedAttack?.type=='spell'" ngbNavLink>Spell/Ability</a>
+							<ng-template ngbNavContent>
+								<h3 class="page-header" ng-bind="selectedCombatant.selectedAttack?.name"></h3>
+								<table class="table table-striped">
+									<tbody class="spell-block">
+										<tr><td>Level:</td><td ng-bind="selectedCombatant.spell.level"></td></tr>
+										<tr><td>School:</td><td ng-bind="selectedCombatant.spell.school"></td></tr>
+										<tr><td>Components:</td><td ng-bind="selectedCombatant.spell.components"></td></tr>
+										<tr><td>Range:</td><td ng-bind="selectedCombatant.spell.range"></td></tr>
+										<tr><td>Casting Time:</td><td ng-bind="selectedCombatant.spell.casttime"></td></tr>
+										<tr><td>Duration:</td><td ng-bind="selectedCombatant.spell.duration"></td></tr>
+									</tbody>
+								</table>
+								<p>{{selectedCombatant?.spell?.full_text}}</p>
+							</ng-template>
+						</ng-container>
+						<ng-container ngbNavItem>
+								<a *ngIf="selectedCombatant.persistentEffect" ngbNavLink>Effects</a>
+								<ng-template ngbNavContent>
+								<h3 class="page-header">Persistent Effects</h3>
+								<table class="table table-striped">
+								<thead>
+								<tr><th>Name</th><th>Freq</th><th>Text</th><th>Dam/Heal</th><th>Rounds Left</th></tr></thead>
+								<tbody class="spell-block">
+								<tr ng-repeat="effect in selectedCombatant.persistentEffect">
+								<td>{{effect?.name}}</td>
+								<td>{{effect?.frequency}}</td>
+								<td>{{effect?.effect}}</td>
+								<td>{{effect?.hp}}</td>
+								<td>{{effect?.duration}}</td>
+								</tr>
+								</tbody>
+								</table>
+							</ng-template>
+						</ng-container>
+					</nav>
+
+					<div [ngbNavOutlet]="combatantNav" class="mt-2"></div>
+				</div>
+			</div>
+		</div>
+		<div class="pt-2 col-12" *ngIf="!selectedCombatant.name || combatSide == 'monsters'">
+			<div class="card-content">
+				<div class="card-body p-0">
+					<perfect-scrollbar class="scroll-container" fxFlex="auto" [config]="config">
+						<div class="scrollable-content">
+							<div class="row m-0 monster-search">
+								<div class="col-12 px-4" *ngIf="recentMonsters">
+									<h5>Recently Added Monsters</h5>
+									<div class="row px-0 mx-0">
+									<div *ngFor="let monster of recentMonsters" class="col bg-white p-0 m-0 text-center">
+										<div (dblclick)="loadCombatant(monster)" style="cursor:pointer;" *ngIf="!monster.image">{{monster?.name}}</div>
+										<img class="img-fluid" style="cursor:pointer;height:6rem;" (dblclick)="loadCombatant(monster)" *ngIf="monster.image" src="https://s3.us-west-2.amazonaws.com/monster.images/{{monster.image}}" title="{{monster?.name}}(CR{{monster?.cr}})">
+									</div>
+									</div>
+								</div>
+														<div class="col-12">
+									<input type="text" class="form-control" name="monsterSearch" [(ngModel)]="monsterSearch" placeholder="Search for Monsters" name="search" #input ngDefaultControl>
+									<span class="clear-search" (click)="monsterSearch = ''">x</span>
+								</div>
+								<div class="col-sm-6 col-md-4 px-1 pt-1 py-0 col-12 monster" (dblclick)="loadCombatant(monster)" *ngFor="let monster of (viewFavorites ? favoriteMonsters : monsters)">
+									<div class="bg-white p-0 m-0 text-center w-100">
+										<img class="img-fluid" src="https://s3.us-west-2.amazonaws.com/monster.images/{{monster.image}}" style="height:9rem" [alt]="monster.name">
+										<fa-icon class="favorite-icon favorite" *ngIf="isFavorite(monster)" (click)="unFavorite(monster)" [icon]="fasHeart"></fa-icon>
+										<fa-icon class="favorite-icon" *ngIf="!isFavorite(monster)" (click)="favorite(monster)" [icon]="faHeart"></fa-icon>
+									</div>
+									<h6 class="mb-0 bg-black" style="font-size:1.1rem">{{monster.name}}</h6>
+								</div>
+							</div>
+							<div class="d-flex justify-content-center pt-3">
+							<button type="button" class="btn btn-outline-primary mr-2" (click)="allMonsters()">All Monsters</button>
+							<div *ngIf="pagerInfo?.total > 9">
+								<button
+								type="button"
+								class="btn btn-sm btn-outline-primary"
+								*ngIf="pagerInfo.starting_page > 1"
+								(click)="changePage(1)"
+								[class.active]="1 === pagerInfo.current_page"
+								>{{ 1 }}</button>
+								<button
+								type="button"
+								class="btn btn-sm btn-outline-primary"
+								[class.active]="i === pagerInfo.current_page"
+								*ngFor="let i of pagerInfo.pageRange"
+								(click)="changePage(i)"
+								>
+								<strong *ngIf="i === pagerInfo.current_page">{{ i }}</strong>
+								<span *ngIf="i !== pagerInfo.current_page">{{ i }}</span>
+								</button>
+								<button
+								type="button"
+								class="btn btn-sm btn-outline-primary"
+								(click)="changePage(pagerInfo.last_page)"
+								>{{ pagerInfo.last_page }}</button>
+								</div>
+
+							<button type="button" class="btn btn-outline-primary ml-2" (click)="viewFavorites = true">Favorites</button>
+							</div>
+						</div>
+					</perfect-scrollbar>
+				</div>
+			</div>
+		</div>
+		</div>
+	</div>
+	<div class="sounds">
+		
+	</div>
+</div>
+<button class="card right-side-button" (click)="setCombatPage('details')" *ngIf="!selectedCombatant.name || combatSide == 'monsters'"><fa-icon [icon]="faBookDead" (click)="setCombatPage('details')"></fa-icon></button>
+<button class="card right-side-button" *ngIf="combatSide == 'details'" (click)="setCombatPage('monsters')"><fa-icon [icon]="faPiedPiperAlt" (click)="setCombatPage('monsters')"></fa-icon></button>
+
+<!-- <div ui-content-for="modals">
+<div class="modal" ui-if='addgroup' ui-state='addgroup'>
+<div class="modal-dialog">
+<div class="modal-content">
+<div class="modal-header">
+<button class="close" ui-turn-off="addgroup">&times;</button>
+<h4 class="modal-title">Enter roll</h4>
+</div>
+<div class="modal-body" ng-init="group={};group.group=[];"> 
+<label>Name</label>
+<input [(ngModel)]="group.name" autofocus style="text-align:left" >
+<label>Group Members <i class="fa fa-plus" (click)="group.group.push({})"></i></label>
+<div ng-repeat="member in group.group">
+<input [(ngModel)]="member.name" tyle="text" class="form-control col-md-4" placeholder="Name">
+<input [(ngModel)]="member.initiative" tyle="number" class="form-control col-md-2" placeholder="Init">
+<input [(ngModel)]="member.ac" tyle="number" class="form-control col-md-2" placeholder="AC">
+<input [(ngModel)]="member.hp" tyle="number" class="form-control col-md-2" placeholder="HP">
+</div>
+</div>
+<div class="modal-footer">
+<button ui-turn-off="addgroup" class="btn btn-primary">Close</button>
+<button ui-turn-off="addgroup" (click)="pushGroup(group)" class="btn btn-primary">Save</button>
+</div>
+</div>
+</div>
+</div>
+<div class="modal" ui-if='diceBag' ui-state='diceBag'>
+<div class="modal-dialog dice-bag-modal">
+<div class="modal-content">
+<div class="modal-header">
+<button class="close" ui-turn-off="diceBag">&times;</button>
+<h4 class="modal-title">Enter roll</h4>
+</div>
+<div class="modal-body"> 
+<label>Label</label>
+<input [(ngModel)]="new.name" autofocus style="text-align:left" >
+<label>Roll</label>
+<input [(ngModel)]="new.roll" autofocus style="text-align:left" placeholder="ex. 3d6+6, 1d2, 1d8+1d12">
+</div>
+<div class="modal-footer">
+<button ui-turn-off="diceBag" class="btn btn-primary">Close</button>
+<button ui-turn-off="diceBag" (click)="addDie(new)" class="btn btn-primary">Save</button>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal" ui-if='soundOptions' ui-state='soundOptions'>
+<div class="modal-dialog sound-options-modal" ui-outer-click="Ui.turnOff('soundOptions')">
+<div class="modal-content">
+<div class="modal-header">
+<button class="close" ui-turn-off="soundOptions">&times;</button>
+<h4 class="modal-title">Options</h4>
+</div>
+<div class="modal-body" >
+<div ng-repeat="effect in $parent.$parent.$parent.sceneOpt.effects">
+
+<ui-switch class="pull-right" [(ngModel)]="effect.active" *ngIf="effect.optional=='1'" ng-init="effect.active=effect.active==null?true:effect.active"></ui-switch>
+<label>{{effect.name}}</label>
+</div>
+</div>
+<div class="modal-footer">
+<button ui-turn-off="soundOptions" class="btn btn-primary">Close</button>
+</div>
+</div>
+</div>
+</div>
+-->
+<!-- <div class="modal" ui-if='persistent' ui-state='persistent'>
+<div class="modal-dialog" >
+<div class="modal-content">
+<div class="modal-header">
+<button class="close" ui-turn-off="persistent">&times;</button>
+<h4 class="modal-title">Options</h4>
+</div>
+<div class="modal-body" >
+<label>Effect Name</label>
+<input [(ngModel)]="persistent.name" placeholder="Blarg!" class="form-control">
+<label>Frequency</label>
+<input [(ngModel)]="persistent.frequency" type="number" placeholder="1 for every round, 2 for every other round, etc" class="form-control">
+<label>Effect Text</label>
+<input [(ngModel)]="persistent.effect" placeholder="Something posted to combat board" class="form-control">
+<label>HP Change</label>
+<input [(ngModel)]="persistent.hp" placeholder="Added or subtraced from HP. ex. -1d10, +2d4, etc." class="form-control">
+<label>Duration</label>
+<input [(ngModel)]="persistent.duration" type="number" Placeholder="total number of rounds" class="form-control">
+</div>
+<div class="modal-footer">
+<button ui-turn-off="persistent" class="btn btn-primary">Close</button>
+$parent.$parent.contextCombatant.persistentEffect.push(persistent);echo($parent.$parent.contextCombatant); 
+<button ui-turn-off="persistent" (click)="selectedCombatant.persistentEffect.push(persistent)" class="btn btn-primary">Save</button>
+</div>
+</div>
+</div>
+</div>
+</div> --> 
+
+
+
+<div style="visibility: hidden; position: fixed"
+[style.left]="contextMenuPosition.x"
+[style.top]="contextMenuPosition.y"
+[matMenuTriggerFor]="combatMenu">
+</div>
+<mat-menu #combatMenu="matMenu">
+<ng-template matMenuContent let-combatant="combatant">
+<button mat-menu-item (click)="onContextMenuAction1(combatant)">Action 1</button>
+<button mat-menu-item (click)="onContextMenuAction2(combatant)">Action 2</button>
+</ng-template>
+</mat-menu>
+
+<div style="visibility: hidden; position: fixed"
+[style.left]="contextMenuPosition.x"
+[style.top]="contextMenuPosition.y"
+[matMenuTriggerFor]="diceMenu">
+</div>
+<mat-menu #diceMenu="matMenu">
+<ng-template matMenuContent let-die="die">
+<button mat-menu-item (click)="onContextMenuAction1(combatant)">Action 1</button>
+<button mat-menu-item (click)="onContextMenuAction2(combatant)">Action 2</button>
+</ng-template>
+</mat-menu>
+
+<div style="visibility: hidden; position: fixed"
+[style.left]="contextMenuPosition.x"
+[style.top]="contextMenuPosition.y"
+[matMenuTriggerFor]="hitpointsMenu">
+</div>
+<mat-menu #hitpointsMenu="matMenu">
+<ng-template matMenuContent let-combatant="combatant">
+<button mat-menu-item (click)="onContextMenuAction1(combatant)">Action 1</button>
+<button mat-menu-item (click)="onContextMenuAction2(combatant)">Action 2</button>
+</ng-template>
+</mat-menu>

@@ -1,0 +1,71 @@
+<style>
+	body{
+		overflow:hidden;
+		}
+	ul.form-group{
+		padding-left:0px;
+		}
+	ul.form-group > li{
+		padding:5px;
+		border:1px solid black;
+		border-radius:4px;
+		list-style:none;
+		text-align: center;
+		}
+	input[type=checkbox]{margin:auto;}
+	.scenes{
+			width:100%;
+			min-height:30px;
+			flex-flow: row wrap;
+			display: flex;
+			text-align: center;
+		}
+</style>
+<div ui-content-for="title">
+  <span>{{heading}}</span>
+</div>
+
+<div class="scrollable" ng-init="collectionInit()">
+	<div class="scrollable-content section">
+		<div class="row">
+			<div class="col-md-10">
+				<form role="form" id="add-page" ng-submit="saveCollection()">
+					<div class="form-group">
+						<label>Collection ID</label>
+						<input class="form-control" type="text" readonly ng-model="collectionContent.id"/>
+					</div>
+					<div class="form-group">
+						<label>Title</label>
+						<input class="form-control" type="text" ng-model="collectionContent.name"/>
+					</div>
+					<div class="form-group">
+						<label>Description</label>
+						<input class="form-control"type="text" ng-model="collectionContent.desc"/>
+					</div>
+					<label>Scenes</label>
+					<ul dnd-list="collectionContent.scenes" class="form-group scenes" style="">
+						<li ng-repeat="scene in collectionContent.scenes"        
+							dnd-draggable="scene"
+							dnd-moved="collectionContent.scenes.splice($index, 1)"
+							dnd-effect-allowed="move">
+							<label ng-attr-title="{{scenesArray[scene].desc}}" >{{scenesArray[scene].name}}</label>
+						</li>
+					</ul>
+					<input type="submit" class="btn btn-success" value="Save">
+				</form>
+			</div>
+
+		<div class="col-md-2" style="height: 90vh;overflow: auto;">
+			<ul dnd-list="sceneIDs" class="form-group" style="flex-flow: row wrap;display: flex;text-align: center;">
+			<li ng-repeat="sceneObjects in sceneIDs"         
+				dnd-draggable="sceneObjects"
+				dnd-moved="sceneIDs.splice($index, 1)"
+				dnd-effect-allowed="move" style="width: 100%">
+				<label ng-attr-title="{{scenesArray[sceneObjects].desc}}" >{{scenesArray[sceneObjects].name}}</label>
+				<input class="form-control" style="display:none" type="text" ng-model="sceneObjects"/>
+			</li>
+			</ul>
+		</div>
+		</div>
+	</div>
+</div>

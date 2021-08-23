@@ -1,0 +1,37 @@
+      <div class="btn-group">
+      <a ui-turn-on='selectCollection' class='btn btn-xs btn-primary'>
+      {{collectionName || 'Change Collection'}} <span class="fa fa-caret-down"> </span>
+      </a>
+      <ul 
+      class="dropdown-menu"
+      ui-outer-click="Ui.turnOff('selectCollection')"
+      ui-outer-click-if="Ui.active('selectCollection')"
+      role="menu"
+      ui-show="selectCollection" 
+      ui-state="selectCollection"
+      ui-turn-off="selectCollection">
+
+      <li ng-repeat="collection in collections"><a ng-click="changeCollection(collection)">{{collection.name}}</a></li>
+      </ul>
+      </div>
+
+<ul class="list-unstyled"  width="100%" ng-slimscroll horizontal-scroll="true" >
+	<li  ng-repeat="scene in allScenes | orderBy:key" class="scene"  ng-right-click="sceneOptions(scene)" on-long-press="sceneOptions(scene)"><img src="{{scene.img}}" style="width:100%;border-radius:26%;" ng-click="toggleScene(scene)" ng-class="{'glowing-border' : scene.active}"/></li>
+</ul>
+
+<i ng-if="windowWidth<768" ng-click="slideScreen(screenSlide)" style="z-index:100;position:fixed;right:3px;font-size:30px;opacity:.7;-webkit-transition: top 2s, bottom 2s, -webkit-transform 2s;
+transition: top 2s, bottom 2s, -webkit-transform 2s;" ng-class="{'fa-arrow-circle-up' : screenSlide, 'fa-arrow-circle-down' : !screenSlide, slid : screenSlide, notSlid : !screenSlide}" class="fa"></i>
+
+<style>
+body { -webkit-touch-callout: none !important; }
+img { -webkit-user-select: none !important; }
+.glowing-border {
+    border: 2px solid #9ecaed;
+    border-radius: 7px;
+    outline: none;
+    box-shadow: 0 0 10px #9ecaed;
+}
+
+
+</style>
+

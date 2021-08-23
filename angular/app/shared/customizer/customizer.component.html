@@ -1,5 +1,5 @@
 <!-- Theme customizer Starts-->
-<div #customizer class="customizer d-none d-lg-none d-xl-block" [ngClass]="{open: isOpen}">
+<div #customizer class="customizer d-none d-lg-none d-xl-block" [class.open]="isOpen">
   <a class="customizer-close" (click)="closeCustomizer()">
     <i class="ft-x font-medium-3"></i></a><a class="customizer-toggle bg-primary" id="customizer-toggle-icon"
     (click)="toggleCustomizer()">

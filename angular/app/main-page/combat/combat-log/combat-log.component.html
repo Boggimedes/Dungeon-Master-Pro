@@ -1,0 +1,17 @@
+<div class="combat-log">
+    <div class="combat-row" *ngFor="let attack of combatLog">
+        <div class="" *ngIf="attack.actor">
+            <strong  class="text-capitalize">{{attack.actor}}</strong><span>, {{ attack.name}}: <span>{{ attack.dice}}</span> </span> <br *ngIf="attack.thac0" >
+                <ng-container *ngFor="let attack of attack.multiattack">
+                    <div>
+                        <span *ngIf="attack.thac0" class="pl-3">Hit <strong>AC{{ attack.thac0 }}</strong> for </span>
+                        <ng-container *ngFor="let damageSegment of attack.damage;let i = index">
+                            {{ i%2 == 0 ? damageSegment : ''}} <i  *ngIf="i%2 == 1"  class="fa fa-question-circle-o" triggers="click" [autoClose]="'outside'" [ngbTooltip]="damageSegment" container="body"></i>
+                        </ng-container>
+                    </div>
+                </ng-container>
+                <span *ngIf="attack && attack.thac0" class="pl-3">Hit <strong>AC{{ attack.thac0 }}</strong> for </span><ng-container *ngFor="let damageSegment of attack.damage;let i = index">{{ i%2 == 0 ? damageSegment : ''}} <i  *ngIf="i%2 == 1"  class="fa fa-question-circle-o" triggers="click" [autoClose]="'outside'" [ngbTooltip]="damageSegment" container="body"></i></ng-container>
+                <br>
+            </div>
+    </div>
+</div>

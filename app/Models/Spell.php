@@ -5,7 +5,7 @@ namespace App\Models;
 use \Illuminate\Database\Eloquent\Model;
 
 
-class Citizen extends Model
+class Spell extends Model
 {
     /**
      * The attributes that are mass assignable.
@@ -24,6 +24,7 @@ class Citizen extends Model
         'casttime',
         'components',
         'attack',
+        'user_id',
 ];
 
     /**

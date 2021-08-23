@@ -1,0 +1,23 @@
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button class="close" ui-turn-off="addGroup">&times;</button>
+          <h4 class="modal-title">Enter roll</h4>
+        </div>
+        <div class="modal-body" ng-init="group={};group.group=[];"> 
+          <label>Name</label>
+          <input ng-model="group.name" autofocus style="text-align:left" >
+          <label>Group Members <i class="fa fa-plus" ng-click="group.group.push({})"></i></label>
+          <div ng-repeat="member in group.group">
+          <input ng-model="member.name" tyle="text" class="form-control col-md-4" placeholder="Name">
+          <input ng-model="member.initiative" tyle="number" class="form-control col-md-2" placeholder="Init">
+          <input ng-model="member.ac" tyle="number" class="form-control col-md-2" placeholder="AC">
+          <input ng-model="member.hp" tyle="number" class="form-control col-md-2" placeholder="HP">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button ui-turn-off="addGroup" class="btn btn-primary">Close</button>
+          <button ui-turn-off="addGroup" ng-click="pushGroup(group)" class="btn btn-primary">Save</button>
+        </div>
+      </div>
+    </div>

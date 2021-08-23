@@ -3,6 +3,7 @@ import { CommonModule } from "@angular/common";
 import { RouterModule } from "@angular/router";
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { OverlayModule } from '@angular/cdk/overlay';
+import { MatMenuModule } from '@angular/material/menu';
 
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { TranslateModule } from '@ngx-translate/core';
@@ -11,6 +12,7 @@ import { ClickOutsideModule } from 'ng-click-outside';
 
 import { AutocompleteModule } from './components/autocomplete/autocomplete.module';
 import { PipeModule } from '../../../angular/app/shared/pipes/pipe.module';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
 
 //COMPONENTS
 import { FooterComponent } from "./footer/footer.component";
@@ -19,6 +21,7 @@ import { HorizontalMenuComponent } from './horizontal-menu/horizontal-menu.compo
 import { VerticalMenuComponent } from "./vertical-menu/vertical-menu.component";
 import { CustomizerComponent } from './customizer/customizer.component';
 import { NotificationSidebarComponent } from './notification-sidebar/notification-sidebar.component';
+// import { ContextMenuComponent } from './components/context-menu-component/context-menu.component';
 
 //DIRECTIVES
 import { ToggleFullscreenDirective } from "./directives/toggle-fullscreen.directive";
@@ -46,6 +49,7 @@ import { TopMenuAnchorToggleDirective } from './directives/topmenu-anchor-toggle
         TopMenuDirective,
         NgbModule,
         TranslateModule,
+        MatMenuModule
     ],
     imports: [
         RouterModule,
@@ -53,12 +57,14 @@ import { TopMenuAnchorToggleDirective } from './directives/topmenu-anchor-toggle
         NgbModule,
         TranslateModule,
         FormsModule,
+        FontAwesomeModule,
         OverlayModule,
         ReactiveFormsModule ,
         PerfectScrollbarModule,
         ClickOutsideModule,
         AutocompleteModule,
-        PipeModule
+        PipeModule,
+        MatMenuModule
     ],
     declarations: [
         FooterComponent,
@@ -76,6 +82,7 @@ import { TopMenuAnchorToggleDirective } from './directives/topmenu-anchor-toggle
         TopMenuDropdownDirective,
         TopMenuAnchorToggleDirective,
         TopMenuDirective,
+        // ContextMenuComponent,
     ]
 })
 export class SharedModule { }

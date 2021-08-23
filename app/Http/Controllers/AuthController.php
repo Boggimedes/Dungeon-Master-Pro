@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 use Validator;
-use App\User;
+use App\Models\User;
 
 
 class AuthController extends Controller {
@@ -51,6 +51,7 @@ class AuthController extends Controller {
             'name' => 'required|string|between:2,100',
             'email' => 'required|string|email|max:100|unique:users',
             'password' => 'required|string|confirmed|min:6',
+            'settings' => ['monster_images' => true, "dis_adv" => true, "custom_css" => 'default']
         ]);
         // $settings = '{"monsterImages":true,"advDisAdv":true,"customCSS":"default","defaultMonsters":true,"defaultSpells":true}';
 

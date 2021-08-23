@@ -20,6 +20,7 @@ class User extends Authenticatable implements JWTSubject {
      */
     protected $fillable = [
         'name', 'email', 'password',
+        'user_id',
     ];
 
     /**
@@ -38,6 +39,7 @@ class User extends Authenticatable implements JWTSubject {
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'settings' => 'object'
     ];
 
     /**
@@ -57,4 +59,72 @@ class User extends Authenticatable implements JWTSubject {
     public function getJWTCustomClaims() {
         return [];
     }
+
+	public function professions()
+	{
+		return $this->hasMany(Profession::class, 'user_id');
+	}
+
+    
+	public function descriptives()
+	{
+		return $this->hasMany(Descriptive::class, 'user_id');
+	}
+
+	public function races()
+	{
+		return $this->hasMany(Race::class, 'user_id');
+	}
+    
+	public function spells()
+	{
+		return $this->hasMany(Spell::class, 'user_id');
+	}
+    
+	public function campaigns()
+	{
+		return $this->hasMany(Campaign::class, 'user_id');
+	}
+    
+	public function maps()
+	{
+		return $this->hasMany(Map::class, 'user_id');
+	}
+    
+	public function monsters()
+	{
+		return $this->hasMany(Monster::class, 'user_id');
+	}
+    
+	public function worlds()
+	{
+		return $this->hasMany(World::class, 'user_id');
+	}
+    
+	public function scenes()
+	{
+		return $this->hasMany(Scene::class, 'user_id');
+	}
+    
+	public function effects()
+	{
+		return $this->hasMany(Effect::class, 'user_id');
+	}
+    
+	public function npcNames()
+	{
+		return $this->hasMany(NpcName::class, 'user_id');
+	}
+    
+	public function sounds()
+	{
+		return $this->hasMany(Sound::class, 'user_id');
+	}
+    
+	public function sceneCollections()
+	{
+		return $this->hasMany(SceneCollection::class, 'user_id');
+	}
+    
+
 }

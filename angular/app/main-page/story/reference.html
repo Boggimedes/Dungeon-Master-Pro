@@ -1,0 +1,303 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div  ng-show="active == 1"     style="padding:8px;" >
+    <button class="btn btn-xs btn-default pull-right" ui-turn-on="addMap"><i class="fa fa-plus"></i></button>
+    <h3>Maps</h3>
+    <ul class="list-unstyled" ng-style="mapStyle" style="height:35vh;overflow-y: scroll;width:100%">
+    <li  class="col-md-6 map-container" ng-repeat="map in mapData.maps">
+            <button class="btn btn-xs btn-default map-delete" ng-style="$index == mapService.currentIndex && {'display':'block'} " ng-click="deleteMap(map.id,$index)" >delete</button>
+  
+            {{map.name}}<br><img ng-click="loadMap(map,$index)" class="img-responsive" src="{{map.file}}"/>
+            </li>
+    </ul>
+    <h3 style="cursor:pointer" ng-init="markerToggle = true" ng-click="markerToggle = !markerToggle;mapStyle = {'height': markerToggle? '35vh':'90vh'}">Add/Edit Markers <i class="fa fa-chevron-up" ng-if="!markerToggle"></i><i class="fa fa-chevron-down" ng-if="markerToggle"></i></h3>
+    <div ng-if="markerToggle" id="marker-section">
+    <label for="lng">Longitude</label>
+    <input id="lng" name="lng" ng-model="mapService.markerFields.lng" class="form-control">
+    <label for="lat">Latitude</label>
+    <input id="lat" name="lat" ng-model="mapService.markerFields.lat" class="form-control">
+    <label for="ttip">Tool-Tip</label>
+    <input id="ttip" name="ttip" ng-model="mapService.markerFields.ttip" class="form-control">
+    <label for="noteContent">Content</label><button class="btn btn-xs btn-default pull-right" type="button" ng-click="mapService.markerFields.html = ''">clear</button>
+    <textarea  id="noteContent" ui-tinymce="tinymceOptions" ng-model="mapService.markerFields.html" type="text" name="noteContent" class="form-control"></textarea>
+    <br>
+    <label for="noteContent">Display at zoom level(s):</label>
+      <div class="btn-group">
+          <label class="btn btn-primary" ng-model="markerFields.checkModel[0]" uib-btn-checkbox>1</label>
+          <label class="btn btn-primary" ng-model="markerFields.checkModel[1]" uib-btn-checkbox>2</label>
+          <label class="btn btn-primary" ng-model="markerFields.checkModel[2]" uib-btn-checkbox>3</label>
+          <label class="btn btn-primary" ng-model="markerFields.checkModel[3]" uib-btn-checkbox>4</label>
+      </div>
+    <div style="margin-top: 10px;">
+            <button class="btn btn-default" ng-click="addUdateMarker(markerFields)">
+              {{markerFields.id?"Update Marker":"New Marker"}}
+          </button>
+            <button class="btn btn-default" ng-if="mapService.markerFields.id" ng-click="deleteMarker(mapService.markerFields.id)">
+              Delete Marker
+          </button>
+          </div>
+          <p  ng-if="mapService.markerFields.warn" class="alert-warning">This marker has been moved, but not saved.</p>
+    </div>
+  </div>
+  
+  <div class=""  ng-show="active == 0"  style="position:relative;padding:8px;">
+  <div ng-controller="StoryCtrl">
+  <button class="btn btn-sm btn-default pull-left" ng-click="storyService.newStory()"><i class="fa fa-plus"></i></button>
+  <ul class="list-unstyled" ng-init="storyService.getStories()" ng-style="storyStyle" style="height:35vh;overflow:auto;width:100%">
+  <li  class="btn btn-info" style="cursor: pointer;margin: 5px 10px;width: 92%;    overflow: hidden;
+      text-overflow: ellipsis;" ng-click="storyService.loadStory(story,$index)" ng-repeat="story in storyService.stories">{{story.title}}</li>
+  </ul>
+  <h3 style="cursor:pointer" ng-init="eventToggle = true" ng-click="eventToggle = !eventToggle;storyStyle = {'height': eventToggle? '35vh':'90vh'}">Add to/Edit Timeline <i class="fa fa-chevron-up" ng-if="!eventToggle"></i><i class="fa fa-chevron-down" ng-if="eventToggle"></i></h3>
+  <div ng-if="eventToggle" id="story-section">
+  <label for="lng">Type</label>
+  <select id="lng" name="type" ng-model="storyService.timelines.TO.type" class="form-control">
+  <option value="event">Event</option>
+  <option value="era">Era</option>
+  </select>
+  <label for="title">Title</label>
+  <input id="title" name="title" ng-model="storyService.timelines.TO.title" class="form-control">
+  <label for="start">Start Date </label> <input type="radio" class="form-control date-layout" ng-click="storyService.calculateDate()" name="dateFormat" ng-model="storyService.timelines.dateFormat" value="month" ng-init="storyService.timelines.dateFormat = 'month'"> Day &amp; Month <input type="radio" class="form-control date-layout" ng-click="storyService.calculateDate()" name="dateFormat" ng-model="storyService.timelines.dateFormat" value="days"> Days
+  <section class="row" style="margin-left:0px;">
+  <input type="number" name="start_day" placeholder="Day" ng-model="storyService.timelines.TO.start.day" class="form-control col-md-3">
+  <input type="number" ng-if="storyService.timelines.dateFormat == 'month'" placeholder="Month" name="start_month" ng-model="storyService.timelines.TO.start.month" class="form-control col-md-3">
+  <input type="number" name="start_year" placeholder="Year" ng-model="storyService.timelines.TO.start.year" class="form-control col-md-3">
+  </section>
+  <label for="end">End Date</label> 
+  <section class="row" style="margin-left:0px;">
+  <input type="number" name="end_day" placeholder="Day" ng-model="storyService.timelines.TO.end.day" class="form-control col-md-3">
+  <input type="number" ng-if="storyService.timelines.dateFormat == 'month'" name="end_month" placeholder="Month" ng-model="storyService.timelines.TO.end.month" class="form-control col-md-3">
+  <input type="number" name="end_year" placeholder="Year" ng-model="storyService.timelines.TO.end.year" class="form-control col-md-3">
+  </section>
+  <label for="noteContent">Content</label><button class="btn btn-xs btn-default pull-right" type="button" ng-click="storyService.timelines.TO.html = ''">clear</button>
+  <textarea  id="noteContent" ui-tinymce="tinymceOptions" ng-model="storyService.timelines.TO.html" type="text" name="noteContent" class="form-control"></textarea>
+  <div style="margin-top: 10px;">
+           <button class="btn btn-default" ng-click="addUdateMarker(event)">
+              {{event.id?"Update Update":"New Event"}}
+          </button>
+           <button class="btn btn-default" ng-if="storyService.timelines.TO.id" ng-click="deleteMarker(storyService.timelines.TO.id)">
+              Delete Event
+          </button>
+          </div>
+          <p  ng-if="storyService.timelines.TO.warn" class="alert-warning">This marker has been moved, but not saved.</p>
+  </div>
+  </div>
+  </div>
+  
+  
+  
+      </div>
+  <label class="fa handle pull-right" for="toggle_right"></label>
+      <div class="middle">
+        <div class="col-md-12" id="appBoard" style="background-color:grey;padding-top:10px;padding-right:0px">
+  
+   
+  
+    <uib-tabset active="active"  type="pills">
+      <uib-tab index="0" heading="Story" >
+  
+   <div story></div>
+  
+    </uib-tab>
+      <uib-tab index="1" heading="Map"  >
+      <div ng-controller="MapCtrl">
+          <div id="map" style="width:100%;height:74vh;margin-top: 10px;"  ><span style="    font-size: xx-large;
+      position: absolute;
+      top: 46%;
+      right: 28%;
+      font-weight: bold;">Select a map from the right sidebar</span></div>
+      <div style="padding-top:10px;">
+      <button class="btn btn-default" ng-click="toggleTooltips()">Toggle Tooltips</button>
+      <button class="btn btn-default" ng-click="toggleMarkers()">Toggle Markers</button>
+      </div>
+      </div>  
+    </uib-tab>
+  
+      <uib-tab index="2" heading="Combat" >
+  
+  <section style="padding-top:10px;" class="combat-section" combat></section>
+    </uib-tab>
+  
+  
+      <uib-tab index="3" heading="Main Menu" >
+   <div ng-include="'sidebar.html'" id="sidebar-menu" ></div>
+  
+    </uib-tab>
+  
+    </uib-tabset>
+  
+  
+  
+      </div>
+          <div class="col-md-12" style="    background-color: grey;
+      width: 100%;
+      height: 14vh;
+      overflow-x: auto;
+      overflow-y: hidden;
+  }" ng-controller="ActiveNpcCtrl" ng-horizontal-scroll>
+            <ul class="active-citizens list-unstyled" style="display:flex;">
+   <button class="btn btn-sm btn-default pull-left" ui-turn-on="activeNPCSelect"><i class="fa fa-plus"></i></button>
+           <li ng-repeat="citizen in activeNPCDetails" style="margin:2px 5px">
+            <a tabindex="0"  uib-popover-template="'citizenPopOver.html'" popover-placement="auto top" popover-append-to-body="true" popover-trigger="outsideClick" ng-click="citizenPopOver = citizen" popover-title="{{citizen.firstName}} {{citizen.lastName}}" type="button" style="cusor:pointer;" class="btn btn-default">          
+            <ul class="list-unstyled" style="text-align: left; font-size: small;">
+            <button class="btn btn-xxs btn-default pull-right" ng-click="removeActiveNPC(citizen.id)" style="position:relative;top:-6px;left:12px;"><i class="fa fa-times"></i></button>
+            <li style="text-align:center;"><strong>{{citizen.firstName}} {{citizen.lastName}}</strong></li>
+            <li style="text-transform: capitalize;">{{citizen.gender}} {{citizen.race.name}}</li>
+            <li><strong>Age</strong>: {{citizen.age}}</li>
+            <li><strong>City</strong>: {{citizen.residentCity}}</li>
+            <li><strong>Prof</strong>: {{citizen.profession}}</li>
+            </ul>
+          </a>
+            </li>
+            </ul>
+  
+          </div>
+      </div>
+  </div>
+  
+      <script type="text/ng-template" id="citizenPopOver.html">
+            <ul class="list-unstyled npc-popup" style="text-align: left; font-size: small;" ng-mouseleave="clickedLink=reloadAfter(clickedLink)">
+            <a target="_blank" href="/npcs/{{citizenPopOver.region}}/{{citizenPopOver.id}}" ng-click="clickedLink=true;"class="pull-right">Link</a>
+            <li><span ng-hide="citizenPopOver.married">Not </span>Married with <span ng-if="!citizenPopOver.children[0]">no</span><span ng-if="citizenPopOver.children[0]">{{citizenPopOver.children.length}}</span> child<span ng-if="citizenPopOver.children.length>1 || !citizenPopOver.children[0]">ren</span></li>
+            <li><strong>Gender</strong>: {{citizenPopOver.gender}}</li>
+            <li><strong>Race</strong>: {{citizenPopOver.race.name}}</li>
+            <li><strong>Age</strong>: <input ng-model="citizenPopOver.age"></li>
+            <li><strong>City</strong>: <input ng-model="citizenPopOver.residentCity"></li>
+            <li ng-if="citizenPopOver.profession"><strong>Profession</strong>: <input ng-model="citizenPopOver.profession"></li>
+            <li>
+            <span ng-if="citizenPopOver.features['Body Type']">{{citizenPopOver.features['Body Type']}} </span>
+            <span ng-if="citizenPopOver.features['Face Shape'] && citizenPopOver.features['Body Type']"> with a </span>
+            <span ng-if="citizenPopOver.features['Face Shape']">{{citizenPopOver.features['Face Shape']}} face</span>
+            <span ng-if="citizenPopOver.features['Face Shape'] && (citizenPopOver.features['Skin Complexion'] || citizenPopOver.features['Skin Color'])"> and </span>
+            <span ng-if="citizenPopOver.features['Skin Complexion'] || citizenPopOver.features['Skin Color']">{{citizenPopOver.features['Skin Complexion']}} {{citizenPopOver.features['Skin Color']}} skin </span>
+            <span ng-if="citizenPopOver.features['Eye Description'] || citizenPopOver.features['Eye Color']">{{citizenPopOver.features['Eye Description']}} {{citizenPopOver.features['Eye Color']}} eyes </span>
+            <span ng-if="citizenPopOver.features['Hair Description'] || citizenPopOver.features['Hair Color']">and {{citizenPopOver.features['Hair Description']}} {{citizenPopOver.features['Hair Color']}} hair </span></li>
+            <li ng-if="citizenPopOver.features['Clothing']"><strong>Wears</strong>: {{citizenPopOver.features['Clothing']}}</li>
+            <li ng-if="citizenPopOver.features['Special']"><strong>Special</strong>: {{citizenPopOver.features['Special']}}</li>
+            <li ng-if="citizenPopOver.mannerisms"><strong>Mannerisms</strong>: {{citizenPopOver.mannerisms}}</li>
+            <li ng-if="citizenPopOver.quirks"><strong>Mannerisms</strong>: {{citizenPopOver.quirks}}</li>
+            </ul>
+          <textarea style="width:100%;height:260px;" ng-model="citizenPopOver.notes"></textarea>
+          <span class="pull-left">{{saveNotify}}</span>
+          <button style="margin-bottom: 4px;" class="btn btn-primary pull-right" ng-click="updateCitizen(citizenPopOver)">Save</button>
+      </script>
+  
+  
+  <div ui-content-for="modals">
+    <div sound-options-modal class="modal" ui-if='soundOptions' ui-state='soundOptions'></div>
+    <div add-group-modal class="modal" ui-if='addGroup' ui-state='addGroup'> </div>
+  
+    <div dice-bag-modal class="modal" ui-if='diceBag' ui-state='diceBag'> </div>
+    
+    <div persistent-modal class="modal" ui-if='persistent' ui-state='persistent'> </div>
+    <div  class="modal" ui-if='activeNPCSelect' ui-state='activeNPCSelect' >
+  
+        <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button class="close" ui-turn-off="activeNPCSelect">&times;</button>
+            <h4 class="modal-title">Add to Active NPCs</h4>
+          </div>
+          <div class="modal-body row" > 
+          <div class="col-md-4" style="max-width: 600px;overflow: auto;max-height: 72vh;"  npc-select></div>
+          <div class="col-md-8" ng-if="selectedCitizen.firstName" >
+          {{selectedCitizen.firstName}} {{selectedCitizen.lastName}} <br>
+            <ul class="list-unstyled npc-popup" style="text-align: left; font-size: small;" ng-mouseleave="clickedLink=reloadAfter(clickedLink)">
+            <a target="_blank" href="/npcs/{{selectedCitizen.region}}/{{selectedCitizen.id}}" ng-click="clickedLink=true;"class="pull-right">Link</a>
+            <li><span ng-hide="selectedCitizen.married">Not </span>Married with <span ng-if="!selectedCitizen.children[0]">no</span><span ng-if="selectedCitizen.children[0]">{{selectedCitizen.children.length}}</span> child<span ng-if="selectedCitizen.children.length>1 || !selectedCitizen.children[0]">ren</span></li>
+            <li><strong>Gender</strong>: {{selectedCitizen.gender}}</li>
+            <li><strong>Race</strong>: {{selectedCitizen.race.name}}</li>
+            <li><strong>Age</strong>: {{selectedCitizen.age}}</li>
+            <li><strong>City</strong>: {{selectedCitizen.residentCity}}</li>
+            <li ng-if="selectedCitizen.profession"><strong>Profession</strong>: {{selectedCitizen.profession}}</li>
+            <li>
+            <span ng-if="selectedCitizen.features['Body Type']">{{selectedCitizen.features['Body Type']}} </span>
+            <span ng-if="selectedCitizen.features['Face Shape'] && selectedCitizen.features['Body Type']"> with a </span>
+            <span ng-if="selectedCitizen.features['Face Shape']">{{selectedCitizen.features['Face Shape']}} face</span>
+            <span ng-if="selectedCitizen.features['Face Shape'] && (selectedCitizen.features['Skin Complexion'] || selectedCitizen.features['Skin Color'])"> and </span>
+            <span ng-if="selectedCitizen.features['Skin Complexion'] || selectedCitizen.features['Skin Color']">{{selectedCitizen.features['Skin Complexion']}} {{selectedCitizen.features['Skin Color']}} skin </span>
+            <span ng-if="selectedCitizen.features['Eye Description'] || selectedCitizen.features['Eye Color']">{{selectedCitizen.features['Eye Description']}} {{selectedCitizen.features['Eye Color']}} eyes </span>
+            <span ng-if="selectedCitizen.features['Hair Description'] || selectedCitizen.features['Hair Color']">and {{selectedCitizen.features['Hair Description']}} {{selectedCitizen.features['Hair Color']}} hair </span></li>
+            <li ng-if="selectedCitizen.features['Clothing']"><strong>Wears</strong>: {{selectedCitizen.features['Clothing']}}</li>
+            <li ng-if="selectedCitizen.features['Special']"><strong>Special</strong>: {{selectedCitizen.features['Special']}}</li>
+            <li ng-if="selectedCitizen.mannerisms"><strong>Mannerisms</strong>: {{selectedCitizen.mannerisms}}</li>
+            <li ng-if="selectedCitizen.quirks"><strong>Mannerisms</strong>: {{selectedCitizen.quirks}}</li>
+            </ul>
+          <div style="width:100%;height:260px;border:1px solid black" >{{selectedCitizen.notes}}</div>
+          <button ng-click="setActiveCitizen(selectedCitizen.id)" type="button" class="btn btn-default">Add to Active</button>
+          </div>
+  
+          </div>
+          <div class="modal-footer">
+            <button ui-turn-off="activeNPCSelect" class="btn btn-primary">Close</button>
+          </div>
+        </div>
+      </div>
+       </div>
+    <div  class="modal" ui-if='addMap' ui-state='addMap' >
+  
+        <div class="modal-dialog" style="max-width:600px;margin:auto">
+        <div class="modal-content" >
+          <div class="modal-header">
+            <button class="close" ui-turn-off="addMap">&times;</button>
+            <h4 class="modal-title">Add Map</h4>
+          </div>
+          <div class="modal-body" > 
+    <form name="mapForm">
+      <fieldset>
+        <label for="name">Title</label><i ng-show="mapForm.name.$error.required">*required</i>
+        <input class="form-control" type="text" name="name" ng-model="newMap.name" required>
+        <label for="name">Description</label><i ng-show="mapForm.description.$error.required">*required</i>
+        <textarea class="form-control" type="text" name="description" ng-model="newMap.description"required></textarea>
+        
+        <label for="file">Image</label>
+        <input class="form-control" type="file" ngf-select ng-model="newMap.file" name="file"    
+               accept="image/jpeg" ngf-max-size="20MB" required
+               ngf-model-invalid="errorFile">
+        <i ng-show="mapForm.file.$error.required">*required</i><br>
+        <i ng-show="mapForm.file.$error.maxSize">File too large 
+            {{errorFile.size / 1000000|number:1}}MB: max 20M</i>
+        <br>
+        <button class="form-control" ng-disabled="!mapForm.$valid" 
+                ng-click="addMap(newMap.file)">Submit</button>
+        <span class="progress" ng-show="newMap.file.progress >= 0">
+          <div style="width:{{newMap.file.progress}}%" 
+              ng-bind="newMap.file.progress + '%'"></div>
+        </span>
+        <span ng-show="newMap.file.result">Upload Successful</span>
+        <span class="err" ng-show="errorMsg">{{errorMsg}}</span>
+      </fieldset>
+      <br>
+    </form>
+          </div>
+          <div class="modal-footer">
+            <button ui-turn-off="addMap" class="btn btn-primary">Close</button>
+          </div>
+        </div>
+      </div>
+       </div>
+    </div>
+  
+  
+  

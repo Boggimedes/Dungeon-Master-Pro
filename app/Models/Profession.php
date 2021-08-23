@@ -5,8 +5,9 @@ namespace App\Models;
 use \Illuminate\Database\Eloquent\Model;
 
 
-class Citizen extends Model
+class Profession extends Model
 {
+    public $timestamps = false;
     /**
      * The attributes that are mass assignable.
      *
@@ -17,6 +18,7 @@ class Citizen extends Model
         'min_age',
         'max_age',
         'name',
+        'user_id',
 ];
 
     /**

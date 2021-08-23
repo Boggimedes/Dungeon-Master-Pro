@@ -71,6 +71,6 @@ License: You must have a valid license purchased only from themeforest(the above
   <div class="page-loading">
     <img src="assets/img/oval.svg" class="loading-icon"/>
   </div>
-<script src="runtime.js" defer></script><script src="polyfills-es5.js" nomodule defer></script><script src="polyfills.js" defer></script><script src="scripts.js" defer></script><script src="vendor.js" defer></script><script src="main.js" defer></script></body>
+<script src="runtime-esnext.js" type="module"></script><script src="runtime-es5.js" nomodule defer></script><script src="polyfills-es5.js" nomodule defer></script><script src="polyfills-esnext.js" type="module"></script><script src="scripts.js" defer></script><script src="vendor-esnext.js" type="module"></script><script src="vendor-es5.js" nomodule defer></script><script src="main-esnext.js" type="module"></script><script src="main-es5.js" nomodule defer></script></body>
 
 </html>

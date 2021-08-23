@@ -1,0 +1,224 @@
+<div class="row">
+    <div class="col-12" >
+            <div class="form-control-group">
+                <label for="selectedWorld">Selected World</label>
+                <input type="text" [(ngModel)]="selectedWorld.name" class="form-control">
+            </div>
+            <button type="button" class="btn btn-primary" (click)="newWorld()">Add New World</button>
+            <table class="table table-striped">
+                <thead><tr><th>Race</th><th>Alive</th><th>Immortals</th></tr></thead>
+                <tbody>
+                    <tr *ngFor="race of selectedWorld.stats"><td>{{race.name}}</td><td>{{race.livingCount}}</td><td>{{race.immortalCount}}</td></tr>
+                </tbody>
+            </table>
+    </div>
+    <div class="col-12" #worldDetails="ngbCollapse" [(ngbCollapse)]="worldCollapsed">
+          <div #collapse="ngbCollapse" [(ngbCollapse)]="worldCollapsed">
+            <div class="col-md-6">
+                <h2>World Races</h2>
+                <table class="table table-sm table-striped">
+                    <thead><tr><th>Race</th><th>Adulthood</th><th>Middle Age</th><th>Old Age</th><th>Venerable</th><th>Max Age</th><th>Friend Rate</th><th>Enemy Rate</th></tr></thead>
+                    <tbody>
+                        <tr *ngFor="race of selectedWorld.races">
+                            <td>{{race.name}}</td>
+                            <td>{{race.adulthood}}</td>
+                            <td>{{race.middle_age}}</td>
+                            <td>{{race.old_age}}</td>
+                            <td>{{race.venerable}}</td>
+                            <td>{{race.max_age}}</td>
+                            <td>{{race.friend_rate}}</td>
+                            <td>{{race.enemy_rate}}</td> 
+                        </tr>
+                    </tbody>
+                </table>
+                <div>
+                    <div class="form-group">
+                        <label for="raceName">Name</label>
+                        <input type="text" [(ngModel)]="selectedRace.name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Genders</label>
+                        <input type="text" [(ngModel)]="selectedRace.gender" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Adulthood</label>
+                        <input type="text" [(ngModel)]="selectedRace.adulthood" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Middle Age</label>
+                        <input type="text" [(ngModel)]="selectedRace.middle_age" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Old Age</label>
+                        <input type="text" [(ngModel)]="selectedRace.old_age" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Venerable</label>
+                        <input type="text" [(ngModel)]="selectedRace.venerable" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Max Age</label>
+                        <input type="text" [(ngModel)]="selectedRace.max_age" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Friend Rate</label>
+                        <input type="text" [(ngModel)]="selectedRace.friend_rate" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="raceName">Enemy Rate</label>
+                        <input type="text" [(ngModel)]="selectedRace.enemy_rate" class="form-control">
+                    </div>
+                </div>
+            </div>
+           <div class="col-md-6">
+                <h2>World Professions</h2>
+                <table class="table table-sm table-striped">
+                    <thead><tr><th>Profession</th><th>Minimum Age</th><th>Maximum Age</th></tr></thead>
+                    <tbody>
+                        <tr *ngFor="profession of selectedWorld.professions">
+                            <td>{{profession.name}}</td>
+                            <td>{{profession.min_age}}</td>
+                            <td>{{profession.max_age}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div>
+                    <div class="form-group">
+                        <label for="professionName">Name</label>
+                        <input type="text" [(ngModel)]="selectedProfession.name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="professionMinAge">Minimum Age</label>
+                        <input type="text" [(ngModel)]="selectedProfession.min_age" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="professionMaxAge">Mazimum Age</label>
+                        <input type="text" [(ngModel)]="selectedProfession.max_age" class="form-control">
+                    </div>
+                </div>
+            </div>
+                <h2>Descriptive Text</h2>
+                <table class="table table-sm table-striped">
+                    <thead><tr><th>Text</th><th>Type</th><th>gender</th><th>Race</th></tr></thead>
+                    <tbody>
+                        <tr *ngFor="descriptive of selectedWorld.desctiptives">
+                            <td>{{descriptive.text}}</td>
+                            <td>{{descriptive.type}}</td>
+                            <td>{{descriptive.gender}}</td>
+                            <td>{{descriptive.race}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div>
+                    <div class="form-group">
+                        <label for="descriptiveText">Text</label>
+                        <input type="text" [(ngModel)]="selectedDescriptive.text" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="descriptiveType">Type</label>
+                        <input type="text" [(ngModel)]="selectedDescriptive.type" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="descriptiveRace">Race</label>
+                        <input type="text" [(ngModel)]="selectedDescriptive.race" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="descriptiveGender">Gender</label>
+                        <input type="text" [(ngModel)]="selectedDescriptive.gender" class="form-control">
+                    </div>
+                </div>
+                </div>
+          </div>        
+    <div class="col-12"><button type="button" class="btn btn-outline-primary" (click)="worldDetails.toggle()" [attr.aria-expanded]="!worldCollapsed">Toggle World Details</button></div>
+</div>
+            <button class="btn btn-success" (click)="newRegion()">Add New Region</button>
+<div class="row">
+        <div *ngFor="region of selectedWorld.regions; let i = index;" class="col-4">
+        <div class="card"> 
+        <div class="card-content">
+          <table class="table table-sm table-striped">
+            <thead><tr><th>Race</th><th>Alive</th><th>Average Age</th></tr></thead>
+            <tbody><tr *ngFor="race of selectedWorld.region.stats"><td>{{race.name}}</td><td>{{race.livingCount}}</td><td>{{race.immortalCount}}</td></tr></tbody>
+          </table>
+        <div class="">
+        <div class="form-group">
+          <label for="regiontName">Region Name</label>
+          <input type="text" class="form-control" [(ngModel)]="region.name">
+        </div>
+        <div class="form-group">
+          <label for="regionEpoch">Epoch</label>
+          <input type="text" class="form-control" [(ngModel)]="region.epoch">
+        </div>
+  
+        <div class="form-group">
+          <button type="button" title="Delete Region" class="btn btn-default icon-buttons" (click)="deleteRegion(region)"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="form-group">
+          <button type="button" title="Save Changes" class="btn btn-default icon-buttons"  (click)="saveRegion(region)"><i class="fa fa-save"></i></button>
+        </div>
+  
+        </div>
+        <div class="">
+        <div class="form-group">
+          <a  class="btn btn-default icon-buttons" title="View Npcs"  href="/app/edit-npcs/{{region.id}}"><i class="fa fa-street-view "></i></a>
+        </div>
+        <div class="form-group">
+          <a  class="btn btn-default icon-buttons" title="Clear Region" (click)="clearRegion(region, index)"><img src="/img/hung.png" ><i class="fa fa-street-view " ></i></a>
+        </div>
+        <div class="form-group">
+          <a  class="btn btn-default  icon-buttons" title="Seed Region" (click)="seedRegion(region.id, $index)"><i class="fa fa-users "></i></a>
+        </div>
+        <div class="form-group">
+        <a  class="btn btn-default icon-buttons" title="Age Region" (click)="ageRegion(region.id, ageYears, $index)"><i class="fa fa-hourglass-half"></i></a>
+        </div> 
+             <div class="form-group">
+        <label>Years</label>
+          <input  type="number" class="form-control" [(ngModel)]="ageYears" max="100" min="1"/>
+        </div>
+        </div>
+  
+        </div>
+        <div class="form-group">
+            <label>Balance Value</label>
+            <input placeholder="value" type="number" class="col-md-3 form-control" [(ngModel)]="raceNum">
+        </div>
+        <div class="form-group" >
+          <label>Racial Balance </label> 
+          <div ngbDropdown>
+            <button class="btn btn-outline-primary" ngbDropdownToggle>Add Race Entry</button>
+            <div ngbDropdownMenu>
+                <ng-container *ngFor="race of selectedWorld.races" >
+                    <button  ngbDropdownItem class="dropdown-item" (click)="addBalance(race, region)">{{race.name}}</button>
+                </ng-container>
+            </div>
+        </div>
+        </div>
+          <div class="col-12 border">
+          <div *ngFor="stat of region.racialBalance;let i = index">
+          <span>{{stat.race}} </span> {{stat.value}}<i (click)="region.racialBalance.splice(i,1)"  class="fa fa-times-circle"></i>
+          </div>
+        </div>
+        <div class="form-group">
+            <label>Balance Value</label>
+            <input placeholder="value" type="number" class="col-md-3 form-control" [(ngModel)]="raceNum">
+        </div>
+        <div class="form-group" >
+          <label>Profession Balance </label> 
+          <div ngbDropdown>
+            <button class="btn btn-outline-primary" ngbDropdownToggle>Add Race Entry</button>
+            <div ngbDropdownMenu>
+                <ng-container *ngFor="profession of selectedWorld.professions" >
+                    <button  ngbDropdownItem class="dropdown-item" (click)="addBalance(profession, region)">{{profession.name}}</button>
+                </ng-container>
+            </div>
+        </div>
+        </div>
+          <div class="col-12 border">
+          <div *ngFor="stat of region.professionBalance;let i = index">
+          <span>{{stat.profession}} </span> {{stat.value}}<i (click)="region.professionBalance.splice(i,1)"  class="fa fa-times-circle"></i>
+          </div>
+        </div>
+        </div>
+      </div>
+      </div>
+  

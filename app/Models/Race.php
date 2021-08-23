@@ -5,8 +5,9 @@ namespace App\Models;
 use \Illuminate\Database\Eloquent\Model;
 
 
-class Citizen extends Model
+class Race extends Model
 {
+    public $timestamps = false;
     /**
      * The attributes that are mass assignable.
      *
@@ -21,6 +22,8 @@ class Citizen extends Model
         'max_age',
         'friend_rate',
         'enemy_rate',
+        'genders',
+        'user_id',
 ];
 
     /**
@@ -37,6 +40,7 @@ class Citizen extends Model
      * @var array
      */
     protected $casts = [
+        'genders' => 'array',
     ];
 
 
@@ -45,4 +49,25 @@ class Citizen extends Model
 		return $this->belongsTo(User::class);
 	}
 
+    public function getBirthGenderAttribute()
+    {
+        return key($this->genders[0]);
+    }
+
+    public function getOtherGenderAttribute()
+    {
+        if (count($this->genders) == 1) {
+            return key($this->genders[0]);
+        } else return key($this->genders[mt_rand(1, count($this->genders) - 1)]);
+    }
+  
+    public function generateName()
+    {
+        if ($name->count() > 0) {
+            return $names->random(1);
+        } else return "Npc" . $this->id;
+
+    }
+
+    
 }

@@ -5,7 +5,7 @@ namespace App\Models;
 use \Illuminate\Database\Eloquent\Model;
 
 
-class Citizen extends Model
+class SceneCollection extends Model
 {
     /**
      * The attributes that are mass assignable.
@@ -15,6 +15,7 @@ class Citizen extends Model
     protected $fillable = [
         'name',
         'desc',
+        'user_id',
 ];
 
     /**

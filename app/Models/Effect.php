@@ -5,7 +5,7 @@ namespace App\Models;
 use \Illuminate\Database\Eloquent\Model;
 
 
-class Citizen extends Model
+class Effect extends Model
 {
     /**
      * The attributes that are mass assignable.
@@ -23,6 +23,7 @@ class Citizen extends Model
         'delay_max',
         'optional',
         'seq',
+        'user_id',
 ];
 
     /**

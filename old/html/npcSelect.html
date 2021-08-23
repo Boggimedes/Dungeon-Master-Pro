@@ -1,0 +1,62 @@
+    <div class="row">
+    <div class="btn-group btn btn-xs btn-primary pull left" style="margin-left:20px;margin-bottom: 3px;">
+    <span  ui-turn-on='Region' style="color:white;">{{currentRegion.name? currentRegion.name:'Change Region'}} <i  ui-turn-on='Grouping' class="fa fa-caret-down"> </i></span> 
+
+  <ul 
+    class="dropdown-menu"
+    ui-outer-click="Ui.turnOff('Region')"
+    ui-outer-click-if="Ui.active('Region')"
+    role="menu"
+    ui-show="Region" 
+    ui-state="Region"
+    ui-turn-off="Region">
+<li  ng-repeat="region in regions" ng-click="setRegion(region)" >
+ <a ng-bind="region.name"> </a>
+</li>
+</ul>
+</div>
+    <div class="btn-group btn btn-xs btn-primary pull left" style="margin-left:20px;margin-bottom: 3px;">
+    <span ui-turn-on='Grouping' style="color:white;">Group By <i  ui-turn-on='Grouping' class="fa fa-caret-down"> </i></span> 
+
+  <ul 
+    class="dropdown-menu"
+    ui-outer-click="Ui.turnOff('Grouping')"
+    ui-outer-click-if="Ui.active('Grouping')"
+    role="menu"
+    ui-show="Grouping" 
+    ui-state="Grouping"
+    ui-turn-off="Grouping">
+<li  ng-repeat="(groupname,grouping) in cGroups" ng-click="setGrouping(grouping)" >
+ <a><i ng-if="grouping.field==cGroup.field" class="fa fa-check"></i> {{groupname}}</a>
+</li>
+</ul>
+</div>
+</div>  
+
+
+<div class="panel-group" ui-state="groupedCitizens" >
+
+
+  <div class="panel panel-default" ng-class="{'selected-panel':groupedCitizens=={{$index}}}" ng-repeat="i in cGroup.headers">
+    <div ui-if="groupedCitizens != {{$index}}" class="panel-heading"   ui-set="{'groupedCitizens': {{$index}}}">        
+      <h4 class="panel-title"  >
+          {{i? i:'None'}}
+      </h4>
+    </div>
+    <div ui-if="groupedCitizens == {{$index}}" class="panel-heading"   ui-set="{'groupedCitizens': 99}">        
+      <h4 class="panel-title"  >
+          {{i? i:'None'}}
+      </h4>
+    </div>
+    <div ui-if="groupedCitizens == {{$index}}" class="panelFill">
+      <div class="panel-body" >
+      <table class="table table-striped table-hover"  ng-title="{{fObj}}" ng-init="field=$parent.cGroup.field;groups=$parent.cGroup.groups[$parent.$index];fObj[field] = groups;">
+      <thead>
+      <tr><th>First Name</th><th>Age</th><th>M/F</th><th>Race</th><th>Profession</th><th></th></tr></thead>
+      <tr ng-if="citizenFactory.activeNPCS.indexOf(citizen.id)==-1" ng-class="{'selected':$index == selectedRow[$parent.$index]}" ng-click="setCitizen($index,$parent.$index,citizen.id)"  on-double-click="setActiveCitizen(citizen.id)"  ng-repeat="citizen in citizens.alive|citizenFilter: field:groups" ng-title="{{$parent.fObj}}"><td>{{citizen.firstName}}</td><td>{{citizen.age}}</td><td>{{citizen.gender.substr(0,1).toUpperCase()}}</td><td>{{citizen.race}}</td><td>{{citizen.profession}}</td><td><i class="fa fa-universal-access" ng-if="citizen.lineage!=''" title="{{citizen.lineage}}"></i> <i class="fa fa-dot-circle-o" ng-if="citizen.metParty=='1'" title="Has met the party"></i> <i class="fa fa-lock" ng-if="citizen.excluded=='1'" title="Excluded from aging or mass deletion"></i></td></tr>
+      </table>
+      </div>
+    </div>
+  </div>
+
+</div>

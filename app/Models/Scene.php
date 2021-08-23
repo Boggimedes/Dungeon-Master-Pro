@@ -5,7 +5,7 @@ namespace App\Models;
 use \Illuminate\Database\Eloquent\Model;
 
 
-class Citizen extends Model
+class Scene extends Model
 {
     /**
      * The attributes that are mass assignable.
@@ -20,6 +20,7 @@ class Citizen extends Model
         'fade_in',
         'fade_out',
         'scene_solo',
+        'user_id',
 ];
 
     /**

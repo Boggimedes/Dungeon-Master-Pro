@@ -7,12 +7,13 @@ use \Illuminate\Database\Eloquent\Model;
 
 class Descriptive extends Model
 {
+    public $timestamps = false;
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
-    protected $fillable = ['type', 'text', 'gender'
+    protected $fillable = ['type', 'text', 'user_id', 'gender'
     ];
 
     /**
@@ -35,5 +36,7 @@ class Descriptive extends Model
 	{
 		return $this->belongsTo(User::class);
 	}
+
+       
 
 }

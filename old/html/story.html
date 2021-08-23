@@ -1,0 +1,34 @@
+<form 
+  ng-submit="saveStory(storyService.story)" style="margin-bottom:10px;position:relative;">
+<div class="form-group">
+      <div class="input-group">
+        <span class="input-group-addon" style="background-color: lightgrey;">Title</span>
+        <input type="text" class="form-control" id="storyTitle" ng-model="storyService.story.title" style="font-weight: bold;">
+      </div>
+</div>
+<textarea  id="storyContent" ui-tinymce="tinymceOptionsFull" ng-model="storyService.story.content" type="text" name="storyContent" class="form-control" style="height:25vh;"></textarea>
+<button class="btn btn-primary" style="    position: absolute;
+    bottom: 2px;
+    left: 2px;" name="submitbtn">Save</button>
+<button class="btn btn-danger" type="button" ng-click="deleteStory(storyService.story.id)" style="    position: absolute;
+    bottom: 2px;
+    left: 70px;" >Delete</button>
+</form>    
+
+
+    <link rel="stylesheet" type="text/css" href="/vendor/timeline/timeline.css">
+
+    <style>
+    #timeline2 .timeline-content:before{
+        content:'\f078';
+        left: 50%;
+        position: absolute;
+        font-family: 'FontAwesome';
+        font-size: x-large;
+        z-index: 20;
+        margin-left: -12px;
+        }
+    </style>
+
+<div id="timeline1" style="background-color:white;"></div>
+<div id="timeline2" style="background-color:white;"></div>

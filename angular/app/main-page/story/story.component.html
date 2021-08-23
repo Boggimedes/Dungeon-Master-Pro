@@ -1,0 +1,103 @@
+<div class="row">
+	<div class="btn-group-vertical map-buttons">
+		<button class="btn btn-sm btn-secondary" *ngFor="let z of mapArray; let i = index" (click)="mapScale = z">{{i}}</button>
+		<button class="btn btn-sm btn-outline-secondary" [ngbTooltip]="'Toggle map info window'" [container]="'body'" (click)="mapBox = !mapBox"><fa-icon [icon]="faBookOpen"></fa-icon></button>
+		<button class="btn btn-sm btn-outline-secondary" (click)="npcBox = !npcBox"><fa-icon [icon]="faUserFriends"></fa-icon></button>
+		<button class="btn btn-sm btn-outline-secondary" (click)="timeBox = !timeBox"><fa-icon [icon]="faHourglassHalf"></fa-icon></button>
+		<div class="zoom-label">
+			<div>&nbsp;</div>
+			<div>&nbsp;</div>
+			<div>Zoom Levels</div>
+		</div>
+	</div>
+<div class="boundary map col-12" style="height: 92vh;">
+		<div appFreeDragging #map [scale]="mapScale" [frameLocked]="false" class="map-primary">
+					<img src="https://game-master-pro.s3.us-west-2.amazonaws.com/maps/{{mapImg?.id}}.jpg"/>
+		</div>
+
+		<div class="story-box card" appFreeDragging *ngIf="mapBox">
+			<div class="card-content">
+				<div class="card-body">
+					<div class="card-title"> 
+						Card Title 
+						<div appFreeDraggingHandle class="drag-handle">
+							<svg width="16px" fill="currentColor" viewBox="0 0 24 24">
+								<path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"></path>
+								<path d="M0 0h24v24H0z" fill="none"></path>
+							</svg>
+						</div>
+					</div>
+					<p>Something page-header</p>
+					<button class="btn btn-primary">maybe some buttons</button>
+				</div>
+			</div>
+		</div>
+
+		<div class="story-box card" appFreeDragging *ngIf="npcBox">
+			<div class="card-content">
+				<div class="card-body">
+
+				<ul ngbNav #nav="ngbNav" [(activeId)]="active" class="nav-tabs card-title" orientation='vertical'>
+					<li *ngFor="let npc of activeNpcs" [ngbNavItem]="id">
+					  <a ngbNavLink>
+						{{ byName ? npc.name : npc.profession}}
+					  </a>
+					  <ng-template ngbNavContent>
+						<p>Tab {{ npc.name }} content</p>
+					  </ng-template>
+					</li>
+					<li class="nav-item">
+					  <a class="nav-link" href (click)="add($event)">add</a>
+					</li>
+				  </ul>
+				  
+					<div [ngbNavOutlet]="nav" class="mt-2"></div>
+				</div>
+			</div>
+		</div>
+
+		<div class="story-box card" appFreeDragging *ngIf="timeBox">
+			<div class="card-content">
+				<div class="card-body">
+					<div class="card-title"> 
+						Card Title 
+						<div appFreeDraggingHandle class="drag-handle">
+							<svg width="16px" fill="currentColor" viewBox="0 0 24 24">
+								<path d="M10 9h4V6h3l-5-5-5 5h3v3zm-1 1H6V7l-5 5 5 5v-3h3v-4zm14 2l-5-5v3h-3v4h3v3l5-5zm-9 3h-4v3H7l5 5 5-5h-3v-3z"></path>
+								<path d="M0 0h24v24H0z" fill="none"></path>
+							</svg>
+						</div>
+					</div>
+					<p>Something page-header</p>
+					<button class="btn btn-primary">maybe some buttons</button>
+				</div>
+			</div>
+		</div>
+		
+		<div class="map-note card">
+
+		</div>
+		<div class="city card">
+
+		</div>
+		<div class="structure card">
+
+		</div>
+
+	<div class="npcs card">
+
+	</div>
+	<div class="active-npc">
+		
+	</div>
+	<div class="map-editor">
+		
+	</div>
+	<div class="sounds">
+
+	</div>
+</div>
+</div>
+<div class="row">
+
+</div>

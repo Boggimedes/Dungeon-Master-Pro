@@ -1,0 +1,193 @@
+<div class="col-md-4 col-xs-4"  ng-class="{'help-shown' : helpStep==7}" style="height:99.5%"    npc-select>
+ </div>
+
+    <div class="col-md-8 col-xs-8 citizen-details p-x-0" ng-class="{'help-shown' : helpStep==8}">
+    <div class="page-cover" ng-if="selectedCitizen == null" ><span>Select NPC to the left or click "New NPC" button in the top menu</span></div>
+<div  ng-slimscroll style="background-color:white;border-radius:10px;padding:5px;height:93vh;">
+      <div class="form-group col-md-2 padded" >
+        <label>First Name</label>
+        <input type="text" class="form-control" name="data.firstName" ng-model="selectedCitizen.firstName">
+      </div>
+      <div class="form-group col-md-2 padded">
+        <label>Last Name</label>
+        <input type="text" class="form-control" name="data.lastName" ng-model="selectedCitizen.lastName">
+      </div>
+      <div class="form-group col-md-2 padded center">
+        <label>Race</label>
+        <select type="text" class="form-control" name="data.race" ng-model="selectedCitizen.race.id">
+        <option ng-repeat="race in races" value="{{race.id}}">{{race.name}}</option>
+        </select>
+      </div> 
+      <div class="form-group col-md-1 padded">
+        <label>Sex</label>
+        <select type="text" class="form-control" name="data.lastName" ng-model="selectedCitizen.gender">
+        <option value="male">M</option>
+        <option value="female">F</option>
+        </select>
+
+      </div>
+      <div class="form-group col-md-3 padded">
+        <label>Lineage</label> <i style="width:13px" ng-class="{'fa fa-lock':locks.lineage,'fa fa-unlock':!locks.lineage}" ng-click="toggleLock('lineage')"></i>
+        <input type="text" class="form-control" name="data.lineage" ng-model="selectedCitizen.lineage">
+      </div>
+     <div class="form-group col-md-1 padded text-center">
+        <label>Age</label>
+        <input type="text" style="padding: 6px 0px;" class="form-control text-center" ng-change="selectedCitizen.birthYear = currentRegion.epoch - selectedCitizen.age" ng-model="selectedCitizen.age">
+      </div>
+      <div class="form-group col-md-1 padded center" >
+        <label>Alive</label>
+        <input type="checkbox" ng-true-value="'1'" ng-false-value="'0'" class="form-control" style="width:60%;" name="data.alive" ng-model="selectedCitizen.alive">
+      </div> 
+           <div class="col-md-8 m-l-1" style="margin-right: -25px;">
+      <div class="row">
+  
+      <div class="form-group col-md-6 padded center">
+        <label>City</label>
+        <input type="text" class="form-control" ng-model="selectedCitizen.residentCity">
+      </div>
+      <div class="form-group col-md-6 padded center">
+        <label>Profession</label>
+        <input type="text" class="form-control" name="data.lastName" ng-model="selectedCitizen.profession">
+      </div>
+      <div class="form-group col-md-5 padded center">
+        <label>Quirks</label> <i style="width:13px" ng-class="{'fa fa-lock':locks.quirk,'fa fa-unlock':!locks.quirk}" ng-click="toggleLock('quirk')"></i>
+        <textarea type="text" rows="1" class="form-control" name="data.quirks" ng-model="selectedCitizen.quirks"></textarea>
+      </div>
+      <div class="form-group col-md-3 padded" style="padding-top: 8px;">
+      <br>
+        <label >Spouse</label>:
+        <a style="color:{{spouse.alive=='1'?'green':'black'}}" ng-click="setCitizen(0,0,spouse.id)" title="{{citizenInfo(spouse.id)}}" ng-bind="spouse.firstName"></a><br>
+        <label>Mother</label>:
+        <a style="color:{{mother.alive=='1'?'green':'black'}}" ng-click="setCitizen(0,0,mother.id)" title="{{citizenInfo(mother.id)}}" ng-bind="mother.firstName"></a><br>
+        <label>Father</label>:
+        <a style="color:{{father.alive=='1'?'green':'black'}}" ng-click="setCitizen(0,0,father.id)" title="{{citizenInfo(father.id)}}" ng-bind="father.firstName"></a>
+      </div>
+      <div class="form-group col-md-4 padded text-center">
+        <label style="width:100%;">Children</label>
+        <span ng-repeat="child in children"><a style="width:100%;text-align:center;color:{{citizens.all[child].alive=='1'?'green':'black'}}" ng-click="setCitizen(0,0,citizens.all[child].id)" title="{{citizenInfo(citizens.all[child].id)}}" >{{citizens.all[child].firstName}}</a><span ng-if="!$last">, </span></span>
+      </div>
+
+      </div>
+      <div class="row">
+
+
+      <div class="form-group col-md-6 padded center">
+        <label>Mannerisms</label> <i style="width:13px" ng-class="{'fa fa-lock':locks.manner,'fa fa-unlock':!locks.manner}" ng-click="toggleLock('manner')"></i>
+
+        <textarea type="text" class="form-control" name="data.mannerisms" ng-model="selectedCitizen.mannerisms"></textarea>
+      </div>
+      <div class="form-group col-md-6 padded center">
+        <label>Abilities</label>
+
+        <textarea type="text" class="form-control" name="data.abilities" ng-model="selectedCitizen.abilities"></textarea>
+      </div>
+      </div>
+      <style>
+
+          .featGroup{
+            display:inline-block;
+
+          }
+          .featGroup > input{
+            display:inline-block;
+            width:60%;
+            height:20px;
+          }
+          .featGroup > label{
+            display:inline-block;
+            width:24%;
+            height:20px;
+            margin-bottom:1px;
+            font-size:0.8vw;
+          }
+
+.panel{
+max-height: 65%;
+    overflow: auto;
+}
+</style>
+       </div>
+     <div class="form-group col-md-4 padded center featGroup p-t-2 p-x-0">
+      <i class="fa fa-random" style="position:absolute;right:40px;top:0" ng-click="getAspects()"></i>
+        <label>Special</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Special']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.special,'fa fa-unlock':!locks.special}" ng-click="toggleLock('special')"></i>
+        <label>Face Shape</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Face Shape']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.face,'fa fa-unlock':!locks.face}" ng-click="toggleLock('face')"></i>
+        <label>Skin Desc</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Skin Complexion']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.skinD,'fa fa-unlock':!locks.skinD}" ng-click="toggleLock('skinD')"></i>
+        <label>Skin Color</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Skin Color']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.skinC,'fa fa-unlock':!locks.skinC}" ng-click="toggleLock('skinC')"></i>
+        <label>Hair Desc</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Hair Description']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.hairD,'fa fa-unlock':!locks.hairD}" ng-click="toggleLock('hairD')"></i>
+        <label>Hair Color</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Hair Color']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.hairC,'fa fa-unlock':!locks.hairC}" ng-click="toggleLock('hairC')"></i>
+        <label>Eye Desc</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Eye Description']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.eyeD,'fa fa-unlock':!locks.eyeD}" ng-click="toggleLock('eyeD')"></i>
+        <label>Eye Color</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Eye Color']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.eyeC,'fa fa-unlock':!locks.eyeC}" ng-click="toggleLock('eyeC')"></i>
+        <label>Clothing</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Clothing']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.clothing,'fa fa-unlock':!locks.clothing}" ng-click="toggleLock('clothing')"></i>
+        <label>Body Type</label>
+        <input type="text" class="form-control" name="data.features" placeholder="average" ng-model="selectedCitizen.features['Body Type']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.body,'fa fa-unlock':!locks.body}" ng-click="toggleLock('body')"></i>
+        <label>Body Desc</label>
+        <input type="text" class="form-control" name="data.features" ng-model="selectedCitizen.features['Body Description']">
+        <i style="width:13px" ng-class="{'fa fa-lock':locks.bodyD,'fa fa-unlock':!locks.bodyD}" ng-click="toggleLock('bodyD')"></i>
+      </div>
+      <div class="row">
+      <div class="form-group col-md-12 padded center m-l-1 p-r-1">
+        <label>Notes</label>
+        <textarea type="text" class="form-control" style="height:200px;" name="data.notes" ng-model="selectedCitizen.notes"></textarea>
+      </div>
+    </div>
+      <div class="row">
+      <input type="submit" class="btn btn-success pull-right" value="Save" ng-click="updateCitizen(selectedCitizen)">
+      <a ng-click="extended = !extended" class="pull-left" style="margin-left:10px"> Toggle Extended Details</a>
+      </div>
+      <div ng-if="extended" class="row">
+      <div class="form-group col-md-2">
+      <label>Region</label>
+      <select class="form-control" ng-model="selectedCitizen.region">
+      <option ng-repeat="region in regions" ng-click="currentRegion = region" ng-init="regionInit(region)" value="{{region.id}}">{{region.name}}</option>
+      </select>
+      </div>
+      <div class="form-group col-md-2">
+      <label>Birth Year</label>
+      <input class="form-control" ng-model="selectedCitizen.birthYear">
+      </div>
+
+      <div class="form-group col-md-2">
+      <label title="If this is set to a numerical value this citizen will be deleted when over 10 generations old">Generation</label>
+      <input class="form-control"  ng-change="generationChange()" ng-model="selectedCitizen.generation">
+      </div>
+
+      <div class="form-group col-md-2 text-center">
+      <label title="The citizen will never die and will have much fewer children">Immortal</label>
+      <input type="checkbox" ng-true-value="'1'"
+       ng-false-value="'0'" class="form-control"  ng-model="selectedCitizen.immortal">
+      </div>
+
+      <div class="form-group col-md-2 text-center">
+      <label title="If this is set to a numerical value this citizen will be deleted when over 10 generations old">Excluded</label>
+      <input type="checkbox" ng-true-value="'1'"
+       ng-false-value="'0'" class="form-control" ng-model="selectedCitizen.excluded">
+      </div>
+
+      <div class="form-group col-md-2  text-center">
+      <label >Met Party</label>
+      <input type="checkbox" ng-true-value="'1'"
+       ng-false-value="'0'" class="form-control" ng-model="selectedCitizen.metParty">
+      </div>
+
+      </div>
+      </div>
+      </div>

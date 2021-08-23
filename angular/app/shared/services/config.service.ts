@@ -43,8 +43,8 @@ export class ConfigService {
   setConfigValue() {
     return this.templateConf = {
       layout: {
-        variant: "Light",
-        menuPosition: "Side",
+        variant: "Dark",
+        menuPosition: "Top",
         customizer: {
           hidden: true
         },

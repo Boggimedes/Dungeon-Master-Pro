@@ -52,7 +52,7 @@ angular.module('myApp.filters', [])
     return result;
   }
 })
-.filter('citizenFilter', function() {
+.filter('npcFilter', function() {
   return function(input, field, value) {
     var result=[]
     for (var i = 0; i < input.length; i++) {

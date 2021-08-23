@@ -1,0 +1,20 @@
+
+    <div class="modal-dialog sound-options-modal" ui-outer-click="Ui.turnOff('soundOptions')" style="top: {{modalY}}px; left: {{modalX}}px;">
+      <div class="modal-content">
+      <div class="modal-header">
+        <button class="close" ui-turn-off="soundOptions">&times;</button>
+        <h4 class="modal-title">Options</h4>
+      </div>
+      <div class="modal-body" >
+        <div ng-repeat="effect in $parent.$parent.sceneOpt.effects">
+
+          <ui-switch class="pull-right" ng-model="effect.active" ng-if="effect.optional=='1'" ng-init="effect.active=effect.active==null?true:effect.active"></ui-switch>
+          <label>{{effect.name}}</label>
+          <rzslider rz-slider-options="slider.options.percent" rz-slider-model="effect.vol"></rzslider>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button ui-turn-off="soundOptions" class="btn btn-primary">Close</button>
+      </div>
+      </div>
+    </div>

@@ -6,10 +6,11 @@ import { AngularFireAuthModule } from "@angular/fire/auth";
 
 import { NgbModule } from "@ng-bootstrap/ng-bootstrap";
 import { AgmCoreModule } from "@agm/core";
-import { HttpClientModule, HttpClient } from "@angular/common/http";
+import { HttpClientModule, HttpClient, HTTP_INTERCEPTORS } from "@angular/common/http";
 import { TranslateModule, TranslateLoader } from "@ngx-translate/core";
 import { TranslateHttpLoader } from "@ngx-translate/http-loader";
 import { NgxSpinnerModule } from 'ngx-spinner';
+import { BrowserModule } from '@angular/platform-browser';
 
 import {
   PerfectScrollbarModule,
@@ -26,24 +27,28 @@ import { FullLayoutComponent } from "./layouts/full/full-layout.component";
 import { AuthService } from "./shared/auth/auth.service";
 import { AuthGuard } from "./shared/auth/auth-guard.service";
 import { WINDOW_PROVIDERS } from './shared/services/window.service';
-import { CombatComponent } from './components/combat/combat.component';
-import { SoundComponent } from './components/sound/sound.component';
-import { SpellsComponent } from './components/spells/spells.component';
-import { WorldComponent } from './components/world/world.component';
-import { NpcComponent } from './components/npc/npc.component';
-import { MonstersComponent } from './components/monsters/monsters.component';
-import { SoundEditComponent } from './components/sound-edit/sound-edit.component';
-import { CombatBoardComponent } from './pages/combat-board/combat-board.component';
-import { CampaignBoardComponent } from './pages/campaign-board/campaign-board.component';
-import { NpcBoardComponent } from './pages/npc-board/npc-board.component';
-import { WorldBoardComponent } from './pages/world-board/world-board.component';
-import { SoundBoardComponent } from './pages/sound-board/sound-board.component';
-import { EditCollectionComponent } from './pages/edit-collection/edit-collection.component';
-import { EditEffectComponent } from './pages/edit-effect/edit-effect.component';
-import { EditMonsterComponent } from './pages/edit-monster/edit-monster.component';
-import { EditSceneComponent } from './pages/edit-scene/edit-scene.component';
-import { EditSoundComponent } from './pages/edit-sound/edit-sound.component';
-import { EditSpellComponent } from './pages/edit-spell/edit-spell.component';
+// import { CombatComponent } from './components/combat/combat.component';
+// import { SoundComponent } from './components/sound/sound.component';
+// import { SpellsComponent } from './components/spells/spells.component';
+// import { NpcComponent } from './components/npc/npc.component';
+// import { MonstersComponent } from '../../old/monsters/monsters.component';
+// import { SoundEditComponent } from './components/sound-edit/sound-edit.component';
+// import { CombatBoardComponent } from './page/combat-board/combat-board.component';
+// import { CampaignBoardComponent } from '../../old/campaign-board/campaign-board.component';
+// import { NpcBoardComponent } from './page/npc-board/npc-board.component';
+// import { WorldBoardComponent } from '../../old/world-board/world-board.component';
+// import { SoundBoardComponent } from './page/sound-board/sound-board.component';
+// import { EditCollectionComponent } from './page/edit-collection/edit-collection.component';
+// import { EditEffectComponent } from './page/edit-effect/edit-effect.component';
+// import { EditMonsterComponent } from './page/edit-monster/edit-monster.component';
+// import { EditSceneComponent } from './page/edit-scene/edit-scene.component';
+// import { EditSoundComponent } from './page/edit-sound/edit-sound.component';
+// import { EditSpellComponent } from './page/edit-spell/edit-spell.component';
+import { AuthInterceptor } from './shared/auth/auth.interceptor';
+import { SignupComponent } from './pages/signup/signup.component';
+import { CombatLogComponent } from './main-page/combat/combat-log/combat-log.component';
+import { FontAwesomeModule } from '@fortawesome/angular-fontawesome';
+import { ResizableModule } from 'angular-resizable-element';
 
 var firebaseConfig = {
   apiKey: "YOUR_API_KEY", //YOUR_API_KEY
@@ -67,16 +72,26 @@ export function createTranslateLoader(http: HttpClient) {
 }
 
 @NgModule({
-  declarations: [AppComponent, FullLayoutComponent, ContentLayoutComponent, CombatComponent, SoundComponent, SpellsComponent, WorldComponent, NpcComponent, MonstersComponent, SoundEditComponent, CombatBoardComponent, CampaignBoardComponent, NpcBoardComponent, WorldBoardComponent, SoundBoardComponent, EditCollectionComponent, EditEffectComponent, EditMonsterComponent, EditSceneComponent, EditSoundComponent, EditSpellComponent],
+  declarations: [AppComponent, FullLayoutComponent, ContentLayoutComponent,
+    //  CombatComponent, 
+    // SoundComponent, SpellsComponent, NpcComponent, MonstersComponent, SoundEditComponent, 
+    // CombatBoardComponent, CampaignBoardComponent, NpcBoardComponent, WorldBoardComponent, 
+    // SoundBoardComponent, EditCollectionComponent, EditEffectComponent, EditMonsterComponent, 
+    // EditSceneComponent, EditSoundComponent, EditSpellComponent, 
+    // SignupComponent, 
+    // CombatLogComponent
+  ],
   imports: [
+    BrowserModule,
     BrowserAnimationsModule,
     AppRoutingModule,
     SharedModule,
     HttpClientModule,
     AngularFireModule.initializeApp(firebaseConfig),
     AngularFireAuthModule,
-    NgbModule,
     NgxSpinnerModule,
+    FontAwesomeModule,
+    ResizableModule,
     TranslateModule.forRoot({
       loader: {
         provide: TranslateLoader,
@@ -90,6 +105,11 @@ export function createTranslateLoader(http: HttpClient) {
     PerfectScrollbarModule
   ],
   providers: [
+    {
+      provide: HTTP_INTERCEPTORS,
+      useClass: AuthInterceptor,
+      multi: true
+    },
     AuthService,
     AuthGuard,
     { provide: PERFECT_SCROLLBAR_CONFIG, useValue: DEFAULT_PERFECT_SCROLLBAR_CONFIG },
