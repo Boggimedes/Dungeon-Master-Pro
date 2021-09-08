@@ -1,13 +1,20 @@
 import {
-  Directive, HostBinding, Inject, Input, OnInit, OnDestroy, Output, EventEmitter, AfterViewInit
-} from '@angular/core';
+  Directive,
+  HostBinding,
+  Inject,
+  Input,
+  OnInit,
+  OnDestroy,
+  Output,
+  EventEmitter,
+  AfterViewInit,
+} from "@angular/core";
 import { SidebarDirective } from "./sidebar.directive";
 
 @Directive({
-  selector: "[appSidebarlink]"
+  selector: "[appSidebarlink]",
 })
 export class SidebarLinkDirective implements OnInit, OnDestroy {
-
   @Input()
   public parent: string;
 
@@ -20,7 +27,7 @@ export class SidebarLinkDirective implements OnInit, OnDestroy {
   @Input()
   public path: string;
 
-  @HostBinding('class.open')
+  @HostBinding("class.open")
   @Input()
   get open(): boolean {
     return this._open;
@@ -29,7 +36,7 @@ export class SidebarLinkDirective implements OnInit, OnDestroy {
     this._open = value;
   }
 
-  @HostBinding('class.sidebar-group-active')
+  @HostBinding("class.sidebar-group-active")
   @Input()
   get sidebarGroupActive(): boolean {
     return this._sidebarGroupActive;
@@ -38,7 +45,7 @@ export class SidebarLinkDirective implements OnInit, OnDestroy {
     this._sidebarGroupActive = value;
   }
 
-  @HostBinding('class.nav-collapsed-open')
+  @HostBinding("class.nav-collapsed-open")
   @Input()
   get navCollapsedOpen(): boolean {
     return this._navCollapsedOpen;
@@ -53,8 +60,7 @@ export class SidebarLinkDirective implements OnInit, OnDestroy {
 
   protected sideNav: SidebarDirective;
 
-  public constructor(
-    @Inject(SidebarDirective) sideNav: SidebarDirective) {
+  public constructor(@Inject(SidebarDirective) sideNav: SidebarDirective) {
     this.sideNav = sideNav;
   }
 
@@ -62,13 +68,12 @@ export class SidebarLinkDirective implements OnInit, OnDestroy {
     this.sideNav.addLink(this);
   }
 
-  public ngOnDestroy(): any {
-  }
+  public ngOnDestroy(): any {}
 
   //when side menu (vertical menu) item gets clicked
   public toggle(): any {
     this.open = !this.open;
-    if(this.open) {
+    if (this.open) {
       this.sideNav.closeOtherLinks(this);
     }
     if (!this.open && this.level.toString() === "1" && this.hasSub) {

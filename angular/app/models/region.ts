@@ -1,12 +1,17 @@
+export class Region {
+  public id: number;
+  public name: string;
+  public feature_types: any[] = [];
+  public epoch: number;
+  public prof_balance: any = [];
+  public racial_balance: any = [];
+  public stats: any;
+  public linked: boolean = false;
+  public world;
 
-export class Region
-{
-    public id: number;
-    public name: string;
-
-	constructor(data: any = {})
-	{
-		data = !!data ? data : {};
-		Object.assign(this, data);
-	}
+  constructor(data: any = {}) {
+    data = !!data ? data : {};
+    if (data.feature_types == null) data.feature_types = [];
+    Object.assign(this, data);
+  }
 }

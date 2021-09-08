@@ -1,16 +1,15 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { EditSoundsComponent } from './edit-sounds.component';
+import { EditSoundsComponent } from "./edit-sounds.component";
 
-describe('EditSoundsComponent', () => {
+describe("EditSoundsComponent", () => {
   let component: EditSoundsComponent;
   let fixture: ComponentFixture<EditSoundsComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ EditSoundsComponent ]
-    })
-    .compileComponents();
+      declarations: [EditSoundsComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {
@@ -19,7 +18,7 @@ describe('EditSoundsComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 });

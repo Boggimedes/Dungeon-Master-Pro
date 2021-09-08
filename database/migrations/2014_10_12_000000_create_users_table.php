@@ -28,6 +28,7 @@ class CreateUsersTable extends Migration
             $table->increments('id');
             $table->integer('user_id')->unsigned();
             $table->string('name');
+            $table->string('city');
             $table->string('gender')->nullable();
             $table->integer('profession_id')->unsigned()->nullable();;
             $table->smallinteger('alive')->default(1);
@@ -42,11 +43,12 @@ class CreateUsersTable extends Migration
             $table->smallinteger('generation')->nullable();
             $table->boolean('excluded')->default(0);
             $table->boolean('retired')->default(0);
-            $table->text('mannerisms')->nullable();
-            $table->text('lineage')->nullable();
-            $table->text('quirks')->nullable();
-            $table->text('abilities')->default('[]')->nullable();;
-            $table->text('features')->default('[]')->nullable();;
+            $table->boolean('met_party')->default(0);
+            // $table->text('mannerisms')->nullable();
+            // $table->text('lineage')->nullable();
+            // $table->text('quirks')->nullable();
+            $table->text('abilities')->nullable();
+            $table->text('features')->default('[]')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
         });
@@ -66,15 +68,6 @@ class CreateUsersTable extends Migration
 			$table->integer('enemy_id')->unsigned()->nullable();
 			$table->foreign('enemy_id') ->references('id')->on('npcs')->onDelete('cascade');
 		});
-        Schema::create('descriptives', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('world_id')->unsigned();
-            $table->string('type');
-            $table->text('text');
-            $table->string('gender')->nullable();
-            $table->integer('race_id')->unsigned()->nullable();
-            $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
-        });
         Schema::create('scene_collections', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('user_id')->unsigned();
@@ -184,6 +177,17 @@ class CreateUsersTable extends Migration
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
+        Schema::create('descriptives', function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('world_id')->unsigned();
+            $table->string('type');
+            $table->text('text');
+            $table->string('gender')->nullable();
+            $table->string('alive')->nullable();
+            $table->string('abilities')->nullable();
+            $table->integer('race_id')->unsigned()->nullable();
+            $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
+        });
         Schema::create('professions', function (Blueprint $table) {
             $table->increments('id');
             $table->string('name');
@@ -197,7 +201,7 @@ class CreateUsersTable extends Migration
             $table->increments('id');
             $table->integer('world_id')->unsigned();
             $table->string('name')->nullable();
-            $table->text('genders')->default('[{"Female":"fantasy"},{"Male":"fantasy"}]');
+            $table->text('genders')->default('[["Female","fantasy"],["Male","fantasy"]]');
             $table->integer('adulthood')->nullable();
             $table->integer('middle_age')->nullable();
             $table->integer('old_age')->nullable();
@@ -222,7 +226,7 @@ class CreateUsersTable extends Migration
             $table->string('name');
             $table->text('racial_balance');
             $table->text('prof_balance');
-            $table->text('aspect_types');
+            $table->text('feature_types');
             $table->integer('epoch')->nullable();
 
             $table->timestamps();
@@ -315,7 +319,6 @@ class CreateUsersTable extends Migration
             $table->string('icon');
             $table->text('notes');
             
-            $table->foreign('map_id')->references('id')->on('maps')->onDelete('cascade');
             $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade');
         });
     }

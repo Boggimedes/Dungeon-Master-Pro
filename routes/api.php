@@ -26,4 +26,15 @@ Route::group(['middleware' => ['api']], function ($router) {
 	Route::get('campaign', 'StoryController@getCampaign');
 	Route::post('map', 'StoryController@getMap');
 
+    Route::get('world/{world}', 'WorldController@getWorld');
+    Route::get('world/fr/{region}', 'WorldController@getWorldFromRegion');
+    Route::post('world/{world}/region/add', 'WorldController@addRegion');
+    Route::delete('region/{region}', 'WorldController@deleteRegion');
+    Route::put('region/{region}', 'WorldController@saveRegion');
+    Route::get('region/{region}/seed', 'WorldController@seedRegion');
+    Route::get('region/{region}/clear', 'WorldController@clearRegion');
+    Route::get('region/{region}/age/{years}', 'WorldController@ageRegion');
+    Route::get('region/{region}/npcs', 'WorldController@getNpcs');
+    Route::put('npc/{npc}/generate-features', 'WorldController@generateFeatures');
+
 });

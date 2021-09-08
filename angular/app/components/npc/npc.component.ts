@@ -1,116 +1,123 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from "@angular/core";
 
 @Component({
-  selector: 'app-npc',
-  templateUrl: './npc.component.html',
-  styleUrls: ['./npc.component.scss']
+  selector: "app-npc",
+  templateUrl: "./npc.component.html",
+  styleUrls: ["./npc.component.scss"],
 })
 export class NpcComponent implements OnInit {
-    selectedRow;
-    region;
-    selectedNpc;
-    currentRegion
-  constructor() { }
-  setClickedRow = (index, table, npc) =>
-  { //function that sets the value of selectedRow to current index
+  selectedRow;
+  region;
+  selectedNpc;
+  currentRegion;
+  constructor() {}
+  setClickedRow = (index, table, npc) => {
+    //function that sets the value of selectedRow to current index
     this.selectedRow = []; //reset all tables
     this.selectedRow[table] = index; //set selected row
     var objectData = {
-        "region": this.region,
-        "where": [{
-            "id": npc
-        }]
+      region: this.region,
+      where: [
+        {
+          id: npc,
+        },
+      ],
     };
-};
-regionInit = (region) => {
+  };
+  regionInit = (region) => {
     if (region.id == this.selectedNpc.region) this.currentRegion = region;
-}
-generationChange = function() {
-    if (this.selectedNpc.generation == '') this.selectedNpc.generation = 'NULL';
-}
+  };
+  generationChange = function () {
+    if (this.selectedNpc.generation == "") this.selectedNpc.generation = "NULL";
+  };
 
-getAspects = function() {
+  getAspects = function () {
     var gender = this.selectedNpc.gender.substring(0, 1).toUpperCase();
     var pageData = {
-        "region": this.region,
-        "gender": gender
+      region: this.region,
+      gender: gender,
     };
-}
-newNpc = function() {
+  };
+  newNpc = function () {
     this.extended = true;
     this.spouse = [];
     this.mother = [];
     this.father = [];
     this.children = [];
     this.selectedNpc = {
-        "firstName": "",
-        "lastName": "",
-        "race": {},
-        "age": "",
-        "gender": "",
-        "alive": "1",
-        "married": "0",
-        "spouse": "",
-        "children": [],
-        "mother": "",
-        "father": "",
-        "friends": "",
-        "enemies": "",
-        "mannerisms": "",
-        "lineage": "",
-        "quirks": "",
-        "abilities": "",
-        "features": {
-            "Special": "",
-            "Face Shape": "",
-            "Skin Complexion": "",
-            "Skin Color": "",
-            "Hair Description": "",
-            "Hair Color": "",
-            "Eye Description": "",
-            "Eye Color": "",
-            "Clothing": "",
-            "Body Type": ""
-        },
-        "region": this.region,
-        "generation": "NULL",
-        "profession": "",
-        "notes": "",
-        "birthYear": "NULL",
-        "residentCity": ""
+      firstName: "",
+      lastName: "",
+      race: {},
+      age: "",
+      gender: "",
+      alive: "1",
+      married: "0",
+      spouse: "",
+      children: [],
+      mother: "",
+      father: "",
+      friends: "",
+      enemies: "",
+      mannerisms: "",
+      lineage: "",
+      quirks: "",
+      abilities: "",
+      features: {
+        Special: "",
+        "Face Shape": "",
+        "Skin Complexion": "",
+        "Skin Color": "",
+        "Hair Description": "",
+        "Hair Color": "",
+        "Eye Description": "",
+        "Eye Color": "",
+        Clothing: "",
+        "Body Type": "",
+      },
+      region: this.region,
+      generation: "NULL",
+      profession: "",
+      notes: "",
+      birthYear: "NULL",
+      residentCity: "",
     };
-}
-updateNpc = function(npc) {
-    if (npc.birthYear == '' || npc.birthYear == null) npc.birthYear = 'NULL';
-    if (npc.generation == '' || npc.generation == null) npc.generation = 'NULL';
+  };
+  updateNpc = function (npc) {
+    if (npc.birthYear == "" || npc.birthYear == null) npc.birthYear = "NULL";
+    if (npc.generation == "" || npc.generation == null) npc.generation = "NULL";
     var pageData = {
-        "region": this.region,
-        "npc": npc
+      region: this.region,
+      npc: npc,
     };
     // npcFactory.updateNpc(pageData)
-};
-npcInfo = function(npc) {
+  };
+  npcInfo = function (npc) {
     if (typeof this.npcs == "undefined" || typeof npc == "undefined") return;
     npc = this.npcs.all[npc];
-    return (npc.alive == "1" ? 'Alive' : 'Dead') + "\nRace: " + npc.race.name + "\nAge: " + npc.age;
-}
-setGrouping= function(grouping){
-    this.cGroup=grouping;
-}
-setRegion = function(region){
+    return (
+      (npc.alive == "1" ? "Alive" : "Dead") +
+      "\nRace: " +
+      npc.race.name +
+      "\nAge: " +
+      npc.age
+    );
+  };
+  setGrouping = function (grouping) {
+    this.cGroup = grouping;
+  };
+  setRegion = function (region) {
     this.currentRegion = region;
     this.npcs = {};
-    this.raceGroups=[];
-    this.lineageGroups=[];
-    this.profGroups=[];
-    this.cities=[];
+    this.raceGroups = [];
+    this.lineageGroups = [];
+    this.profGroups = [];
+    this.cities = [];
     var objectData = {
-        "region": region.id
+      region: region.id,
     };
-    };
+  };
 
-
-ngOnInit(): void {
+  ngOnInit(): void {
     // npcFactory.getNpc(objectData).then(
     //     function(response) {
     //         this.selectedNpc = response.data;
@@ -123,7 +130,6 @@ ngOnInit(): void {
     //     if(err.status == 401){console.log(28);this.Ui.turnOn('login');}
     //         console.log(err);
     //     });
-
     //     npcFactory.getWorld().then(
     //         function(response) {
     //             this.regions = response.data.regions;
@@ -163,7 +169,6 @@ ngOnInit(): void {
     //         if(err.status == 401){console.log(30);this.Ui.turnOn('login');}
     //             console.log(err);
     //         });
-    
     //         npcFactory.getNpcs(objectData).then(
     //             function(response) {
     //                 this.npcs.all = response.data;
@@ -214,8 +219,5 @@ ngOnInit(): void {
     //               if(err.status == 401){console.log(32);this.Ui.turnOn('login');}
     //                 console.log(err);
     //             });
-  
-    }
-
+  }
 }
-

@@ -1,18 +1,24 @@
-import { Component, OnInit, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
-import { faHeart } from '@fortawesome/free-regular-svg-icons';
-import { faUserFriends } from '@fortawesome/free-solid-svg-icons';
-import { faBookOpen } from '@fortawesome/free-solid-svg-icons';
-import { faCogs } from '@fortawesome/free-solid-svg-icons';
-import { faHourglassHalf } from '@fortawesome/free-solid-svg-icons';
+import {
+  Component,
+  OnInit,
+  ElementRef,
+  ViewChild,
+  AfterViewInit,
+} from "@angular/core";
+import { faHeart } from "@fortawesome/free-regular-svg-icons";
+import { faUserFriends } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import { faCogs } from "@fortawesome/free-solid-svg-icons";
+import { faHourglassHalf } from "@fortawesome/free-solid-svg-icons";
 
 @Component({
-  selector: 'app-story',
-  templateUrl: './story.component.html',
-  styleUrls: ['./story.component.scss']
+  selector: "app-story",
+  templateUrl: "./story.component.html",
+  styleUrls: ["./story.component.scss"],
 })
 export class StoryComponent implements OnInit, AfterViewInit {
   public style: object = {};
-  @ViewChild('map') map: ElementRef;
+  @ViewChild("map") map: ElementRef;
   public mapBox = true;
   public npcBox = false;
   public timeBox = false;
@@ -28,18 +34,12 @@ export class StoryComponent implements OnInit, AfterViewInit {
   currentX = 0;
   currentY = 0;
 
-  constructor() {
+  constructor() {}
 
-   }
-
-ngOnInit(): void {
+  ngOnInit(): void {
     this.mapImg = {};
     this.mapImg.id = 3;
   }
 
-  ngAfterViewInit(): void {
-
-  }
+  ngAfterViewInit(): void {}
 }
-
-

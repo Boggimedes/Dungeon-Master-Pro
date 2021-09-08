@@ -1,0 +1,90 @@
+.radius-no-left,
+.radius-no-left div,
+.radius-no-left input {
+	border-bottom-left-radius: 0px;
+	border-top-left-radius: 0px;
+}
+
+.radius-no-right {
+	border-bottom-right-radius: 0px;
+	border-top-right-radius: 0px;
+}
+
+.icon-button {
+	padding: 0.2rem 0.2rem;
+	font-size: 2rem;
+	line-height: 2;
+}
+
+.btn-light:hover {
+	color: #975aff !important;
+}
+a.btn.btn-light,
+a.btn.bg-light-light {
+	color: inherit;
+}
+.wide-dropdown.dropdown-menu {
+	width: 33vw;
+	overflow: auto;
+}
+.wide-dropdown.dropdown-menu button {
+	display: inline;
+}
+.years {
+	position: absolute;
+	top: 0;
+	right: 0;
+	font-weight: 500;
+	font-size: 0.75rem;
+}
+
+.badge-box {
+	height: 13rem;
+	overflow: auto;
+}
+
+.link {
+	font-size: x-large;
+	position: absolute;
+	right: 10px;
+	top: 10px;
+	z-index: 100;
+	cursor: pointer;
+}
+.linked {
+	animation: glow 1s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+	from {
+		filter: drop-shadow(2px 2px 5px #ff00ff)
+			drop-shadow(-2px -2px 5px #975aff);
+	}
+
+	to {
+		filter: drop-shadow(2px 2px 5px #975aff)
+			drop-shadow(-2px -2px 5px #ff00ff);
+	}
+}
+@-webkit-keyframes glow {
+	from {
+		filter: drop-shadow(2px 2px 5px #ff00ff)
+			drop-shadow(-2px -2px 5px #975aff);
+	}
+
+	to {
+		filter: drop-shadow(2px 2px 5px #975aff)
+			drop-shadow(-2px -2px 5px #ff00ff);
+	}
+}
+
+.region-first-block {
+	width: 27rem;
+	margin-right: 1rem;
+	flex: 0 0 auto;
+}
+
+.region-second-block {
+	width: 17rem;
+	flex: 0 0 auto;
+}

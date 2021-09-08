@@ -15,7 +15,7 @@ class Region extends Model
     protected $fillable = [
         'name',
         'racial_balance',
-        'user_id',
+        'world_id',
         'prof_balance',
         'epoch',
     ];
@@ -30,13 +30,14 @@ class Region extends Model
     private $weddings = 0;
     private $potentialBirthing = null;
     private $potentialParent = null;
+    private $profBalance = [];
 
     /**
      * The attributes that should be hidden for arrays.
      *
      * @var array
      */
-    protected $hidden = [
+    protected $hidden = ['world'
     ];
 
     /**
@@ -47,7 +48,7 @@ class Region extends Model
     protected $casts = [
         'racial_balance' => 'array',
         'prof_balance' => 'array',
-        'aspect_types' => 'array',
+        'feature_types' => 'array',
     ];
 
     public function world()
@@ -60,24 +61,48 @@ class Region extends Model
 	}
     public function seed()
     {
-        $this->npcs()->delete();
-        foreach($this->racial_balance as $id => $balace){
-            for ($i = 0; $i < $balace; $i++)
+        if (empty($this->racial_balance)) {
+            $racial_balance = [];
+            $this->world->races->each(function ($r) use(&$racial_balance){
+                $racial_balance[] = ['name' => $r->name, 'id' => $r->id, 'value' => 10];
+            });
+            $this->racial_balance = $racial_balance;
+        }
+        foreach($this->racial_balance as $race){
+            for ($i = 0; $i < $race->value; $i++)
             {
-                $this->generateNpc(['race_id' => $id]);
-            } 
+                $this->generateNpc(['race_id' => $race->id]);
+            }
         }
     }
-    public function stats()
+    public function getRacialBalanceObjectAttribute() {
+        $value = $this->racial_balance;
+        if (empty($value)) return [];
+        if (is_string($value)) $value = json_decode($value);
+        $value = collect($value);
+        $value = $value->keyBy('id');
+        return $value;
+    }
+    public function getRacialBalanceAttribute($value) {
+        if (empty($value)) return [];
+        if (is_array($value)) return $value;
+        return json_decode($value);
+    }
+    public function getProfBalanceAttribute($value) {
+        if (empty($value)) return [];
+        if (is_array($value)) return $value;
+        return json_decode($value);
+    }
+    public function getStatsAttribute()
     {
         $stats = [];
         foreach($this->world->races as $race) {
-            $stats[$race->name] = [
-                'race_id' => $race->id,
+            $stats[] = [
+                'name' => $race->name,
                 'average_age%' => round(100*$this->npcs()->where('race_id',$race->id)->where('alive', 1)->avg('age')/$race->old_age),
-                'children' => $this->npcs()->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[0,$race->adulthood+1])->count(),
-                'adults' => $this->npcs()->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[$race->adulthood,$race->middle_age+1])->count(),
-                'middle_age' => $this->npcs()->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[$race->middle_age,$race->old_age+1])->count(),
+                'children' => $this->npcs()->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[0,$race->adulthood])->count(),
+                'adults' => $this->npcs()->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[$race->adulthood+1,$race->middle_age])->count(),
+                'middle_age' => $this->npcs()->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[$race->middle_age+1,$race->old_age1])->count(),
                 'old_age' => $this->npcs()->where('race_id',$race->id)->where('alive', 1)->where('age','>', $race->old_age)->count(),
                 'immortal' => $this->npcs()->where('race_id',$race->id)->where('alive', '>',1)->where('age','>', $race->old_age)->count(),
                 'living' => $this->npcs()->where('race_id',$race->id)->where('alive', '>',0)->count()
@@ -90,14 +115,14 @@ class Region extends Model
         $balance = $this->racial_balance;
         $rand = mt_rand(1,100);
         $below = 0;
-        foreach($balance as $race => $value) {
-            $below += $value;
+        foreach($balance as $race) {
+            $below += $race['value'];
             if ($rand < $below) {
-                return Race::find($race);
+                return Race::find($race['id']);
             }
         }
     }
-    function ageRegion($years)
+    function age($years)
     {
         $start = microtime(true);
         $this->births = 0;
@@ -115,7 +140,7 @@ class Region extends Model
                 $this->potentialBirthing = collect([]);
                 $this->potentialParent = collect([]);
                 foreach($npcs as $npc){
-                    if($npc->gender == key($npc->race->genders[0]) &&
+                    if($npc->gender == $npc->race->genders[0] &&
                         (!$npc->married || mt_rand(1,50) == 1)) $this->potentialBirthing->push($npc);
                     if(!$npc->married || mt_rand(1,20)==1) $this->potentialParent->push($npc);
                 }
@@ -135,15 +160,6 @@ class Region extends Model
         \Log::info(round($time_elapsed_secs/60,2) . " Min");
 
         $this->save();
-        $this->stats()->each(function($stat, $key) {if($stat['living'] > 0) error_log("$key\n" . print_r($stat));});
-        error_log("Population: " . $this->npcs()->where('alive','>',0)->count());
-        error_log("Births: " . $this->births);
-        error_log("Funerals: " . $this->funerals);
-        error_log("Weddings: " . $this->weddings);
-        error_log("Transients: " . $this->transients);
-        error_log("Mail Order Fathers: " . $this->mailOrderFathers);
-        error_log("Mail Order Brides: " . $this->mailOrderBrides);
-        error_log("Population Balance: " . ($this->births+$this->mailOrderBrides+$this->mailOrderFathers+$this->transients-$this->funerals));
         }
 
     function generateNpc($npcData = [])
@@ -153,23 +169,24 @@ class Region extends Model
         } else {
             $race = Race::find($npcData['race_id']);
         }
-
+        \Log::info($race);
         $npc = New Npc();
         if (empty($npcData['gender'])) {
             if (count($race->genders) == 1) {
-                $npc->gender = key($race->genders[0]);
+                $npc->gender = $race->genders[0][0];
             } else {
-                $npc->gender = key($race->genders[mt_rand(0, count($race->genders) - 1)]);
+                $npc->gender = $race->genders[mt_rand(0, count($race->genders) - 1)][0];
             }
         } else $npc->gender = $npcData['gender'];
-        $aspects = $this->generateAspectSet($npc->gender);
-        $npc->fill($aspects);
-        $lineage = $aspects['Lineage'];
-        if(strtolower(substr($lineage,0,8)) == 'immortal')
+        $features = $this->generateFeatures($npc->gender, $race);
+        if (!empty($npcData['lineage'])) $features['lineage']['text'] = $npcData['lineage'];
+        $npc->features = $features;
+        $lineage = $features['lineage'];
+        if(strtolower(substr($lineage['text'],0,8)) == 'immortal')
         {
             $npc->alive = 2;
         } else $npc->alive = 1;
-        $npc->lineage = str_replace(['Immortal (',')'],['', ''], $lineage);
+        // $npc->lineage = str_replace(['Immortal (',')'],['', ''], $lineage);
         $npc->race_id = $race->id;
         $npc->age = !empty($npcData['age']) ? $npcData['age'] : mt_rand($race->adulthood/2, $race->adulthood * 1.1);
         $npc->abilities = null;
@@ -177,16 +194,14 @@ class Region extends Model
         $npc->generation = array_key_exists('generation', $npcData) ? $npcData['generation'] : 1;
         $npc->birth_year = $this->epoch - $npc->age;
         $npc->excluded      = 0;
-        $npc->user_id      = $this->user->id;
+        $npc->user_id      = $this->world->user->id;
         $npc->name = 'NPC';
-        if (array_key_exists('Manner', $aspects)) $npc->mannerisms = $aspects['Manner'];
-        if (array_key_exists('Quirk', $aspects)) $npc->quirks = $aspects['Quirk'];
-        if (array_key_exists('Features', $aspects)) $npc->features = $aspects['Features'];
+
         if (array_key_exists('birthing_parent_id', $npcData)) $npc->birthing_parent_id = $npcData['birthing_parent_id'];
         if (array_key_exists('parent_id', $npcData)) $npc->parent_id = $npcData['parent_id'];
         $npc->save();
 
-        if ($this->user->settings->preGenNames) {
+        if ($this->world->user->settings->preGenNames) {
             $npc->generateName();
         } else {
             $npc->name = 'NPC' . $npc->id;
@@ -194,34 +209,72 @@ class Region extends Model
 
         return Npc::find($npc['id']);
     }
-    function generateAspectSet($gender = null)
+    function generateFeatures($gender = null, $race = null)
     {
-        $aspects = [];
-        foreach ($this->aspect_types as $aspectType) {
-            if ($aspectType['name'] == 'Body Extra') {
-                $bodyExtra = $aspectType['chance'];
-            } elseif(substr($aspectType['name'],0,4) == "Body") {
-                $body = $aspectType['chance'];
+        $features = [
+            ["name" => "special", "chance" => 5],
+            ["name" => "face shape", "chance" => 40],
+            ["name" => "skin complexion", "chance" => 30],
+            ["name" => "skin color", "chance" => 40],
+            ["name" => "hair color", "chance" => 100],
+            ["name" => "hair description", "chance" => 50],
+            ["name" => "eye description", "chance" => 30],
+            ["name" => "eye color", "chance" => 100],
+            ["name" => "body", "chance" => 50],
+            ["name" => "clothing", "chance" => 15],
+            ["name" => "body extra", "chance" => 20],
+            ["name" => "quirk", "chance" => 40],
+            ["name" => "manner", "chance" => 100],
+            ["name" => "lineage", "chance" => 2]
+        ];
+
+        if (empty($this->feature_types)) $this->feature_types = $features;
+        $features = [];
+        foreach ($this->feature_types as $featureType) {
+            if ($featureType['name'] == 'body extra') {
+                $bodyExtra = $featureType['chance'];
+            } elseif(substr($featureType['name'],0,4) == "body") {
+                $body = $featureType['chance'];
             } 
 
-            $query = Descriptive::where([['type', $aspectType['name']], ['user_id',$this->user->id]])->where(function ($q)  use($gender){
-                $q->where('gender', $gender)->orWhereNull('gender');
-            });
-            $aspects[$aspectType['name']] = ucfirst($this->aspectChance($aspectType['chance'], $query)['text']);
+            $query = Descriptive::where([['type', $featureType['name']]]);
+            
+            if ($gender != null) {
+                $query = $query->where(function ($q)  use($gender){
+                    $q->where('gender', $gender)->orWhereNull('gender');
+                });
+            }
+            if ($race != null) {
+                $query = $query->where(function ($q)  use($race){
+                    $q->where('race_id', $race->id)->orWhereNull('race_id');
+                });
+            }
+            if (substr($featureType['name'], 0, 7) == 'lineage') $featureType['name'] = 'lineage';
+            $features[$featureType['name']] = ['name' => $featureType['name'], 'text' => ucfirst($this->featureChance($featureType['chance'], $query)['text'])];
         }
-        $body = $this->aspectChance($body, Descriptive::where([['type','like','Body%'], ['user_id',$this->user->id]]));
+        $body = $this->featureChance($body, Descriptive::where([['type','like','body%'], ['world_id',$this->world->id]]));
         if ($body['text']) {
-            $aspects['Body'] = ucfirst($body['text']);
-            $query = Descriptive::where([['type', str_replace(['Body (',')'],['', ' Extra'],$body['type'])], ['user_id',$this->user->id]])->where(function ($q)  use($gender){
-                $q->where('gender', $gender)->orWhereNull('gender');
-            });
-            $aspects['Body Extra'] = ucfirst($this->aspectChance($bodyExtra, $query)['text']);
+            $features['body'] = ['name' => 'body', 'text' => ucfirst($body['text'])];
+            $query = Descriptive::where([['type', str_replace(['body (',')'],['', ' extra'],$body['type'])], ['world_id',$this->world->id]]);
+            if ($gender != null) {
+                $query = $query->where(function ($q)  use($gender){
+                    $q->where('gender', $gender)->orWhereNull('gender');
+                });
+            }
+            if ($race != null) {
+                $query = $query->where(function ($q)  use($race){
+                    $q->where('race_id', $race->id)->orWhereNull('race_id');
+                });
+            }
+            
+            $features['body extra'] = ['name' => 'body extra', 'text' => ucfirst($this->featureChance($bodyExtra, $query)['text'])];
         }
-        return $aspects;
+
+        return $features;
     }
-    private function aspectChance($chance, $query)
+    private function featureChance($chance, $query)
     {
-        if (rand(1, 100) > $chance) return ['text' => ''];
+        if (rand(1, 1000) > ($chance*10)) return ['text' => ''];
         $value = $query->get();
         if(!$value->isEmpty()) return $value->random(1)[0];
         return ['text' => ''];
@@ -242,7 +295,7 @@ class Region extends Model
         if(mt_rand(1,1000) < $deathChance || ($npc->age >= $npc->race->max_age && $npc->alive < 2)) {
             $this->yearlyDeaths++;
             $npc->alive=0;
-            $racialBalance = array_key_exists($npc->race->id, $this->racial_balance) ? $this->racial_balance[$npc->race->id] : 0;
+            $racialBalance = $this->racialBalanceObject->has($npc->race->id) ? $this->racialBalanceObject[$npc->race->id]->value : 0;
             if($this->npcs()->where([['alive', '>', 0], ['race_id', $npc->race->id]])->count() < ($racialBalance + 1)) {
                 $this->transients++;
                 $this->generateNpc([
@@ -296,26 +349,32 @@ class Region extends Model
         $getAJob = max($getAJob / $increment, 2);
         if (mt_rand(1,$getAJob) == 1){
             $balanceTotal=0;
+            if (empty($this->profBalance)) 
+            {
+                $prof_balance = [];
+                $this->world->professions->each(function ($p) use(&$prof_balance){
+                    $prof_balance[] = ['name' => $p->name, 'id' => $p->id, 'value' => 10];
+                });
+                $this->profBalance = $prof_balance;
+            }
             $profList=[];
-            foreach($this->prof_balance as $id => $value){
-                $tmpValue = $value;
-                if($npc->parent && $npc->parent->profession && $npc->parent->profession->id == $id ) $tmpValue *= 3;
-                if($npc->birthingParent && $npc->birthingParent->profession && $npc->birthingParent->profession->id == $id ) $tmpValue *= 3;
+            foreach($this->profBalance as $prof){
+                $tmpValue = $prof['value'];
+                if($npc->parent && $npc->parent->profession && $npc->parent->profession->id == $prof['id'] ) $tmpValue *= 3;
+                if($npc->birthingParent && $npc->birthingParent->profession && $npc->birthingParent->profession->id == $prof->id ) $tmpValue *= 3;
                 $balanceTotal += $tmpValue;
-                $profList[$id] = $tmpValue;
+                $profList[$prof['id']] = $tmpValue;
             }
             $randResult = mt_rand(0, $balanceTotal);
             foreach($profList as $id => $value){
                 $profession = Profession::find($id);
                 $balanceTotal -= $value;
                 $minAge = $profession->min_age;
-                if($minAge == "none") $minAge=0;
                 $maxAge = $profession->max_age;
-                if($maxAge == "none") $maxAge=9999;
-
-                if($randResult >= $balanceTotal && $npc->age >= $minAge && $npc->age < $maxAge){
+                if($randResult >= $balanceTotal && ($minAge == 'none' || $npc->age >= $npc->race->$minAge) && ($maxAge == 'none' || $npc->age < $npc->race->$maxAge)){
                     $npc->notes.="Became a/an $profession->name at " . ($npc->age + $randYear) . "\n";
-                    $npc->profession = $profession;
+                    $npc->profession_id = $profession->id;
+                    $npc->save();
                     return;
                 }
             }
@@ -330,7 +389,7 @@ class Region extends Model
 
             $family = $npc->family;
             $racialBalance = 5;
-            if (array_key_exists($npc->race->id, $this->racial_balance)) $racialBalance = $this->racial_balance[$npc->race->id];
+            if ($this->racialBalanceObject->has($npc->race->id)) $racialBalance = $this->racialBalanceObject[$npc->race->id]->value;
             $spouseOptions=collect([]);
 
             foreach($this->potentialBirthing as $k){
@@ -386,16 +445,17 @@ class Region extends Model
     {
         $randYear = mt_rand(0, $increment);
         if($npc->isBirthing() || $npc->age < $npc->race->adulthood || $npc->age > ($npc->race->old_age)) return;
-        $racialBalance = array_key_exists($npc->race->id, $this->racial_balance) ? $this->racial_balance[$npc->race->id] : 5;
+        $racialBalance = $this->racialBalanceObject->has($npc->race->id) ? $this->racialBalanceObject[$npc->race->id]->value : 5;
         if($npc->alive > 2 || ($npc->spouse && $npc->spouse->alive > 2)) {
-            $birthRate = 3;
+            $birthRate = 1;
         } else {
             $birthRate = (2 + (200 / (($npc->race->middle_age*1.3)-$npc->race->adulthood))) - $npc->children->count();
             if($npc->married){$birthRate += 5;}
             $idealBirthAgeLow = $npc->race->adulthood+(($npc->race->middle_age - $npc->race->adulthood)*.25);
             $idealBirthAgeHigh = $npc->race->adulthood+(($npc->race->middle_age - $npc->race->adulthood)*.75);
             if($npc->age >= $idealBirthAgeLow && $npc->age <= $idealBirthAgeHigh){$birthRate = $birthRate*1.5;}
-            $birthRate -= max($this->stats()[$npc->race->name]['living'] - ($racialBalance/2),-2)/($racialBalance/5);
+            $living = $this->npcs()->where('race_id',$npc->race->id)->where('alive', '>',0)->count();
+            $birthRate -= max($living - ($racialBalance/2),-2)/($racialBalance/5);
 
             //(pow(1.038-($racialBalance/10000),$this->racialBalance[$npc->race->name])/($racialBalance*10));
             $birthRate = 1000*($birthRate/(($npc->race->middle_age*1.3)-$npc->race->adulthood - 15));    
@@ -405,7 +465,7 @@ class Region extends Model
         if($randResult > $birthRate) return;
         $this->yearlyBirths++;
 
-        if($npc->married && mt_rand(1,100) > 3 && $npc->spouse) {
+        if($npc->married && mt_rand(1,100) > 1 && $npc->spouse) {
             $father = $npc->spouse;
         } else {
         
@@ -446,93 +506,84 @@ class Region extends Model
         }
         
         $childLineage = null;
-        if(mt_rand(1,100) < 50) $childRace = $npc->race;
-        else $childRace = $father->race;
-        if($father->race->id == $npc->race->id) {$childRace = $npc->race;}
-        else{
+        $possibleRaces = [$npc->race->id, $father->race->id];
+        $parentRaces = [strtolower($npc->race->name), strtolower($father->race->name)];
+        $parentLineage = [strtolower($npc->lineageName), strtolower($father->lineageName)];
 
-            if((strtolower($father->race->name) =='elf' && 
-                        strtolower($npc->race->name) == 'human') || 
-                (strtolower($father->race->name) == 'human' && 
-                    strtolower($npc->race->name) == 'elf')) {
-                $childRace = $this->world->races()->where('name', 'Half-Elf')->first();
-            } elseif((strtolower($father->race->name) =='half-celestial' && 
-                        strtolower($npc->race->name) != 'half-celestial') || 
-                (strtolower($father->race->name) != 'half-celestial' && 
-                    strtolower($npc->race->name) == 'half-celestial')){
-                $childRace = $this->world->races()->where('name', 'Aasimar')->first();
-                if(!$childRace) $childLineage = "Part-Celestial";
-            } elseif((strtolower($father->race->name) =='half-celestial' && 
-                        strtolower($npc->race->name) == 'half-celestial')){
-                $childRace = $this->world->races()->where('name', 'Half-Celestial')->first();
-                if(!$childRace) $childLineage = "Part-Celestial";
-            } elseif((strtolower($father->race->name) =='half-infernal' && 
-                        strtolower($npc->race->name) != 'half-infernal') || 
-                (strtolower($father->race->name) != 'half-infernal' && 
-                    strtolower($npc->race->name) == 'half-infernal')) {
-                $childRace = $this->world->races()->where('name', 'Tiefling')->first();
-                if(!$childRace) $childLineage = "Part-Infernal";
-            } else {
-                $halfRace = $this->world->races()->where('name', 'Half-' . $father->race->name)->first();
-                if($halfRace) $childRace = $halfRace;
+        if($father->race->id !== $npc->race->id) {
+            $half = $this->world->races()->where('name','LIKE','half%' . $npc->race->name)->first();
+            if ($half) $possibleRaces[] = $half->id;
+            $half = $this->world->races()->where('name','LIKE','half%' . $father->race->name)->first();
+            if ($half) $possibleRaces[] = $half->id;
+            if (array_search('celestial',array_map('strtolower',$parentRaces)) || 
+                array_search('angel',array_map('strtolower',$parentRaces)) ||
+                strpos(' ' . $parentLineage[0],'angel') > 0 || strpos(' ' . $parentLineage[1],'angel')
+                ) {
+                $childLineage = 'Half-Celestial';
+            }
+            if (array_search('fiend',array_map('strtolower',$parentRaces)) || 
+                array_search('demon',array_map('strtolower',$parentRaces)) || 
+                array_search('devil',array_map('strtolower',$parentRaces)) ||
+                strpos(' ' . $parentLineage[0],'demon') > 0 || strpos(' ' . $parentLineage[1],'demon') ||
+                strpos(' ' . $parentLineage[0],'devil') > 0 || strpos(' ' . $parentLineage[1],'devil')
+                ) {
+                $childLineage = 'Half-Fiend';
             }
         }
 
-        if(strtolower($father->lineage) == "lycanthrope" && strtolower($npc->lineage) == "lycanthrope") {
-            $childLineage = "Lycanthrope";
-        } elseif(strtolower($father->lineage) == "lycanthrope"  || strtolower($npc->lineage) == "lycanthrope") {
-            $childLineage = mt_rand(1,100) < 50? $childLineage = "Lycanthrope" : $childLineage = null;
+        if (strpos(' ' . $parentRaces[0],'celestial') > 0 || strpos(' ' . $parentRaces[1],'celestial') ||
+            strpos(' ' . $parentRaces[0],'angel') > 0 || strpos(' ' . $parentRaces[1],'angel') ||
+            strpos(' ' . $parentLineage[0],'celestial') > 0 || strpos(' ' . $parentLineage[1],'celestial')
+        ) {
+            $celestial = $this->world->races()->where('name','aasimar')->first();
+            if ($celestial) $possibleRaces[] = $celestial->id;
+            if (!$childLineage) $childLineage = 'Celestial';
         }
 
-        if(strtolower($father->lineage) == "demon"  && strtolower($npc->lineage) == "demon") {
-            $childLineage = "Demon";
-        } elseif(strtolower($father->lineage) == "demon"  || strtolower($npc->lineage) == "demon") {
-            $childRace = $this->world->races()->where('name', 'Tiefling')->first();
-            if(!$childRace) $childLineage = "Half-Infernal";
+        if (strpos(' ' . $parentRaces[0],'fiend') > 0 || strpos(' ' . $parentRaces[1],'fiend') ||
+            strpos(' ' . $parentRaces[0],'devil') > 0 || strpos(' ' . $parentRaces[1],'devil') ||
+            strpos(' ' . $parentRaces[0],'demon') > 0 || strpos(' ' . $parentRaces[1],'demon') ||
+            strpos(' ' . $parentLineage[0],'fiend') > 0 || strpos(' ' . $parentLineage[1],'fiend')
+        ) {
+            $fiend = $this->world->races()->where('name','tiefling')->first();
+            if ($fiend) $possibleRaces[] = $fiend->id;
+            if (!$childLineage) $childLineage = 'Fiend';
         }
 
-        if(strtolower($father->lineage) == "fiend"  && strtolower($npc->lineage) == "fiend") {
-            $childLineage = "Fiend";
-        } elseif(strtolower($father->lineage) == "fiend"  || strtolower($npc->lineage) == "fiend"){
-            $childRace = $this->world->races()->where('name', 'Half-Infernal')->first();
-            if(!$childRace) $childLineage = "Half-Infernal";
+        if(strtolower($father->lineageName) == "lycanthrope" && strtolower($npc->lineageName) == "lycanthrope") {
+            $childLineage = "lycanthrope";
+        } elseif(strtolower($father->lineageName) == "lycanthrope"  || strtolower($npc->lineageName) == "lycanthrope") {
+            $childLineage = mt_rand(1,100) < 50 ? $childLineage = "lycanthrope" : '';
         }
 
-        if(strtolower($father->lineage) == "angel"  && strtolower($npc->lineage) == "angel") {
-            $childLineage = "Angel";
-        } elseif(strtolower($father->lineage) == "angel"  || strtolower($npc->lineage) == "angel") {
-            $childRace = $this->world->races()->where('name', 'Half-Celestial')->first();
-            if(!$childRace) $childLineage = "Half-Celestial";
-        }
-
-        if(strtolower($father->lineage) == "demigod"  && strtolower($npc->lineage) == "demigod") {
+        if(strtolower($father->lineageName) == "demigod"  && strtolower($npc->lineageName) == "demigod") {
             $childLineage = "Demigod";
-        } elseif(strtolower($father->lineage) == "demigod"  || strtolower($npc->lineage) == "demigod") {
-            $childLineage = mt_rand(1,100) < 50? $childLineage = "Demigod": $childLineage = null;
+        } elseif(strtolower($father->lineageName) == "demigod"  || strtolower($npc->lineageName) == "demigod") {
+            $childLineage = mt_rand(1,100) < 50? $childLineage = "Demigod": '';
         }
 
-        if(strtolower($father->lineage) == "deity"  && strtolower($npc->lineage) == "deity") {
+        if(strtolower($father->lineageName) == "deity"  && strtolower($npc->lineageName) == "deity") {
             $childLineage = "Deity";
-        } elseif(strtolower($father->lineage) == "deity"  || strtolower($npc->lineage) == "deity") {
+        } elseif(strtolower($father->lineageName) == "deity"  || strtolower($npc->lineageName) == "deity") {
             $childLineage = "Demigod";
         }
+        $possibleRaces = collect($possibleRaces);
         $childrenPerBirth = 0;
         do{
             if (!$childrenPerBirth) $childrenPerBirth = 1;
             else $childrenPerBirth++;
 
-            if (!$childRace) {
-                if(mt_rand(1,100) < 50) $childRace = $npc->race;
-                else $childRace = $father->race;
-            }
             $npcData = [
                 'age' => 0,
-                'race_id' => $childRace->id,
+                'race_id' => $possibleRaces->random(),
                 'generation' => $npc->generation+1,
                 'lineage' => $childLineage,
                 'parent_id' => $father->id,
                 'birth_parent_id' => $npc->id
             ];
+            $descriptive = $this->world->descriptives()->where('text', $childLineage)->first();
+            if (!empty($descriptive) && $descriptive->alive) $npcData['alive'] = $descriptive->alive;
+            if (!empty($descriptive) && $descriptive->abilities) $npcData['abilities'] = $descriptive->abilities;
             $newNpc = $this->generateNpc($npcData);
             $this->yearlyBirths++;
 
@@ -549,6 +600,15 @@ class Region extends Model
     }
     public function clear()
     {
-        $this->npcs->delete();
+        Npc::where('region_id', $this->id)->where('excluded',0)->delete();
+    }
+
+    function array_equal($a, $b) {
+        return (
+             is_array($a) 
+             && is_array($b) 
+             && count($a) == count($b) 
+             && array_diff($a, $b) === array_diff($b, $a)
+        );
     }
 }

@@ -1,17 +1,14 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from "@angular/core";
 
 @Component({
-  selector: 'app-sound',
-  templateUrl: './sound.component.html',
-  styleUrls: ['./sound.component.scss']
+  selector: "app-sound",
+  templateUrl: "./sound.component.html",
+  styleUrls: ["./sound.component.scss"],
 })
 export class SoundComponent implements OnInit {
+  constructor() {}
 
-  constructor() { }
-
-  ngOnInit(): void {
-  }
-
+  ngOnInit(): void {}
 }
 
 // .controller('SoundCtrl', ['$scope', '$interval', '$timeout', '$http', 'soundsFactory', 'soundsEditFactory', 'localStorageService',
@@ -91,7 +88,6 @@ export class SoundComponent implements OnInit {
 //                 console.log(err);
 //             });
 
-
 //         $scope.changeCollection = function(collection){
 //                 var objectData = {
 //                     "fields": "all",
@@ -120,4 +116,3 @@ export class SoundComponent implements OnInit {
 
 //     }
 // ])
-

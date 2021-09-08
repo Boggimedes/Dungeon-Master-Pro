@@ -1,0 +1,35 @@
+ngb-accordion .card-body {
+  padding: 0px;
+  max-height: 40vh;
+}
+
+::ng-deep .card-body {
+  padding: 0px;
+}
+
+::ng-deep .table tr.selected,
+.table .selected td {
+  background-color: #d4d46a !important;
+  color: black !important;
+  font-weight: 500;
+}
+
+.npc-row > div {
+  display: flex;
+}
+
+.npc-row > div > label {
+  position: absolute;
+}
+
+.npc-row > div > input {
+  margin-top: 1.5rem;
+}
+
+.npc-row > div > button {
+  margin-top: 1.5rem;
+}
+
+.npc-row > div > div.dropdown {
+  margin-top: 1.5rem;
+}

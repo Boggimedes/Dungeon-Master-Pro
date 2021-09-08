@@ -1,12 +1,18 @@
-import { Directive, HostListener, ChangeDetectorRef, OnInit, OnDestroy, HostBinding, Input } from '@angular/core';
-import { TopMenuLinkDirective } from '../shared/directives/topmenu-link.directive';
-import { Subscription } from 'rxjs';
-import { number } from 'ngx-custom-validators/src/app/number/validator';
-import { Multiattack, Attack } from './attacks';
-
+import {
+  Directive,
+  HostListener,
+  ChangeDetectorRef,
+  OnInit,
+  OnDestroy,
+  HostBinding,
+  Input,
+} from "@angular/core";
+import { TopMenuLinkDirective } from "../shared/directives/topmenu-link.directive";
+import { Subscription } from "rxjs";
+import { number } from "ngx-custom-validators/src/app/number/validator";
+import { Multiattack, Attack } from "./attacks";
 
 export class Combatant {
-
   public name: string;
   public id: number = null;
   public armor_class: number;
@@ -36,7 +42,7 @@ export class Combatant {
   public caster_level: Number;
   public spells: [];
   public rangedSpell: Number;
-  public senses: string = '';
+  public senses: string = "";
   public meleeSpell: Number;
   public editable: boolean = false;
   public set spellcasting(value) {
@@ -46,18 +52,18 @@ export class Combatant {
     this.spells = value.spells;
     this.rangedSpell = value.ranged_spell;
     this.meleeSpell = value.melee_spell;
-  };
+  }
   public image: string = null;
   public persistentEffect;
   public turn;
   public special;
   public desc;
-  public size: string = "Unknown"; 
-  
+  public size: string = "Unknown";
+
   constructor(private data: any) {
     console.log(typeof data.multiattacks);
     console.log(data.multiattacks);
-  if (data.multiattacks) {
+    if (data.multiattacks) {
       let attackNames;
       let attacks: [Attack];
       let multiattack: Multiattack;
@@ -65,15 +71,17 @@ export class Combatant {
       console.log(typeof data.attacks);
       console.log(data.attacks);
       attacks = data.attacks.map((a) => new Attack(a));
-      if (typeof data.attacks !== 'object')  attacks = data.attacks.map((a) => new Attack(a));
+      if (typeof data.attacks !== "object")
+        attacks = data.attacks.map((a) => new Attack(a));
       for (let i = 0; i < data.multiattacks.length; i++) {
-        if (typeof data.multiattacks[i].attacks !== 'string') continue;
-        attackNames = data.multiattacks[i].attacks.split(',');
+        if (typeof data.multiattacks[i].attacks !== "string") continue;
+        attackNames = data.multiattacks[i].attacks.split(",");
         multiattack = new Multiattack(data.multiattacks[i]);
         multiattack.attacks = [];
         for (let k = 0; k < attackNames.length; k++) {
           for (let r = 0; r < attacks.length; r++) {
-            if (attacks[r].name.toLowerCase() == attackNames[k].toLowerCase()) multiattack.attacks.push(new Attack(attacks[r]));
+            if (attacks[r].name.toLowerCase() == attackNames[k].toLowerCase())
+              multiattack.attacks.push(new Attack(attacks[r]));
           }
           data.multiattacks[i] = multiattack;
         }
@@ -82,5 +90,4 @@ export class Combatant {
     }
     Object.assign(this, data);
   }
-
 }

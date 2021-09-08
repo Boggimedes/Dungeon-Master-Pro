@@ -52,7 +52,7 @@ export class AuthService {
 
   logout() {
     // this._firebaseAuth.signOut();
-    this.router.navigate(['YOUR_LOGOUT_URL']);
+    this.router.navigate(['/logout']);
   }
 
   isAuthenticated() {

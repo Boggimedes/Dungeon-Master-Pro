@@ -57,24 +57,24 @@
       74788);
 
       var routes = [{
-        path: '',
+        path: "",
         children: [{
-          path: 'error',
+          path: "error",
           component: _error_error_page_component__WEBPACK_IMPORTED_MODULE_0__.ErrorPageComponent,
           data: {
-            title: 'Error Page'
+            title: "Error Page"
           }
         }, {
-          path: 'login',
+          path: "login",
           component: _signin_signin_component__WEBPACK_IMPORTED_MODULE_1__.SigninComponent,
           data: {
-            title: 'Login Page'
+            title: "Login Page"
           }
         }, {
-          path: 'signup',
+          path: "signup",
           component: _signup_signup_component__WEBPACK_IMPORTED_MODULE_2__.SignupComponent,
           data: {
-            title: 'Signup Page'
+            title: "Signup Page"
           }
         }]
       }];
@@ -279,7 +279,7 @@
 
             _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](10, "p");
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](11, "The page you are looking for might have beel removed, had it's name changed, or is temporarily unavailable.");
+            _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](11, " The page you are looking for might have beel removed, had it's name changed, or is temporarily unavailable. ");
 
             _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
 
@@ -420,7 +420,7 @@
 
           _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵelement"](1, "i", 28);
 
-          _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵtext"](2, " This is required");
+          _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵtext"](2, " This is required ");
 
           _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵelementEnd"]();
         }
@@ -482,16 +482,16 @@
             }
 
             this.spinner.show(undefined, {
-              type: 'ball-triangle-path',
-              size: 'medium',
-              bdColor: 'rgba(0, 0, 0, 0.8)',
-              color: '#fff',
+              type: "ball-triangle-path",
+              size: "medium",
+              bdColor: "rgba(0, 0, 0, 0.8)",
+              color: "#fff",
               fullScreen: true
             });
             this.authService.signinUser(this.loginForm.value.username, this.loginForm.value.password).subscribe(function (result) {
               _this.responseHandler(result);
             }, function (error) {
-              console.log('error: ' + error);
+              console.log("error: " + error);
               _this.isLoginFailed = true;
 
               _this.spinner.hide();
@@ -502,7 +502,7 @@
 
               _this.loginForm.reset();
 
-              _this.router.navigate(['app/page']);
+              _this.router.navigate(["app/edit-worlds"]);
             });
           } // Handle response
 
@@ -806,10 +806,10 @@
           this.authService = authService;
           this.errors = null;
           this.registerForm = this.fb.group({
-            name: [''],
-            email: [''],
-            password: [''],
-            password_confirmation: ['']
+            name: [""],
+            email: [""],
+            password: [""],
+            password_confirmation: [""]
           });
         }
 
@@ -828,7 +828,7 @@
             }, function () {
               _this2.registerForm.reset();
 
-              _this2.router.navigate(['login']);
+              _this2.router.navigate(["login"]);
             });
           }
         }]);
@@ -920,7 +920,7 @@
 
             _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementStart"](24, "button", 9);
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵtext"](25, "Register User");
+            _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵtext"](25, " Register User ");
 
             _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementEnd"]();
 
@@ -1021,7 +1021,7 @@
       _AuthStateService.ɵprov = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdefineInjectable"]({
         token: _AuthStateService,
         factory: _AuthStateService.ɵfac,
-        providedIn: 'root'
+        providedIn: "root"
       });
       /***/
     }

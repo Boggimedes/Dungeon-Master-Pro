@@ -21380,6 +21380,20 @@ html body.layout-dark.layout-transparent .accordion .card .card-header button:no
 .chartist-tooltip:not(.tooltip-show):before {
   border: 0;
 }
+.flex-grow {
+  flex-grow: 2;
+}
+.flex-grow-more {
+  flex-grow: 3;
+}
+.table-fixed-head {
+  overflow: auto;
+}
+.table-fixed-head thead th {
+  position: sticky;
+  top: -2px;
+  z-index: 1;
+}
 /* You can add global styles to this file, and also import other style files */
 /* app css stylesheet */
 .combatSpecial{
@@ -21552,4 +21566,13 @@ footer.footer {
     position: fixed;
     bottom: 0px;
     font-size: 0.75em;
+}
+.accordion .card .card-header button {
+  font-size: 1.3rem;
+  padding: 0.8rem;
+  padding-bottom: 0.8rem !important;
+}
+.accordion .card .card-header button:hover, .accordion .card .card-header .selected {
+  background-color: white;
+  font-weight: 800;
 }

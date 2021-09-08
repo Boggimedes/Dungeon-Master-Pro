@@ -1,16 +1,15 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { EditWorldsComponent } from './edit-worlds.component';
+import { EditWorldsComponent } from "./edit-worlds.component";
 
-describe('EditWorldsComponent', () => {
+describe("EditWorldsComponent", () => {
   let component: EditWorldsComponent;
   let fixture: ComponentFixture<EditWorldsComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ EditWorldsComponent ]
-    })
-    .compileComponents();
+      declarations: [EditWorldsComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {
@@ -19,7 +18,7 @@ describe('EditWorldsComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 });

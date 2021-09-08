@@ -1,118 +1,118 @@
-
-.subitem-table{
-    display:table;
-    width:100%;
-  }
-  .subitem-table a{
-    display:table-row !important;
-    width:100%;
-  }
-  .subitem-table a>span:first-child{
-    width:100%;
-    padding:0px 0px 0px 10px;
- }
-  .subitem-table a span{
-    padding:0px 16px 0px 8px;
-    display:table-cell;
-  }
-
+.subitem-table {
+	display: table;
+	width: 100%;
+}
+.subitem-table a {
+	display: table-row !important;
+	width: 100%;
+}
+.subitem-table a > span:first-child {
+	width: 100%;
+	padding: 0px 0px 0px 10px;
+}
+.subitem-table a span {
+	padding: 0px 16px 0px 8px;
+	display: table-cell;
+}
 
 .context-menu {
-    position: absolute;
+	position: absolute;
 }
 
 .active {
-  background-color: rgb(218, 218, 97) !important;
-  color:black !important;
+	background-color: rgb(218, 218, 97) !important;
+	color: black !important;
 }
 
 .active td {
-  color: black !important;
+	color: black !important;
 }
 
-:host ::ng-deep  .ps__rail-y {
-  background-color: transparent !important;
+:host ::ng-deep .ps__rail-y {
+	background-color: transparent !important;
 }
 .non-input {
-  color: white !important;
-  background-color: transparent;
-  border: 0px;
+	color: white !important;
+	background-color: transparent;
+	border: 0px;
 }
 
 .attrib-labels {
-  padding-right: 1rem !important;
-    padding-left: 5rem !important;
+	padding-right: 1rem !important;
+	padding-left: 5rem !important;
 }
 
 .combatant .name {
-  font-size: 2.5rem;
-    font-weight: 500;
+	font-size: 2.5rem;
+	font-weight: 500;
 }
 .combatant .size {
-  font-size: 0.8rem;
-    margin-top: -1rem;
+	font-size: 0.8rem;
+	margin-top: -1rem;
 }
 .tapered-rule {
-  display: block;
-  width: 100%;
-  height: 0.35ren;
-  border: none;
-  color: #975AFF;
-  fill: #975AFF;
+	display: block;
+	width: 100%;
+	height: 0.35ren;
+	border: none;
+	color: #975aff;
+	fill: #975aff;
 }
 
-.vertical-buttons, .vertical-buttons button{
-  border-top-left-radius: 0px;
-  border-top-right-radius: 0px;
-  width: 100%;
+.vertical-buttons,
+.vertical-buttons button {
+	border-top-left-radius: 0px;
+	border-top-right-radius: 0px;
+	width: 100%;
 }
 
 .right-side-button {
-  position: absolute;
-    top: 29vh;
-    right: -20px;
-    color: #BFBEC2;
-    width: 4rem;
-    padding: 0.5em;
-    border-top-left-radius: 1em;
-    border-bottom-left-radius: 1em;
+	position: absolute;
+	top: 29vh;
+	right: -20px;
+	color: #bfbec2;
+	width: 4rem;
+	padding: 0.5em;
+	border-top-left-radius: 1em;
+	border-bottom-left-radius: 1em;
 }
 
 .right-side-button fa-icon {
-  font-size: 2.5em;
+	font-size: 2.5em;
 }
 
-
-.monster, .monster > h4 {
-  border-bottom-right-radius: .35rem; 
-  border-bottom-left-radius: .35rem;
-  margin-bottom: 0px;
+.monster,
+.monster > h4 {
+	border-bottom-right-radius: 0.35rem;
+	border-bottom-left-radius: 0.35rem;
+	margin-bottom: 0px;
 }
 
-.monster > div, .monster > div > img {
-  border-top-right-radius: .35rem; 
-  border-top-left-radius: .35rem
+.monster > div,
+.monster > div > img {
+	border-top-right-radius: 0.35rem;
+	border-top-left-radius: 0.35rem;
 }
 
 .clear-search {
-  position: absolute;
-  top: -2px;
-  right: 20px;
-  font-size: 1.1rem;
-  cursor: pointer;
+	position: absolute;
+	top: -2px;
+	right: 20px;
+	font-size: 1.1rem;
+	cursor: pointer;
 }
 
 .monster-search {
-  max-height: calc(100vh - 12rem);
+	max-height: calc(100vh - 12rem);
 }
 
 .favorite-icon {
-  position: absolute;
-    bottom: 1.4rem;
-    right: 0.6rem;
-    color: black;
+	position: absolute;
+	bottom: 1.4rem;
+	right: 0.6rem;
+	color: black;
 }
 
 .favorite {
-  color: red;
+	color: red;
 }

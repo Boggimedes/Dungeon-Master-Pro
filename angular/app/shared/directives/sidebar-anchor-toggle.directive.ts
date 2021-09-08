@@ -1,16 +1,14 @@
-import { Directive, HostListener, Inject } from '@angular/core';
+import { Directive, HostListener, Inject } from "@angular/core";
 
 import { SidebarLinkDirective } from "./sidebar-link.directive";
 
 @Directive({
-  selector: "[appSidebarAnchorToggle]"
+  selector: "[appSidebarAnchorToggle]",
 })
 export class SidebarAnchorToggleDirective {
   protected navlink: SidebarLinkDirective;
 
-  constructor(
-    @Inject(SidebarLinkDirective) navlink: SidebarLinkDirective
-  ) {
+  constructor(@Inject(SidebarLinkDirective) navlink: SidebarLinkDirective) {
     this.navlink = navlink;
   }
 

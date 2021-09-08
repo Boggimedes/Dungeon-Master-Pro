@@ -1,15 +1,25 @@
-import { Directive, ElementRef, Input, OnInit, ViewContainerRef } from '@angular/core';
-import { fromEvent } from 'rxjs';
-import { ConnectionPositionPair, Overlay, OverlayRef } from '@angular/cdk/overlay';
-import { AutocompleteComponent } from './autocomplete.component';
-import { TemplatePortal } from '@angular/cdk/portal';
-import { filter, takeUntil } from 'rxjs/operators';
-import { NgControl } from '@angular/forms';
-import { untilDestroyed } from 'ngx-take-until-destroy';
-import { Router, NavigationEnd } from '@angular/router';
+import {
+  Directive,
+  ElementRef,
+  Input,
+  OnInit,
+  ViewContainerRef,
+} from "@angular/core";
+import { fromEvent } from "rxjs";
+import {
+  ConnectionPositionPair,
+  Overlay,
+  OverlayRef,
+} from "@angular/cdk/overlay";
+import { AutocompleteComponent } from "./autocomplete.component";
+import { TemplatePortal } from "@angular/cdk/portal";
+import { filter, takeUntil } from "rxjs/operators";
+import { NgControl } from "@angular/forms";
+import { untilDestroyed } from "ngx-take-until-destroy";
+import { Router, NavigationEnd } from "@angular/router";
 
 @Directive({
-  selector: '[appAutocomplete]'
+  selector: "[appAutocomplete]",
 })
 export class AutocompleteDirective implements OnInit {
   @Input() appAutocomplete: AutocompleteComponent;
@@ -20,31 +30,33 @@ export class AutocompleteDirective implements OnInit {
     private ngControl: NgControl,
     private vcr: ViewContainerRef,
     private overlay: Overlay,
-    private router: Router,
-  ) {
-  }
+    private router: Router
+  ) {}
 
   get control() {
     return this.ngControl.control;
   }
 
   ngOnInit() {
-    fromEvent(this.origin, 'focus').pipe(
-      untilDestroyed(this)
-    ).subscribe(() => {
-      this.openDropdown();
+    fromEvent(this.origin, "focus")
+      .pipe(untilDestroyed(this))
+      .subscribe(() => {
+        this.openDropdown();
 
-      this.appAutocomplete.optionsClick()
-        .pipe(takeUntil(this.overlayRef.detachments()))
-        .subscribe(( value: string ) => {
-          this.control.setValue(value);
-          this.close();
-        });
-    });
+        this.appAutocomplete
+          .optionsClick()
+          .pipe(takeUntil(this.overlayRef.detachments()))
+          .subscribe((value: string) => {
+            this.control.setValue(value);
+            this.close();
+          });
+      });
 
-    this.router.events.pipe(filter(event => event instanceof NavigationEnd)).subscribe((routeChange) => {
-      this.close();
-    });
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((routeChange) => {
+        this.close();
+      });
   }
 
   openDropdown() {
@@ -52,23 +64,26 @@ export class AutocompleteDirective implements OnInit {
     this.overlayRef = this.overlay.create({
       width: this.origin.offsetWidth,
       maxHeight: 40 * 3,
-      backdropClass: '',
+      backdropClass: "",
       scrollStrategy: this.overlay.scrollStrategies.reposition(),
-      positionStrategy: this.getOverlayPosition()
+      positionStrategy: this.getOverlayPosition(),
     });
 
-    const template = new TemplatePortal(this.appAutocomplete.rootTemplate, this.vcr);
+    const template = new TemplatePortal(
+      this.appAutocomplete.rootTemplate,
+      this.vcr
+    );
     this.overlayRef.attach(template);
 
-    overlayClickOutside(this.overlayRef, this.origin).subscribe(() => this.close());
+    overlayClickOutside(this.overlayRef, this.origin).subscribe(() =>
+      this.close()
+    );
   }
 
   ngOnDestroy() {}
 
-
-
   private close() {
-    if(this.overlayRef) {
+    if (this.overlayRef) {
       this.overlayRef.detach();
     }
 
@@ -78,13 +93,13 @@ export class AutocompleteDirective implements OnInit {
   private getOverlayPosition() {
     const positions = [
       new ConnectionPositionPair(
-        { originX: 'start', originY: 'bottom' },
-        { overlayX: 'start', overlayY: 'top' }
+        { originX: "start", originY: "bottom" },
+        { overlayX: "start", overlayY: "top" }
       ),
       new ConnectionPositionPair(
-        { originX: 'start', originY: 'top' },
-        { overlayX: 'start', overlayY: 'bottom' }
-      )
+        { originX: "start", originY: "top" },
+        { overlayX: "start", overlayY: "bottom" }
+      ),
     ];
 
     return this.overlay
@@ -100,15 +115,19 @@ export class AutocompleteDirective implements OnInit {
   }
 }
 
-export function overlayClickOutside( overlayRef: OverlayRef, origin: HTMLElement ) {
-  return fromEvent<MouseEvent>(document, 'click')
-    .pipe(
-      filter(event => {
-        const clickTarget = event.target as HTMLElement;
-        const notOrigin = clickTarget !== origin; // the input
-        const notOverlay = !!overlayRef && (overlayRef.overlayElement.contains(clickTarget) === false); // the autocomplete
-        return notOrigin && notOverlay;
-      }),
-      takeUntil(overlayRef.detachments())
-    )
+export function overlayClickOutside(
+  overlayRef: OverlayRef,
+  origin: HTMLElement
+) {
+  return fromEvent<MouseEvent>(document, "click").pipe(
+    filter((event) => {
+      const clickTarget = event.target as HTMLElement;
+      const notOrigin = clickTarget !== origin; // the input
+      const notOverlay =
+        !!overlayRef &&
+        overlayRef.overlayElement.contains(clickTarget) === false; // the autocomplete
+      return notOrigin && notOverlay;
+    }),
+    takeUntil(overlayRef.detachments())
+  );
 }

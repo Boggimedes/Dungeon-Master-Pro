@@ -1,22 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from "@angular/core";
 
 @Component({
-  selector: 'app-monsters',
-  templateUrl: './monsters.component.html',
-  styleUrls: ['./monsters.component.scss']
+	selector: "app-monsters",
+	templateUrl: "./monsters.component.html",
+	styleUrls: ["./monsters.component.scss"],
 })
 export class MonstersComponent implements OnInit {
+	constructor() {}
 
-  constructor() { }
-
-  ngOnInit(): void {
-  }
-
+	ngOnInit(): void {}
 }
 
 // .controller('MonstersCtrl', ['$scope', '$log', 'monsterFactory', '$filter', '$timeout', '$routeParams', 'Upload', '$sce',
 //     function($scope, $log, monsterFactory, $filter, $timeout, $routeParams, Upload, $sce) {
-
 
 //         $scope.tinymceOptions = {
 //             inline: false,
@@ -41,7 +37,7 @@ export class MonstersComponent implements OnInit {
 //         };
 //         $scope.trust = function(snippet) {
 //           return $sce.trustAsHtml(snippet);
-//         };  
+//         };
 //         $scope.heading = "Add a new Monster";
 //         if ($routeParams.id !== 'new') {
 //             $scope.heading = "Update Monster";
@@ -147,7 +143,6 @@ export class MonstersComponent implements OnInit {
 //         var orderBy = $filter('orderBy');
 //         $scope.mfilter = '';
 
-
 //         $scope.addMulti = function(attack) {
 //             console.log(attack);
 //             if (typeof attack.submenu == 'undefined') {
@@ -167,7 +162,6 @@ export class MonstersComponent implements OnInit {
 //                 $scope.upload($scope.files);
 //             }
 //         });
-
 
 //         $scope.upload = function(files) {
 //             if (files && files.length) {
@@ -199,14 +193,12 @@ export class MonstersComponent implements OnInit {
 //                 $scope.result = response.data;
 //             });
 //         }, function (response) {
-//             if (response.status > 0) $scope.errorMsg = response.status 
+//             if (response.status > 0) $scope.errorMsg = response.status
 //                 + ': ' + response.data;
 //         }, function (evt) {
 //             $scope.progress = parseInt(100.0 * evt.loaded / evt.total);
 //         });
 //     }
-
-
 
 //     }
 // ])

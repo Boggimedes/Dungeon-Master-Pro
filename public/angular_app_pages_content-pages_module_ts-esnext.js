@@ -24,31 +24,31 @@ __webpack_require__.r(__webpack_exports__);
 
 const routes = [
     {
-        path: '',
+        path: "",
         children: [
             {
-                path: 'error',
+                path: "error",
                 component: _error_error_page_component__WEBPACK_IMPORTED_MODULE_0__.ErrorPageComponent,
                 data: {
-                    title: 'Error Page'
-                }
+                    title: "Error Page",
+                },
             },
             {
-                path: 'login',
+                path: "login",
                 component: _signin_signin_component__WEBPACK_IMPORTED_MODULE_1__.SigninComponent,
                 data: {
-                    title: 'Login Page'
-                }
+                    title: "Login Page",
+                },
             },
             {
-                path: 'signup',
+                path: "signup",
                 component: _signup_signup_component__WEBPACK_IMPORTED_MODULE_2__.SignupComponent,
                 data: {
-                    title: 'Signup Page'
-                }
-            }
-        ]
-    }
+                    title: "Signup Page",
+                },
+            },
+        ],
+    },
 ];
 class ContentPagesRoutingModule {
 }
@@ -99,11 +99,9 @@ ContentPagesModule.ɵinj = /*@__PURE__*/ _angular_core__WEBPACK_IMPORTED_MODULE_
             _angular_forms__WEBPACK_IMPORTED_MODULE_6__.FormsModule,
             _angular_forms__WEBPACK_IMPORTED_MODULE_6__.ReactiveFormsModule,
             _ng_bootstrap_ng_bootstrap__WEBPACK_IMPORTED_MODULE_7__.NgbModule,
-            ngx_spinner__WEBPACK_IMPORTED_MODULE_8__.NgxSpinnerModule
+            ngx_spinner__WEBPACK_IMPORTED_MODULE_8__.NgxSpinnerModule,
         ]] });
-(function () { (typeof ngJitMode === "undefined" || ngJitMode) && _angular_core__WEBPACK_IMPORTED_MODULE_4__["ɵɵsetNgModuleScope"](ContentPagesModule, { declarations: [_error_error_page_component__WEBPACK_IMPORTED_MODULE_1__.ErrorPageComponent,
-        _signin_signin_component__WEBPACK_IMPORTED_MODULE_2__.SigninComponent,
-        _signup_signup_component__WEBPACK_IMPORTED_MODULE_3__.SignupComponent], imports: [_angular_common__WEBPACK_IMPORTED_MODULE_5__.CommonModule,
+(function () { (typeof ngJitMode === "undefined" || ngJitMode) && _angular_core__WEBPACK_IMPORTED_MODULE_4__["ɵɵsetNgModuleScope"](ContentPagesModule, { declarations: [_error_error_page_component__WEBPACK_IMPORTED_MODULE_1__.ErrorPageComponent, _signin_signin_component__WEBPACK_IMPORTED_MODULE_2__.SigninComponent, _signup_signup_component__WEBPACK_IMPORTED_MODULE_3__.SignupComponent], imports: [_angular_common__WEBPACK_IMPORTED_MODULE_5__.CommonModule,
         _content_pages_routing_module__WEBPACK_IMPORTED_MODULE_0__.ContentPagesRoutingModule,
         _angular_forms__WEBPACK_IMPORTED_MODULE_6__.FormsModule,
         _angular_forms__WEBPACK_IMPORTED_MODULE_6__.ReactiveFormsModule,
@@ -145,7 +143,7 @@ ErrorPageComponent.ɵcmp = /*@__PURE__*/ _angular_core__WEBPACK_IMPORTED_MODULE_
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](9, "div", 8);
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](10, "p");
-        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](11, "The page you are looking for might have beel removed, had it's name changed, or is temporarily unavailable.");
+        _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵtext"](11, " The page you are looking for might have beel removed, had it's name changed, or is temporarily unavailable. ");
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementEnd"]();
         _angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵelementStart"](12, "a", 9);
@@ -207,7 +205,7 @@ function SigninComponent_ngb_alert_14_Template(rf, ctx) { if (rf & 1) {
 function SigninComponent_div_18_Template(rf, ctx) { if (rf & 1) {
     _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵelementStart"](0, "div", 27);
     _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵelement"](1, "i", 28);
-    _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵtext"](2, " This is required");
+    _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵtext"](2, " This is required ");
     _angular_core__WEBPACK_IMPORTED_MODULE_3__["ɵɵelementEnd"]();
 } }
 function SigninComponent_div_21_Template(rf, ctx) { if (rf & 1) {
@@ -230,7 +228,7 @@ class SigninComponent {
         this.loginForm = new _angular_forms__WEBPACK_IMPORTED_MODULE_4__.FormGroup({
             username: new _angular_forms__WEBPACK_IMPORTED_MODULE_4__.FormControl([_angular_forms__WEBPACK_IMPORTED_MODULE_4__.Validators.required]),
             password: new _angular_forms__WEBPACK_IMPORTED_MODULE_4__.FormControl([_angular_forms__WEBPACK_IMPORTED_MODULE_4__.Validators.required]),
-            rememberMe: new _angular_forms__WEBPACK_IMPORTED_MODULE_4__.FormControl(true)
+            rememberMe: new _angular_forms__WEBPACK_IMPORTED_MODULE_4__.FormControl(true),
         });
     }
     get lf() {
@@ -243,23 +241,25 @@ class SigninComponent {
             return;
         }
         this.spinner.show(undefined, {
-            type: 'ball-triangle-path',
-            size: 'medium',
-            bdColor: 'rgba(0, 0, 0, 0.8)',
-            color: '#fff',
-            fullScreen: true
+            type: "ball-triangle-path",
+            size: "medium",
+            bdColor: "rgba(0, 0, 0, 0.8)",
+            color: "#fff",
+            fullScreen: true,
         });
-        this.authService.signinUser(this.loginForm.value.username, this.loginForm.value.password).subscribe(result => {
+        this.authService
+            .signinUser(this.loginForm.value.username, this.loginForm.value.password)
+            .subscribe((result) => {
             this.responseHandler(result);
-        }, error => {
-            console.log('error: ' + error);
+        }, (error) => {
+            console.log("error: " + error);
             this.isLoginFailed = true;
             this.spinner.hide();
         }, () => {
             this.spinner.hide();
             this.authState.setAuthState(true);
             this.loginForm.reset();
-            this.router.navigate(['app/page']);
+            this.router.navigate(["app/edit-worlds"]);
         });
     }
     // Handle response
@@ -407,21 +407,21 @@ class SignupComponent {
         this.authService = authService;
         this.errors = null;
         this.registerForm = this.fb.group({
-            name: [''],
-            email: [''],
-            password: [''],
-            password_confirmation: ['']
+            name: [""],
+            email: [""],
+            password: [""],
+            password_confirmation: [""],
         });
     }
     ngOnInit() { }
     onSubmit() {
-        this.authService.signupUser(this.registerForm.value).subscribe(result => {
+        this.authService.signupUser(this.registerForm.value).subscribe((result) => {
             console.log(result);
-        }, error => {
+        }, (error) => {
             this.errors = error.error;
         }, () => {
             this.registerForm.reset();
-            this.router.navigate(['login']);
+            this.router.navigate(["login"]);
         });
     }
 }
@@ -462,7 +462,7 @@ SignupComponent.ɵcmp = /*@__PURE__*/ _angular_core__WEBPACK_IMPORTED_MODULE_1__
         _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelement"](23, "input", 8);
         _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementEnd"]();
         _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementStart"](24, "button", 9);
-        _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵtext"](25, "Register User");
+        _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵtext"](25, " Register User ");
         _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementEnd"]();
         _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementEnd"]();
         _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵelementEnd"]();
@@ -510,7 +510,7 @@ class AuthStateService {
     }
 }
 AuthStateService.ɵfac = function AuthStateService_Factory(t) { return new (t || AuthStateService)(_angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_token_service__WEBPACK_IMPORTED_MODULE_0__.TokenService)); };
-AuthStateService.ɵprov = /*@__PURE__*/ _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdefineInjectable"]({ token: AuthStateService, factory: AuthStateService.ɵfac, providedIn: 'root' });
+AuthStateService.ɵprov = /*@__PURE__*/ _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdefineInjectable"]({ token: AuthStateService, factory: AuthStateService.ɵfac, providedIn: "root" });
 
 
 /***/ })

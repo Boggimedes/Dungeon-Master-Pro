@@ -85,3 +85,15 @@ html body.layout-dark {
     border: 0;
   }
 }
+
+.flex-grow {
+  flex-grow: 2;
+}
+
+.flex-grow-more {
+  flex-grow: 3;
+}
+
+
+.table-fixed-head          { overflow: auto;  }
+.table-fixed-head thead th { position: sticky; top: -2px; z-index: 1; }

@@ -1,224 +1,1065 @@
 <div class="row">
-    <div class="col-12" >
-            <div class="form-control-group">
-                <label for="selectedWorld">Selected World</label>
-                <input type="text" [(ngModel)]="selectedWorld.name" class="form-control">
-            </div>
-            <button type="button" class="btn btn-primary" (click)="newWorld()">Add New World</button>
-            <table class="table table-striped">
-                <thead><tr><th>Race</th><th>Alive</th><th>Immortals</th></tr></thead>
-                <tbody>
-                    <tr *ngFor="race of selectedWorld.stats"><td>{{race.name}}</td><td>{{race.livingCount}}</td><td>{{race.immortalCount}}</td></tr>
-                </tbody>
-            </table>
+  <div class="col-12">
+    <div class="form-control-group">
+      <label for="selectedWorld">Selected World</label>
+      <input
+        type="text"
+        [(ngModel)]="selectedWorld.name"
+        class="form-control"
+      />
     </div>
-    <div class="col-12" #worldDetails="ngbCollapse" [(ngbCollapse)]="worldCollapsed">
-          <div #collapse="ngbCollapse" [(ngbCollapse)]="worldCollapsed">
-            <div class="col-md-6">
-                <h2>World Races</h2>
+    <button type="button" class="btn btn-primary" (click)="newWorld()">
+      Add New World
+    </button>
+  </div>
+  <div class="col-12 p-3">
+    <div class="card">
+      <div class="card-content">
+        <div class="card-body">
+          <ngb-accordion #acc="ngbAccordion" [closeOthers]="true">
+            <ngb-panel title="World Stats">
+              <ng-template ngbPanelHeader let-opened="opened">
+                <div
+                  class="d-flex align-items-center justify-content-between"
+                  [class.selected]="opened"
+                >
+                  <button ngbPanelToggle class="btn btn-link">
+                    World Stats
+                  </button>
+                </div>
+              </ng-template>
+              <ng-template ngbPanelContent>
                 <table class="table table-sm table-striped">
-                    <thead><tr><th>Race</th><th>Adulthood</th><th>Middle Age</th><th>Old Age</th><th>Venerable</th><th>Max Age</th><th>Friend Rate</th><th>Enemy Rate</th></tr></thead>
-                    <tbody>
-                        <tr *ngFor="race of selectedWorld.races">
-                            <td>{{race.name}}</td>
-                            <td>{{race.adulthood}}</td>
-                            <td>{{race.middle_age}}</td>
-                            <td>{{race.old_age}}</td>
-                            <td>{{race.venerable}}</td>
-                            <td>{{race.max_age}}</td>
-                            <td>{{race.friend_rate}}</td>
-                            <td>{{race.enemy_rate}}</td> 
-                        </tr>
-                    </tbody>
+                  <thead>
+                    <tr>
+                      <th>Race</th>
+                      <th>Alive</th>
+                      <th>Immortals</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <ng-container *ngFor="let stat of selectedWorld.stats">
+                      <tr *ngIf="stat.living > 0">
+                        <td>{{ stat.race }}</td>
+                        <td>{{ stat.living }}</td>
+                        <td>{{ stat.immortal }}</td>
+                      </tr>
+                    </ng-container>
+                  </tbody>
                 </table>
-                <div>
-                    <div class="form-group">
-                        <label for="raceName">Name</label>
-                        <input type="text" [(ngModel)]="selectedRace.name" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Genders</label>
-                        <input type="text" [(ngModel)]="selectedRace.gender" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Adulthood</label>
-                        <input type="text" [(ngModel)]="selectedRace.adulthood" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Middle Age</label>
-                        <input type="text" [(ngModel)]="selectedRace.middle_age" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Old Age</label>
-                        <input type="text" [(ngModel)]="selectedRace.old_age" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Venerable</label>
-                        <input type="text" [(ngModel)]="selectedRace.venerable" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Max Age</label>
-                        <input type="text" [(ngModel)]="selectedRace.max_age" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Friend Rate</label>
-                        <input type="text" [(ngModel)]="selectedRace.friend_rate" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="raceName">Enemy Rate</label>
-                        <input type="text" [(ngModel)]="selectedRace.enemy_rate" class="form-control">
-                    </div>
+              </ng-template>
+            </ngb-panel>
+            <ngb-panel title="Races">
+              <ng-template ngbPanelHeader let-opened="opened">
+                <div
+                  class="d-flex align-items-center justify-content-between"
+                  [class.selected]="opened"
+                >
+                  <button ngbPanelToggle class="btn btn-link">Races</button>
                 </div>
-            </div>
-           <div class="col-md-6">
-                <h2>World Professions</h2>
-                <table class="table table-sm table-striped">
-                    <thead><tr><th>Profession</th><th>Minimum Age</th><th>Maximum Age</th></tr></thead>
+              </ng-template>
+              <ng-template ngbPanelContent>
+                <div class="col-12">
+                  <h2>World Races</h2>
+                  <input class="form-control" [(ngModel)]="racesSearch" />
+                  <table class="table table-sm table-striped">
+                    <thead>
+                      <tr>
+                        <th>Race</th>
+                        <th>Genders</th>
+                        <th>Adulthood</th>
+                        <th>Middle Age</th>
+                        <th>Old Age</th>
+                        <th>Venerable</th>
+                        <th>Max Age</th>
+                        <th>Friend Rate</th>
+                        <th>Enemy Rate</th>
+                      </tr>
+                    </thead>
                     <tbody>
-                        <tr *ngFor="profession of selectedWorld.professions">
-                            <td>{{profession.name}}</td>
-                            <td>{{profession.min_age}}</td>
-                            <td>{{profession.max_age}}</td>
-                        </tr>
+                      <tr
+                        (click)="selectedRace = race"
+                        [class.selected]="selectedRace.name == race.name"
+                        *ngFor="
+                          let race of (filteredRaces
+                            ? filteredRaces
+                            : selectedWorld.races
+                          ) | slice: (rPage - 1) * rPageSize:rPage * rPageSize
+                        "
+                      >
+                        <td>{{ race.name }}</td>
+                        <td>
+                          <ng-container *ngIf="race.genders">{{
+                            genderNames(race.genders)
+                          }}</ng-container>
+                        </td>
+                        <td>{{ race.adulthood }}</td>
+                        <td>{{ race.middle_age }}</td>
+                        <td>{{ race.old_age }}</td>
+                        <td>{{ race.venerable }}</td>
+                        <td>{{ race.max_age }}</td>
+                        <td>{{ race.friend_rate }}</td>
+                        <td>{{ race.enemy_rate }}</td>
+                      </tr>
                     </tbody>
-                </table>
-                <div>
-                    <div class="form-group">
-                        <label for="professionName">Name</label>
-                        <input type="text" [(ngModel)]="selectedProfession.name" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="professionMinAge">Minimum Age</label>
-                        <input type="text" [(ngModel)]="selectedProfession.min_age" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="professionMaxAge">Mazimum Age</label>
-                        <input type="text" [(ngModel)]="selectedProfession.max_age" class="form-control">
-                    </div>
+                  </table>
+                  <ngb-pagination
+                    class="d-flex justify-content-center"
+                    [maxSize]="8"
+                    [boundaryLinks]="true"
+                    [(page)]="rPage"
+                    [pageSize]="rPageSize"
+                    [collectionSize]="
+                      (filteredRaces ? filteredRaces : selectedWorld.races)
+                        .length
+                    "
+                  ></ngb-pagination>
                 </div>
-            </div>
-                <h2>Descriptive Text</h2>
-                <table class="table table-sm table-striped">
-                    <thead><tr><th>Text</th><th>Type</th><th>gender</th><th>Race</th></tr></thead>
-                    <tbody>
-                        <tr *ngFor="descriptive of selectedWorld.desctiptives">
-                            <td>{{descriptive.text}}</td>
-                            <td>{{descriptive.type}}</td>
-                            <td>{{descriptive.gender}}</td>
-                            <td>{{descriptive.race}}</td>
+                <div class="row">
+                  <div class="form-group col">
+                    <label for="raceName">Name</label>
+                    <input
+                      type="text"
+                      [(ngModel)]="selectedRace.name"
+                      class="form-control"
+                    />
+                  </div>
+                  <ng-container *ngIf="!showGender">
+                    <div class="col">
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary h-100"
+                        (click)="showGender = true"
+                      >
+                        Edit Genders
+                      </button>
+                    </div>
+                    <div
+                      class="col-5 text-center radius-no-left radius-no-right"
+                    >
+                      <div class="row">
+                        <div class="col p-0">
+                          <label for="raceName">Adult</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedRace.adulthood"
+                            class="form-control text-center"
+                          />
+                        </div>
+                        <div class="col p-0">
+                          <label for="raceName">Middle</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedRace.middle_age"
+                            class="form-control text-center"
+                          />
+                        </div>
+                        <div class="col p-0">
+                          <label for="raceName">Old</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedRace.old_age"
+                            class="form-control text-center"
+                          />
+                        </div>
+                        <div class="col p-0">
+                          <label for="raceName">Venerable</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedRace.venerable"
+                            class="form-control text-center"
+                          />
+                        </div>
+                        <div class="col p-0">
+                          <label for="raceName">Max </label>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedRace.max_age"
+                            class="form-control text-center"
+                          />
+                        </div>
+                        <div class="col p-0">
+                          <label for="raceName">Friend</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedRace.friend_rate"
+                            class="form-control text-center"
+                          />
+                        </div>
+                        <div class="col p-0">
+                          <label for="raceName">Enemy</label>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedRace.enemy_rate"
+                            class="form-control text-center"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </ng-container>
+                  <div class="col">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary h-100"
+                      (click)="saveRace(selectedRace)"
+                    >
+                      Save Race
+                    </button>
+                  </div>
+                </div>
+                <ng-container *ngIf="showGender">
+                  <ng-container
+                    *ngFor="let gender of selectedRace.genders; let i = index"
+                  >
+                    <div class="row">
+                      <div class="col-3">
+                        <label for="raceName">{{
+                          i == 0 ? "Birthing Gender Name" : "Gender Name"
+                        }}</label>
+                        <input
+                          type="text"
+                          [(ngModel)]="selectedRace.genders[i][0]"
+                          class="form-control"
+                        />
+                      </div>
+                      <div class="col-9">
+                        <label for="raceName">Name Generation String</label>
+                        <textarea
+                          class="form-control"
+                          rows="1"
+                          placeholder="Default 'fantasy'"
+                          [(ngModel)]="selectedRace.genders[i][1]"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </ng-container>
+                  <div class="row">
+                    <div class="col-3">
+                      <label for="raceName">Gender Name</label>
+                      <input
+                        type="text"
+                        [(ngModel)]="newGender[0]"
+                        class="form-control"
+                      />
+                    </div>
+                    <div class="col-7">
+                      <label for="raceName">Name Generation String</label>
+                      <textarea
+                        class="form-control"
+                        rows="1"
+                        placeholder="Default 'fantasy'"
+                        [(ngModel)]="newGender[1]"
+                      ></textarea>
+                    </div>
+                    <div class="col">
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary"
+                        (click)="
+                          showGenders = false;
+                          newGender = [];
+                          selectedRace.genders.push(newGender)
+                        "
+                      >
+                        Save Gender
+                      </button>
+                    </div>
+                  </div>
+                </ng-container>
+              </ng-template>
+            </ngb-panel>
+            <ngb-panel title="Descriptives & Professions">
+              <ng-template ngbPanelHeader let-opened="opened">
+                <div
+                  class="d-flex align-items-center justify-content-between"
+                  [class.selected]="opened"
+                >
+                  <button ngbPanelToggle class="btn btn-link">
+                    Descriptives & Professions
+                  </button>
+                </div>
+              </ng-template>
+              <ng-template
+                ngbPanelContent
+                *ngIf="
+                  filteredDescriptives
+                    ? filteredDescriptives
+                    : selectedWorld.descriptives
+                "
+              >
+                <div class="row">
+                  <div class="col-12 col-sm-7">
+                    <h4>Descriptive Text</h4>
+                    <input
+                      class="form-control"
+                      [(ngModel)]="descriptiveSearch"
+                      (keyup)="filterDescriptives()"
+                    />
+                    <table class="table table-sm table-striped">
+                      <thead>
+                        <tr>
+                          <th>Text</th>
+                          <th>Type</th>
+                          <th>Gender</th>
+                          <th>Race</th>
                         </tr>
-                    </tbody>
-                </table>
-                <div>
-                    <div class="form-group">
-                        <label for="descriptiveText">Text</label>
-                        <input type="text" [(ngModel)]="selectedDescriptive.text" class="form-control">
+                      </thead>
+                      <tbody>
+                        <ng-container
+                          *ngFor="
+                            let descriptive of (filteredDescriptives
+                              ? filteredDescriptives
+                              : selectedWorld.descriptives
+                            ) | slice: (dPage - 1) * dPageSize:dPage * dPageSize
+                          "
+                        >
+                          <tr
+                            (click)="selectedDescriptive = descriptive"
+                            [class.selected]="
+                              selectedDescriptive.text == descriptive.text
+                            "
+                          >
+                            <td>
+                              {{ descriptive.text }}
+                            </td>
+                            <td>
+                              {{ descriptive.type }}
+                            </td>
+                            <td>
+                              {{ descriptive.gender }}
+                            </td>
+                            <td>
+                              {{ descriptive.race }}
+                            </td>
+                          </tr>
+                        </ng-container>
+                      </tbody>
+                    </table>
+                    <ngb-pagination
+                      class="d-flex justify-content-center"
+                      [maxSize]="15"
+                      [boundaryLinks]="true"
+                      [(page)]="dPage"
+                      [pageSize]="dPageSize"
+                      [collectionSize]="
+                        (filteredDescriptives
+                          ? filteredDescriptives
+                          : selectedWorld.descriptives
+                        ).length
+                      "
+                    ></ngb-pagination>
+                    <div class="row">
+                      <div class="col-12">
+                        <div class="input-group">
+                          <div class="input-group-prepend">
+                            <span class="input-group-text">Text </span>
+                          </div>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedDescriptive.text"
+                            class="form-control"
+                          />
+                        </div>
+                      </div>
+                      <div class="col-4" *ngIf="customVisible">
+                        <div class="input-group">
+                          <div class="input-group-prepend">
+                            <span class="input-group-text">Custom Type</span>
+                          </div>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedDescriptive.type"
+                            class="form-control"
+                          />
+                        </div>
+                      </div>
+                      <div
+                        class="co-4"
+                        *ngIf="selectedDescriptive.type == 'body extra'"
+                      >
+                        <div ngbDropdown container="body">
+                          <button
+                            class="btn btn-outline-primary h-100"
+                            ngbDropdownToggle
+                          >
+                            {{
+                              selectedDescriptive.type
+                                ? selectedDescriptive.type
+                                : "Type"
+                            }}
+                          </button>
+                          <div ngbDropdownMenu>
+                            <ng-container *ngFor="let type of descriptiveTypes">
+                              <button
+                                ngbDropdownItem
+                                class="dropdown-item"
+                                (click)="selectedDescriptive.type = type"
+                              >
+                                {{ type }}
+                              </button>
+                            </ng-container>
+                            <button
+                              ngbDropdownItem
+                              class="dropdown-item"
+                              (click)="customVisible = true"
+                            >
+                              Custom
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="col d-flex">
+                        <div
+                          ngbDropdown
+                          container="body"
+                          *ngIf="!customVisible"
+                        >
+                          <button
+                            class="btn btn-outline-primary"
+                            (click)="selectedDescriptive.type = ''"
+                            ngbDropdownToggle
+                          >
+                            {{
+                              selectedDescriptive.type
+                                ? selectedDescriptive.type
+                                : "Type"
+                            }}
+                          </button>
+                          <div ngbDropdownMenu>
+                            <ng-container *ngFor="let type of descriptiveTypes">
+                              <button
+                                *ngIf="type.substring(0, 4) != 'body'"
+                                ngbDropdownItem
+                                class="dropdown-item"
+                                (click)="selectedDescriptive.type = type"
+                              >
+                                {{ type }}
+                              </button>
+                              <div
+                                ngbDropdown
+                                container="body"
+                                *ngIf="type == 'body'"
+                              >
+                                <button
+                                  class="btn btn-outline-primary"
+                                  ngbDropdownToggle
+                                >
+                                  body
+                                </button>
+                                <div ngbDropdownMenu>
+                                  <ng-container
+                                    *ngFor="
+                                      let type of selectedWorld.body_types
+                                    "
+                                  >
+                                    <button
+                                      ngbDropdownItem
+                                      class="dropdown-item"
+                                      (click)="
+                                        selectedDescriptive.type =
+                                          'body (' + type + ')'
+                                      "
+                                    >
+                                      {{ type }}
+                                    </button>
+                                  </ng-container>
+                                </div>
+                              </div>
+                              <div
+                                ngbDropdown
+                                container="body"
+                                *ngIf="type == 'body extra'"
+                              >
+                                <button
+                                  class="btn btn-outline-primary"
+                                  ngbDropdownToggle
+                                >
+                                  body extra
+                                </button>
+                                <div ngbDropdownMenu>
+                                  <ng-container
+                                    *ngFor="
+                                      let type of selectedWorld.body_types
+                                    "
+                                  >
+                                    <button
+                                      ngbDropdownItem
+                                      class="dropdown-item"
+                                      (click)="
+                                        selectedDescriptive.type =
+                                          'extra ' + type
+                                      "
+                                    >
+                                      {{ type }}
+                                    </button>
+                                  </ng-container>
+                                </div>
+                              </div>
+                            </ng-container>
+                            <button
+                              ngbDropdownItem
+                              class="dropdown-item"
+                              (click)="customVisible = true"
+                            >
+                              Custom
+                            </button>
+                          </div>
+                        </div>
+                        <div *ngIf="selectedDescriptive.type == 'body'">
+                          <div class="input-group">
+                            <div class="input-group-prepend">
+                              <span class="input-group-text">Body Type</span>
+                            </div>
+                            <input
+                              type="text"
+                              (change)="
+                                selectedDescriptive.type =
+                                  selectedDescriptive.type +
+                                  ' (' +
+                                  $event.target.value +
+                                  ')'
+                              "
+                              class="form-control"
+                              style="width: 10rem"
+                            />
+                          </div>
+                        </div>
+                        <div ngbDropdown container="body" class="ml-2">
+                          <button
+                            class="btn btn-outline-primary h-100"
+                            ngbDropdownToggle
+                          >
+                            Race
+                          </button>
+                          <div ngbDropdownMenu class="wide-dropdown">
+                            <ng-container
+                              *ngFor="let race of selectedWorld.races"
+                            >
+                              <button
+                                ngbDropdownItem
+                                class="dropdown-item"
+                                (click)="addBalance(race, region)"
+                              >
+                                {{ race.name }}
+                              </button>
+                            </ng-container>
+                          </div>
+                        </div>
+                        <div ngbDropdown container="body" class="ml-2">
+                          <button
+                            class="btn btn-outline-primary h-100"
+                            ngbDropdownToggle
+                          >
+                            {{
+                              selectedDescriptive.gender
+                                ? selectedDescriptive.gender
+                                : "Gender"
+                            }}
+                          </button>
+                          <div ngbDropdownMenu>
+                            <ng-container *ngFor="let gender of genders">
+                              <button
+                                ngbDropdownItem
+                                class="dropdown-item"
+                                (click)="selectedDescriptive.gender = gender"
+                              >
+                                {{ gender }}
+                              </button>
+                            </ng-container>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          (click)="customVisible = false; saveDescriptive()"
+                          class="btn btn-primary ml-2"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
-                    <div class="form-group">
-                        <label for="descriptiveType">Type</label>
-                        <input type="text" [(ngModel)]="selectedDescriptive.type" class="form-control">
+                  </div>
+                  <div class="col-12 col-sm-5">
+                    <h4>World Professions</h4>
+                    <input
+                      class="form-control"
+                      [(ngModel)]="professionSearch"
+                      (keyup)="filterProfessions()"
+                    />
+                    <table class="table table-sm table-striped">
+                      <thead>
+                        <tr>
+                          <th>Profession</th>
+                          <th>Min Age</th>
+                          <th>Max Age</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          (click)="selectedProfession = profession"
+                          [class.selected]="
+                            selectedProfession.name == profession.name
+                          "
+                          *ngFor="
+                            let profession of (filteredProfessions
+                              ? filteredProfessions
+                              : selectedWorld.professions
+                            ) | slice: (pPage - 1) * pPageSize:pPage * pPageSize
+                          "
+                        >
+                          <td>
+                            {{ profession.name }}
+                          </td>
+                          <td>
+                            {{ ageGroups[profession.min_age] }}
+                          </td>
+                          <td>
+                            {{ ageGroups[profession.max_age] }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                    <ngb-pagination
+                      class="d-flex justify-content-center"
+                      [maxSize]="4"
+                      [boundaryLinks]="true"
+                      [(page)]="pPage"
+                      [pageSize]="pPageSize"
+                      [collectionSize]="
+                        (filteredProfessions
+                          ? filteredProfessions
+                          : selectedWorld.professions
+                        ).length
+                      "
+                    ></ngb-pagination>
+                    <div class="row">
+                      <div class="col">
+                        <div class="input-group mb-0">
+                          <div class="input-group-prepend">
+                            <span class="input-group-text">Name</span>
+                          </div>
+                          <input
+                            type="text"
+                            [(ngModel)]="selectedProfession.name"
+                            class="form-control"
+                          />
+                        </div>
+                      </div>
+                      <div class="col d-flex">
+                        <div ngbDropdown container="body" class="">
+                          <button
+                            class="btn btn-outline-primary"
+                            ngbDropdownToggle
+                          >
+                            {{
+                              selectedProfession.min_age
+                                ? ageGroups[selectedProfession.min_age]
+                                : "Min Age"
+                            }}
+                          </button>
+                          <div ngbDropdownMenu>
+                            <ng-container *ngFor="let group of ageGroupsKeys">
+                              <button
+                                ngbDropdownItem
+                                class="dropdown-item"
+                                (click)="minAge(group)"
+                              >
+                                {{ ageGroups[group] }}
+                              </button>
+                            </ng-container>
+                          </div>
+                        </div>
+                        <div ngbDropdown container="body" class="ml-2">
+                          <button
+                            class="btn btn-outline-primary"
+                            ngbDropdownToggle
+                          >
+                            {{
+                              selectedProfession.max_age
+                                ? ageGroups[selectedProfession.max_age]
+                                : "Max Age"
+                            }}
+                          </button>
+                          <div ngbDropdownMenu>
+                            <ng-container *ngFor="let group of ageGroupsKeys">
+                              <button
+                                ngbDropdownItem
+                                class="dropdown-item"
+                                (click)="maxAge(group)"
+                              >
+                                {{ ageGroups[group] }}
+                              </button>
+                            </ng-container>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          (click)="saveProfession()"
+                          class="btn btn-outline-primary ml-2"
+                        >
+                          Save
+                        </button>
+                      </div>
                     </div>
-                    <div class="form-group">
-                        <label for="descriptiveRace">Race</label>
-                        <input type="text" [(ngModel)]="selectedDescriptive.race" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label for="descriptiveGender">Gender</label>
-                        <input type="text" [(ngModel)]="selectedDescriptive.gender" class="form-control">
-                    </div>
+                  </div>
                 </div>
-                </div>
-          </div>        
-    <div class="col-12"><button type="button" class="btn btn-outline-primary" (click)="worldDetails.toggle()" [attr.aria-expanded]="!worldCollapsed">Toggle World Details</button></div>
+              </ng-template>
+            </ngb-panel>
+          </ngb-accordion>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-            <button class="btn btn-success" (click)="newRegion()">Add New Region</button>
-<div class="row">
-        <div *ngFor="region of selectedWorld.regions; let i = index;" class="col-4">
-        <div class="card"> 
-        <div class="card-content">
-          <table class="table table-sm table-striped">
-            <thead><tr><th>Race</th><th>Alive</th><th>Average Age</th></tr></thead>
-            <tbody><tr *ngFor="race of selectedWorld.region.stats"><td>{{race.name}}</td><td>{{race.livingCount}}</td><td>{{race.immortalCount}}</td></tr></tbody>
-          </table>
-        <div class="">
-        <div class="form-group">
-          <label for="regiontName">Region Name</label>
-          <input type="text" class="form-control" [(ngModel)]="region.name">
-        </div>
-        <div class="form-group">
-          <label for="regionEpoch">Epoch</label>
-          <input type="text" class="form-control" [(ngModel)]="region.epoch">
-        </div>
-  
-        <div class="form-group">
-          <button type="button" title="Delete Region" class="btn btn-default icon-buttons" (click)="deleteRegion(region)"><i class="fa fa-times"></i></button>
-        </div>
-        <div class="form-group">
-          <button type="button" title="Save Changes" class="btn btn-default icon-buttons"  (click)="saveRegion(region)"><i class="fa fa-save"></i></button>
-        </div>
-  
-        </div>
-        <div class="">
-        <div class="form-group">
-          <a  class="btn btn-default icon-buttons" title="View Npcs"  href="/app/edit-npcs/{{region.id}}"><i class="fa fa-street-view "></i></a>
-        </div>
-        <div class="form-group">
-          <a  class="btn btn-default icon-buttons" title="Clear Region" (click)="clearRegion(region, index)"><img src="/img/hung.png" ><i class="fa fa-street-view " ></i></a>
-        </div>
-        <div class="form-group">
-          <a  class="btn btn-default  icon-buttons" title="Seed Region" (click)="seedRegion(region.id, $index)"><i class="fa fa-users "></i></a>
-        </div>
-        <div class="form-group">
-        <a  class="btn btn-default icon-buttons" title="Age Region" (click)="ageRegion(region.id, ageYears, $index)"><i class="fa fa-hourglass-half"></i></a>
-        </div> 
-             <div class="form-group">
-        <label>Years</label>
-          <input  type="number" class="form-control" [(ngModel)]="ageYears" max="100" min="1"/>
-        </div>
-        </div>
-  
-        </div>
-        <div class="form-group">
-            <label>Balance Value</label>
-            <input placeholder="value" type="number" class="col-md-3 form-control" [(ngModel)]="raceNum">
-        </div>
-        <div class="form-group" >
-          <label>Racial Balance </label> 
-          <div ngbDropdown>
-            <button class="btn btn-outline-primary" ngbDropdownToggle>Add Race Entry</button>
-            <div ngbDropdownMenu>
-                <ng-container *ngFor="race of selectedWorld.races" >
-                    <button  ngbDropdownItem class="dropdown-item" (click)="addBalance(race, region)">{{race.name}}</button>
-                </ng-container>
+<div class="row pb-5">
+  <div class="col-12">
+    <button class="btn btn-success" (click)="newRegion()">
+      Add New Region
+    </button>
+    <button class="btn btn-outline-primary ml-2" (click)="linkAll()">
+      All <fa-icon [icon]="faLink"></fa-icon>
+    </button>
+  </div>
+  <div
+    *ngFor="let region of selectedWorld.regions; let i = index"
+    class="col-12"
+  >
+    <div class="card">
+      <div class="card-content">
+        <div class="card-body p-2">
+          <fa-icon
+            class="link"
+            [icon]="faLink"
+            [class.linked]="region.linked"
+            (click)="linkToggle(i)"
+          ></fa-icon>
+          <div class="d-flex">
+            <div class="row region-first-block">
+              <div class="col-6">
+                <label for="regiontName">Region Name</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="region.name"
+                />
+              </div>
+              <div class="col-5">
+                <label for="regionEpoch">Epoch</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="region.epoch"
+                />
+              </div>
+              <div class="col-12">
+                <div class="btn-group btn-group-lg mt-2">
+                  <a
+                    class="btn btn-light icon-buttons"
+                    title="Edit Npcs"
+                    href="/app/region/{{ region.id }}/edit-npcs"
+                    ><i class="fa fa-street-view"></i
+                  ></a>
+                  <button
+                    type="button"
+                    class="btn btn-light icon-buttons"
+                    title="Clear Region"
+                    (click)="clearRegion(region, i)"
+                  >
+                    <fa-icon [icon]="faSkullCrossbones"></fa-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-light icon-buttons"
+                    title="Seed Region"
+                    (click)="seedRegion(region, i)"
+                  >
+                    <i class="fa fa-users"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-light icon-buttons"
+                    title="Age Region"
+                    (click)="ageRegion(region, ageYears, i)"
+                  >
+                    <span class="years">{{ ageYears > 1 ? ageYears : "" }}</span
+                    ><i class="fa fa-hourglass-half"></i>
+                  </button>
+                  <div ngbDropdown container="body">
+                    <button
+                      class="
+                        btn btn-lg btn-light
+                        radius-no-left
+                        px-1
+                        icon-buttons
+                      "
+                      ngbDropdownToggle
+                    ></button>
+                    <div ngbDropdownMenu>
+                      <ng-container
+                        *ngFor="let years of [1, 5, 10, 20, 50, 100]"
+                      >
+                        <button
+                          ngbDropdownItem
+                          class="dropdown-item"
+                          (click)="ageYears = years"
+                        >
+                          {{ years }}
+                        </button>
+                      </ng-container>
+                    </div>
+                  </div>
+                </div>
+                <div class="btn-group btn-group-lg mt-2 ml-2">
+                  <button
+                    type="button"
+                    class="btn btn-info icon-buttons"
+                    title="Save Changes"
+                    (click)="saveRegion(region, i)"
+                  >
+                    <i class="fa fa-save"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-info icon-buttons"
+                    title="Duplicate Region"
+                    (click)="newRegion(region)"
+                  >
+                    <fa-icon [icon]="faClone"></fa-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-danger icon-buttons"
+                    title="Delete Region"
+                    (click)="deleteRegion(region, i)"
+                  >
+                    <i class="fa fa-times"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="col-12 mt-2">
+                <perfect-scrollbar
+                  class="scroll-container table-fixed-head"
+                  [scrollXMarginOffset]="100"
+                  style="position: relative; height: 10rem"
+                  fxFlex="auto"
+                  [config]="config"
+                >
+                  <table class="table table-sm table-striped">
+                    <thead>
+                      <tr>
+                        <th>Race</th>
+                        <th>Alive</th>
+                        <th>Immortal</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <ng-container *ngFor="let stat of region.stats">
+                        <tr *ngIf="stat.living > 0">
+                          <td>{{ stat.name }}</td>
+                          <td>{{ stat.living }}</td>
+                          <td>{{ stat.immortal }}</td>
+                        </tr>
+                      </ng-container>
+                    </tbody>
+                  </table>
+                </perfect-scrollbar>
+              </div>
             </div>
-        </div>
-        </div>
-          <div class="col-12 border">
-          <div *ngFor="stat of region.racialBalance;let i = index">
-          <span>{{stat.race}} </span> {{stat.value}}<i (click)="region.racialBalance.splice(i,1)"  class="fa fa-times-circle"></i>
+            <div class="region-second-block">
+              <h5 class="">Feature Chance</h5>
+              <perfect-scrollbar
+                class="scroll-container table-fixed-head"
+                style="position: relative; height: 15rem"
+                fxFlex="auto"
+                [config]="config"
+              >
+                <table class="table table-sm table-striped">
+                  <thead>
+                    <tr>
+                      <th>Feature</th>
+                      <th>Chance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr
+                      *ngFor="
+                        let type of selectedWorld.descriptive_types;
+                        let t = index
+                      "
+                    >
+                      <td>{{ type }}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          style="width: 5rem"
+                          (change)="
+                            changeFeature(
+                              {
+                                name: type,
+                                chance: $event.target.value
+                              },
+                              region
+                            )
+                          "
+                          [ngModel]="region.feature_types[type]?.chance"
+                        />
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </perfect-scrollbar>
+            </div>
+            <div class="row ml-1">
+              <div class="col-6">
+                <div class="row">
+                  <h5 class="col-12">Racial Balance</h5>
+                  <div class="form-group col-6">
+                    <input
+                      placeholder="value (default 10)"
+                      type="number"
+                      class="form-control"
+                      [(ngModel)]="raceNum"
+                    />
+                  </div>
+                  <div class="form-group col-6">
+                    <div ngbDropdown>
+                      <button class="btn btn-outline-primary" ngbDropdownToggle>
+                        Race
+                      </button>
+                      <div ngbDropdownMenu class="wide-dropdown">
+                        <ng-container *ngFor="let race of selectedWorld.races">
+                          <button
+                            class="dropdown-item"
+                            (click)="
+                              addBalance(
+                                race,
+                                'racial_balance',
+                                i,
+                                raceNum ? raceNum : 10
+                              )
+                            "
+                          >
+                            {{ race.name }}
+                          </button>
+                        </ng-container>
+                        <button
+                          class="dropdown-item"
+                          (click)="
+                            addBalance(
+                              'all',
+                              'racial_balance',
+                              i,
+                              raceNum ? raceNum : 10
+                            )
+                          "
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <perfect-scrollbar
+                  class="scroll-container border badge-box"
+                  style="position: relative"
+                  fxFlex="auto"
+                  [config]="config"
+                >
+                  <div
+                    *ngFor="let race of region.racial_balance; let r = index"
+                    class="badge badge-light m-1"
+                  >
+                    <span>{{ race.name }} </span>
+                    {{ race.value
+                    }}<i
+                      (click)="
+                        selectedWorld.regions[i].racial_balance.splice(r, 1)
+                      "
+                      class="fa fa-times-circle font-danger ml-1"
+                    ></i>
+                  </div>
+                </perfect-scrollbar>
+              </div>
+              <div class="col-6">
+                <div class="row">
+                  <h5 class="col-12">Profession Balance</h5>
+                  <div class="form-group col-6">
+                    <input
+                      placeholder="value (default 10)"
+                      type="number"
+                      class="form-control"
+                      [(ngModel)]="profNum"
+                    />
+                  </div>
+                  <div class="form-group col-6">
+                    <div ngbDropdown>
+                      <button class="btn btn-outline-primary" ngbDropdownToggle>
+                        Profession
+                      </button>
+                      <div ngbDropdownMenu class="wide-dropdown">
+                        <ng-container
+                          *ngFor="let profession of selectedWorld.professions"
+                        >
+                          <button
+                            class="dropdown-item"
+                            (click)="
+                              addBalance(
+                                profession,
+                                'prof_balance',
+                                i,
+                                profNum ? profNum : 10
+                              )
+                            "
+                          >
+                            {{ profession.name }}
+                          </button>
+                        </ng-container>
+                        <button
+                          class="dropdown-item"
+                          (click)="
+                            addBalance(
+                              'all',
+                              'prof_balance',
+                              i,
+                              profNum ? profNum : 10
+                            )
+                          "
+                        >
+                          All
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <perfect-scrollbar
+                  class="scroll-container border badge-box"
+                  style="position: relative"
+                  fxFlex="auto"
+                  [config]="config"
+                >
+                  <div
+                    *ngFor="
+                      let profession of region.prof_balance;
+                      let i = index
+                    "
+                    class="badge badge-light m-1"
+                  >
+                    <span>{{ profession.name }} </span>
+                    {{ profession.value
+                    }}<i
+                      (click)="
+                        selectedWorld.regions[i].prof_balance.splice(i, 1)
+                      "
+                      class="fa fa-times-circle font-danger ml-1"
+                    ></i>
+                  </div>
+                </perfect-scrollbar>
+              </div>
+            </div>
           </div>
         </div>
-        <div class="form-group">
-            <label>Balance Value</label>
-            <input placeholder="value" type="number" class="col-md-3 form-control" [(ngModel)]="raceNum">
-        </div>
-        <div class="form-group" >
-          <label>Profession Balance </label> 
-          <div ngbDropdown>
-            <button class="btn btn-outline-primary" ngbDropdownToggle>Add Race Entry</button>
-            <div ngbDropdownMenu>
-                <ng-container *ngFor="profession of selectedWorld.professions" >
-                    <button  ngbDropdownItem class="dropdown-item" (click)="addBalance(profession, region)">{{profession.name}}</button>
-                </ng-container>
-            </div>
-        </div>
-        </div>
-          <div class="col-12 border">
-          <div *ngFor="stat of region.professionBalance;let i = index">
-          <span>{{stat.profession}} </span> {{stat.value}}<i (click)="region.professionBalance.splice(i,1)"  class="fa fa-times-circle"></i>
-          </div>
-        </div>
-        </div>
       </div>
-      </div>
-  
+    </div>
+  </div>
+</div>

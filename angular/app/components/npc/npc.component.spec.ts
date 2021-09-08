@@ -1,16 +1,15 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from "@angular/core/testing";
 
-import { NpcComponent } from './npc.component';
+import { NpcComponent } from "./npc.component";
 
-describe('NpcComponent', () => {
+describe("NpcComponent", () => {
   let component: NpcComponent;
   let fixture: ComponentFixture<NpcComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ NpcComponent ]
-    })
-    .compileComponents();
+      declarations: [NpcComponent],
+    }).compileComponents();
   });
 
   beforeEach(() => {
@@ -19,7 +18,7 @@ describe('NpcComponent', () => {
     fixture.detectChanges();
   });
 
-  it('should create', () => {
+  it("should create", () => {
     expect(component).toBeTruthy();
   });
 });

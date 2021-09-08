@@ -1,15 +1,12 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from "@angular/core";
 
 @Component({
-  selector: 'app-edit-monsters',
-  templateUrl: './edit-monsters.component.html',
-  styleUrls: ['./edit-monsters.component.scss']
+	selector: "app-edit-monsters",
+	templateUrl: "./edit-monsters.component.html",
+	styleUrls: ["./edit-monsters.component.scss"],
 })
 export class EditMonstersComponent implements OnInit {
+	constructor() {}
 
-  constructor() { }
-
-  ngOnInit(): void {
-  }
-
+	ngOnInit(): void {}
 }

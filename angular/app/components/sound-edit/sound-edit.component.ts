@@ -1,19 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from "@angular/core";
 
 @Component({
-  selector: 'app-sound-edit',
-  templateUrl: './sound-edit.component.html',
-  styleUrls: ['./sound-edit.component.scss']
+	selector: "app-sound-edit",
+	templateUrl: "./sound-edit.component.html",
+	styleUrls: ["./sound-edit.component.scss"],
 })
 export class SoundEditComponent implements OnInit {
+	constructor() {}
 
-  constructor() { }
-
-  ngOnInit(): void {
-  }
-
+	ngOnInit(): void {}
 }
-
 
 // .controller('SoundEditCtrl', ['$scope', '$timeout', '$interval', 'soundsDatasource', 'soundsEditFactory', 'soundsFactory', '$routeParams', '$filter', 'angularPlayer', 'Upload',
 //     function($scope, $timeout, $interval, soundsDatasource, soundsEditFactory, soundsFactory, $routeParams, $filter, angularPlayer, Upload) {
@@ -388,8 +384,6 @@ export class SoundEditComponent implements OnInit {
 //             soundsEditFactory.deleteScene(id);
 //         };
 
-
-
 //         $scope.playSound = function(sound, effect) {
 
 //             $scope.soundPlaying[sound.name] = !$scope.soundPlaying[sound.name];
@@ -432,7 +426,6 @@ export class SoundEditComponent implements OnInit {
 //             soundsFactory.toggleScene(effectObject);
 
 //         };
-
 
 //     }
 // ])

@@ -1,86 +1,149 @@
-<nav class="navbar navbar-expand-lg navbar-light header-navbar {{transparentBGClass}}"
-  [ngClass]="{'navbar-brand-center': menuPosition === 'Top', 'navbar-static': menuPosition === 'Side' &&
-  config?.layout.navbar.type === 'Static' , 'navbar-sticky': menuPosition === 'Side' &&
-  config?.layout.navbar.type === 'Fixed', 'fixed-top': isSmallScreen && menuPosition === 'Top'}">
+<nav
+  class="navbar navbar-expand-lg navbar-light header-navbar {{
+    transparentBGClass
+  }}"
+  [ngClass]="{
+    'navbar-brand-center': menuPosition === 'Top',
+    'navbar-static':
+      menuPosition === 'Side' && config?.layout.navbar.type === 'Static',
+    'navbar-sticky':
+      menuPosition === 'Side' && config?.layout.navbar.type === 'Fixed',
+    'fixed-top': isSmallScreen && menuPosition === 'Top'
+  }"
+>
   <div class="container-fluid navbar-wrapper">
     <div class="navbar-header d-flex">
-      <div class="navbar-toggle menu-toggle d-xl-none d-block float-left align-items-center justify-content-center"
-        data-toggle="collapse" (click)="toggleSidebar()">
+      <div
+        class="
+          navbar-toggle
+          menu-toggle
+          d-xl-none d-block
+          float-left
+          align-items-center
+          justify-content-center
+        "
+        data-toggle="collapse"
+        (click)="toggleSidebar()"
+      >
         <i class="ft-menu font-medium-3"></i>
       </div>
       <ul class="navbar-nav" (clickOutside)="toggleSearchOpenClass(false)">
         <li class="nav-item mr-2 d-none d-lg-block">
-          <a class="nav-link apptogglefullscreen" id="navbar-fullscreen" href="javascript:;" appToggleFullscreen
-            (click)="ToggleClass()"><i class=" {{toggleClass}} font-medium-3"></i></a>
+          <a
+            class="nav-link apptogglefullscreen"
+            id="navbar-fullscreen"
+            routerLink="javascript:;"
+            appToggleFullscreen
+            (click)="ToggleClass()"
+            ><i class=" {{ toggleClass }} font-medium-3"></i
+          ></a>
         </li>
         <li>
-          <a class="nav-link" href="/app/story">Story</a>
+          <a class="nav-link" routerLink="/app/story">Story</a>
         </li>
         <li>
-          <a class="nav-link" href="/app/combat">Combat</a>
+          <a class="nav-link" routerLink="/app/combat">Combat</a>
         </li>
       </ul>
     </div>
     <div class="navbar-container">
       <div class="collapse navbar-collapse d-block" id="navbarSupportedContent">
         <ul class="navbar-nav">
-          <li class="dropdown nav-item mr-1" placement="bottom-left" display="static" ngbDropdown >
-            <a class="nav-link dropdown-toggle user-dropdown d-flex align-items-end" id="dropdownBasic2"
-              href="javascript:;" data-toggle="dropdown" ngbDropdownToggle>
+          <li
+            class="dropdown nav-item mr-1"
+            placement="bottom-left"
+            display="static"
+            ngbDropdown
+          >
+            <a
+              class="
+                nav-link
+                dropdown-toggle
+                user-dropdown
+                d-flex
+                align-items-end
+              "
+              id="dropdownBasic2"
+              href="javascript:;"
+              data-toggle="dropdown"
+              ngbDropdownToggle
+            >
               <div class="user d-md-flex d-none mr-2">
                 <h4 class="text-right mb-0 mt-1">Edit Menu</h4>
               </div>
             </a>
-            <div class="dropdown-menu text-left dropdown-menu-right m-0 pb-0" style="font-size: 1.5rem;" aria-labelledby="dropdownBasic2"
-              ngbDropdownMenu>
-              <a class="dropdown-item" href="/app/edit/world">
+            <div
+              class="dropdown-menu text-left dropdown-menu-right m-0 pb-0"
+              style="font-size: 1.5rem"
+              aria-labelledby="dropdownBasic2"
+              ngbDropdownMenu
+            >
+              <a
+                class="dropdown-item"
+                routerLink="/app/world{{
+                  worldId ? '/' + worldId + '/edit' : ''
+                }}"
+              >
                 <div class="d-flex align-items-center">
-                  <fa-icon [icon]="faGlobe"></fa-icon> <span class="pl-2"> World</span>
+                  <fa-icon [icon]="faGlobe"></fa-icon>
+                  <span class="pl-2"> World</span>
                 </div>
               </a>
-              <a class="dropdown-item" href="/app/edit/monsters">
+              <a class="dropdown-item" routerLink="/app/edit-monsters">
                 <div class="d-flex align-items-center">
-                  <fa-icon [icon]="faDragon"></fa-icon> <span class="pl-2"> Monsters</span>
+                  <fa-icon [icon]="faDragon"></fa-icon>
+                  <span class="pl-2"> Monsters</span>
                 </div>
               </a>
-              <a class="dropdown-item" href="/app/edit/spells">
+              <a class="dropdown-item" routerLink="/app/edit-spells">
                 <div class="d-flex align-items-center">
-                  <fa-icon [icon]="faHatWizard"></fa-icon> <span class="pl-2"> Spells</span>
+                  <fa-icon [icon]="faHatWizard"></fa-icon>
+                  <span class="pl-2"> Spells</span>
                 </div>
               </a>
-              <a class="dropdown-item" href="/app/edit/npcs">
+              <a
+                class="dropdown-item"
+                *ngIf="regionId"
+                routerLink="/app/region/{{ regionId }}/edit-npcs"
+              >
                 <div class="d-flex align-items-center">
-                  <fa-icon [icon]="faUserFriends"></fa-icon> <span class="pl-2"> NPCs</span>
+                  <fa-icon [icon]="faUserFriends"></fa-icon>
+                  <span class="pl-2"> NPCs</span>
                 </div>
               </a>
-              <a class="dropdown-item" href="/app/edit/sounds">
+              <a class="dropdown-item" routerLink="/app/edit-sounds">
                 <div class="d-flex align-items-center">
-                  <fa-icon [icon]="faSlidersH"></fa-icon> <span class="pl-2"> Sounds</span>
+                  <fa-icon [icon]="faSlidersH"></fa-icon>
+                  <span class="pl-2"> Sounds</span>
                 </div>
               </a>
-              <a class="dropdown-item" href="/app/edit/maps">
+              <a class="dropdown-item" routerLink="/app/edit-maps">
                 <div class="d-flex align-items-center">
-                  <fa-icon [icon]="faMap"></fa-icon> <span class="pl-2"> Maps</span>
+                  <fa-icon [icon]="faMap"></fa-icon>
+                  <span class="pl-2"> Maps</span>
                 </div>
               </a>
-              <a class="dropdown-item" href="/app/edit/story">
+              <a class="dropdown-item" routerLink="/app/edit-story">
                 <div class="d-flex align-items-center">
-                  <fa-icon [icon]="faBookOpen"></fa-icon> <span class="pl-2"> Story</span>
+                  <fa-icon [icon]="faBookOpen"></fa-icon>
+                  <span class="pl-2"> Story</span>
                 </div>
               </a>
               <div class="dropdown-divider"></div>
             </div>
           </li>
           <li class="nav-item p-0 m-0">
-            <a class="nav-link notification-sidebar-toggle p-0 m-0" (click)="toggleNotificationSidebar();"><fa-icon style="font-size: 2.2em;" [icon]="faCaretSquareDown"></fa-icon></a>
+            <a
+              class="nav-link notification-sidebar-toggle p-0 m-0"
+              (click)="toggleNotificationSidebar()"
+              ><fa-icon
+                style="font-size: 2.2em"
+                [icon]="faCaretSquareDown"
+              ></fa-icon
+            ></a>
           </li>
         </ul>
       </div>
     </div>
   </div>
-
-
-
-
-
 </nav>

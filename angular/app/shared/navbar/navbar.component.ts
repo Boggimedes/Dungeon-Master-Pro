@@ -1,27 +1,43 @@
-import { Component, Output, EventEmitter, OnDestroy, OnInit, AfterViewInit, ChangeDetectorRef, Inject, Renderer2, ViewChild, ElementRef, ViewChildren, QueryList, HostListener } from '@angular/core';
-import { TranslateService } from '@ngx-translate/core';
-import { LayoutService } from '../services/layout.service';
-import { Subscription } from 'rxjs';
-import { ConfigService } from '../services/config.service';
-import { DOCUMENT } from '@angular/common';
-import { CustomizerService } from '../services/customizer.service';
-import { FormControl } from '@angular/forms';
-import { LISTITEMS } from '../data/template-search';
-import { Router } from '@angular/router';
-import { faDragon } from '@fortawesome/free-solid-svg-icons';
-import { faHatWizard } from '@fortawesome/free-solid-svg-icons';
-import { faUserFriends } from '@fortawesome/free-solid-svg-icons';
-import { faSlidersH } from '@fortawesome/free-solid-svg-icons';
-import { faCogs } from '@fortawesome/free-solid-svg-icons';
-import { faGlobe } from '@fortawesome/free-solid-svg-icons';
-import { faMap } from '@fortawesome/free-solid-svg-icons';
-import { faBookOpen } from '@fortawesome/free-solid-svg-icons';
-import { faCaretSquareDown } from '@fortawesome/free-regular-svg-icons';
+import {
+  Component,
+  Output,
+  EventEmitter,
+  OnDestroy,
+  OnInit,
+  AfterViewInit,
+  ChangeDetectorRef,
+  Inject,
+  Renderer2,
+  ViewChild,
+  ElementRef,
+  ViewChildren,
+  QueryList,
+  HostListener,
+} from "@angular/core";
+import { TranslateService } from "@ngx-translate/core";
+import { LayoutService } from "../services/layout.service";
+import { Subscription } from "rxjs";
+import { ConfigService } from "../services/config.service";
+import { DOCUMENT } from "@angular/common";
+import { CustomizerService } from "../services/customizer.service";
+import { FormControl } from "@angular/forms";
+import { LISTITEMS } from "../data/template-search";
+import { Router } from "@angular/router";
+import { faDragon } from "@fortawesome/free-solid-svg-icons";
+import { faHatWizard } from "@fortawesome/free-solid-svg-icons";
+import { faUserFriends } from "@fortawesome/free-solid-svg-icons";
+import { faSlidersH } from "@fortawesome/free-solid-svg-icons";
+import { faCogs } from "@fortawesome/free-solid-svg-icons";
+import { faGlobe } from "@fortawesome/free-solid-svg-icons";
+import { faMap } from "@fortawesome/free-solid-svg-icons";
+import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
+import { faCaretSquareDown } from "@fortawesome/free-regular-svg-icons";
+import { ActivatedRoute } from "@angular/router";
 
 @Component({
   selector: "app-navbar",
   templateUrl: "./navbar.component.html",
-  styleUrls: ["./navbar.component.scss"]
+  styleUrls: ["./navbar.component.scss"],
 })
 export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   currentLang = "en";
@@ -29,8 +45,8 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   selectedLanguageFlag = "./assets/img/flags/us.png";
   toggleClass = "ft-maximize";
   placement = "bottom-right";
-  logoUrl = 'assets/img/logo.png';
-  menuPosition = 'Side';
+  logoUrl = "assets/img/logo.png";
+  menuPosition = "Side";
   isSmallScreen = false;
   protected innerWidth: any;
   searchOpenClass = "";
@@ -46,8 +62,8 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   faSlidersH = faSlidersH;
   faBookOpen = faBookOpen;
   faGlobe = faGlobe;
-  @ViewChild('search') searchElement: ElementRef;
-  @ViewChildren('searchResults') searchResults: QueryList<any>;
+  @ViewChild("search") searchElement: ElementRef;
+  @ViewChildren("searchResults") searchResults: QueryList<any>;
 
   @Output()
   toggleHideSidebar = new EventEmitter<Object>();
@@ -59,21 +75,34 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   control = new FormControl();
   faDragon = faDragon;
   public config: any = {};
+  public worldId: number;
+  public regionId: number;
 
-  constructor(public translate: TranslateService,
+  constructor(
+    public translate: TranslateService,
     private layoutService: LayoutService,
     private router: Router,
-    private configService: ConfigService, private cdr: ChangeDetectorRef) {
+    private configService: ConfigService,
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
+  ) {
+    route.paramMap.subscribe((p) => {
+      console.log(p);
+      if (!!p.get("worldId")) {
+        this.worldId = parseInt(p.get("worldId"), 10);
+      }
+      if (!!p.get("regionId")) {
+        this.regionId = parseInt(p.get("regionId"), 10);
+      }
+    });
     const browserLang: string = translate.getBrowserLang();
     translate.use(browserLang.match(/en|es|pt|de/) ? browserLang : "en");
     this.config = this.configService.templateConf;
     this.innerWidth = window.innerWidth;
 
-    this.layoutSub = layoutService.toggleSidebar$.subscribe(
-      isShow => {
-        this.hideSidebar = !isShow;
-      });
-
+    this.layoutSub = layoutService.toggleSidebar$.subscribe((isShow) => {
+      this.hideSidebar = !isShow;
+    });
   }
 
   ngOnInit() {
@@ -81,22 +110,21 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
     if (this.innerWidth < 1200) {
       this.isSmallScreen = true;
-    }
-    else {
+    } else {
       this.isSmallScreen = false;
     }
   }
 
   ngAfterViewInit() {
-
-    this.configSub = this.configService.templateConf$.subscribe((templateConf) => {
-      if (templateConf) {
-        this.config = templateConf;
+    this.configSub = this.configService.templateConf$.subscribe(
+      (templateConf) => {
+        if (templateConf) {
+          this.config = templateConf;
+        }
+        this.loadLayout();
+        this.cdr.markForCheck();
       }
-      this.loadLayout();
-      this.cdr.markForCheck();
-
-    })
+    );
   }
 
   ngOnDestroy() {
@@ -108,70 +136,71 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  @HostListener('window:resize', ['$event'])
+  @HostListener("window:resize", ["$event"])
   onResize(event) {
     this.innerWidth = event.target.innerWidth;
     if (this.innerWidth < 1200) {
       this.isSmallScreen = true;
-    }
-    else {
+    } else {
       this.isSmallScreen = false;
     }
   }
 
   loadLayout() {
-
-    if (this.config.layout.menuPosition && this.config.layout.menuPosition.toString().trim() != "") {
+    if (
+      this.config.layout.menuPosition &&
+      this.config.layout.menuPosition.toString().trim() != ""
+    ) {
       this.menuPosition = this.config.layout.menuPosition;
     }
 
     if (this.config.layout.variant === "Light") {
-      this.logoUrl = 'assets/img/logo-dark.png';
-    }
-    else {
-      this.logoUrl = 'assets/img/logo.png';
+      this.logoUrl = "assets/img/logo-dark.png";
+    } else {
+      this.logoUrl = "assets/img/logo.png";
     }
 
     if (this.config.layout.variant === "Transparent") {
       this.transparentBGClass = this.config.layout.sidebar.backgroundColor;
-    }
-    else {
+    } else {
       this.transparentBGClass = "";
     }
-
   }
 
   onSearchKey(event: any) {
     if (this.searchResults && this.searchResults.length > 0) {
-      this.searchResults.first.host.nativeElement.classList.add('first-active-item');
+      this.searchResults.first.host.nativeElement.classList.add(
+        "first-active-item"
+      );
     }
 
     if (event.target.value === "") {
       this.seachTextEmpty.emit(true);
-    }
-    else {
+    } else {
       this.seachTextEmpty.emit(false);
     }
   }
 
   removeActiveClass() {
     if (this.searchResults && this.searchResults.length > 0) {
-      this.searchResults.first.host.nativeElement.classList.remove('first-active-item');
+      this.searchResults.first.host.nativeElement.classList.remove(
+        "first-active-item"
+      );
     }
   }
 
   onEscEvent() {
     this.control.setValue("");
-    this.searchOpenClass = '';
+    this.searchOpenClass = "";
     this.seachTextEmpty.emit(true);
   }
 
   onEnter() {
     if (this.searchResults && this.searchResults.length > 0) {
       let url = this.searchResults.first.url;
-      if (url && url != '') {
+      if (url && url != "") {
         this.control.setValue("");
-        this.searchOpenClass = '';
+        this.searchOpenClass = "";
         this.router.navigate([url]);
         this.seachTextEmpty.emit(true);
       }
@@ -183,23 +212,19 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     this.seachTextEmpty.emit(true);
   }
 
-
   ChangeLanguage(language: string) {
     this.translate.use(language);
 
-    if (language === 'en') {
+    if (language === "en") {
       this.selectedLanguageText = "English";
       this.selectedLanguageFlag = "./assets/img/flags/us.png";
-    }
-    else if (language === 'es') {
+    } else if (language === "es") {
       this.selectedLanguageText = "Spanish";
       this.selectedLanguageFlag = "./assets/img/flags/es.png";
-    }
-    else if (language === 'pt') {
+    } else if (language === "pt") {
       this.selectedLanguageText = "Portuguese";
       this.selectedLanguageFlag = "./assets/img/flags/pt.png";
-    }
-    else if (language === 'de') {
+    } else if (language === "de") {
       this.selectedLanguageText = "German";
       this.selectedLanguageFlag = "./assets/img/flags/de.png";
     }
@@ -216,21 +241,15 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   toggleSearchOpenClass(display) {
     this.control.setValue("");
     if (display) {
-      this.searchOpenClass = 'open';
+      this.searchOpenClass = "open";
       setTimeout(() => {
         this.searchElement.nativeElement.focus();
       }, 0);
-    }
-    else {
-      this.searchOpenClass = '';
+    } else {
+      this.searchOpenClass = "";
     }
     this.seachTextEmpty.emit(true);
-
-
-
   }
-
-
 
   toggleNotificationSidebar() {
     this.layoutService.toggleNotificationSidebar(true);

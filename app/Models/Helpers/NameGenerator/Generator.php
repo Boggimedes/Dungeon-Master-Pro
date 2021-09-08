@@ -7,7 +7,7 @@ class Generator {
     protected $generators = []; //: Generator[] = [];
     protected $presets = [
 
-// Based on generator described here: http://rinkworks.com/namegen/
+// Based on generator described here: https://rinkworks.com/namegen/
 // Middle Earth
 'MIDDLE_EARTH' => "(bil|bal|ban|hil|ham|hal|hol|hob|wil|me|or|ol|od|gor|for|fos|tol|ar|fin|ere|leo|vi|bi|bren|thor)(|go|orbis|apol|adur|mos|ri|i|na|ole|n)(|tur|axia|and|bo|gil|bin|bras|las|mac|grim|wise|l|lo|fo|co|ra|via|da|ne|ta|y|wen|thiel|phin|dir|dor|tor|rod|on|rdo|dis)",
 

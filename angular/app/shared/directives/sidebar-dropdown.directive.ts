@@ -1,18 +1,16 @@
-import { Directive, OnInit } from '@angular/core';
-import { Router, NavigationEnd } from '@angular/router';
-import { SidebarLinkDirective } from './sidebar-link.directive';
+import { Directive, OnInit } from "@angular/core";
+import { Router, NavigationEnd } from "@angular/router";
+import { SidebarLinkDirective } from "./sidebar-link.directive";
 
 @Directive({
-  selector: '[appSidebarDropdown]'
+  selector: "[appSidebarDropdown]",
 })
 export class SidebarDropdownDirective implements OnInit {
   protected navlinks: Array<SidebarLinkDirective> = [];
 
-    public ngOnInit(): any {
-      //write your code here!
-    }
+  public ngOnInit(): any {
+    //write your code here!
+  }
 
-    constructor( private router: Router) {
-    }
-
+  constructor(private router: Router) {}
 }

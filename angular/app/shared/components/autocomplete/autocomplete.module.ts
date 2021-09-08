@@ -1,23 +1,20 @@
-import { NgModule } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AutocompleteComponent } from './autocomplete.component';
-import { AutocompleteDirective } from './autocomplete.directive';
-import { AutocompleteContentDirective } from './autocomplete-content.directive';
-import { OptionComponent } from './option/option.component';
+import { NgModule } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { AutocompleteComponent } from "./autocomplete.component";
+import { AutocompleteDirective } from "./autocomplete.directive";
+import { AutocompleteContentDirective } from "./autocomplete-content.directive";
+import { OptionComponent } from "./option/option.component";
 
 const publicApi = [
   AutocompleteComponent,
   AutocompleteDirective,
   AutocompleteContentDirective,
-  OptionComponent
+  OptionComponent,
 ];
 
 @NgModule({
-  imports: [
-    CommonModule
-  ],
+  imports: [CommonModule],
   declarations: [publicApi],
-  exports: [publicApi]
+  exports: [publicApi],
 })
-export class AutocompleteModule {
-}
+export class AutocompleteModule {}

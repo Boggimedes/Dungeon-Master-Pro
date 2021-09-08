@@ -211,3 +211,13 @@ footer.footer {
     bottom: 0px;
     font-size: 0.75em;
 }
+
+.accordion .card .card-header button {
+  font-size: 1.3rem;
+  padding: 0.8rem;
+  padding-bottom: 0.8rem !important;
+}
+.accordion .card .card-header button:hover, .accordion .card .card-header .selected {
+  background-color: white;
+  font-weight: 800;
+}

@@ -1,20 +1,15 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit } from "@angular/core";
 
 @Component({
-  selector: 'app-spells',
-  templateUrl: './spells.component.html',
-  styleUrls: ['./spells.component.scss']
+	selector: "app-spells",
+	templateUrl: "./spells.component.html",
+	styleUrls: ["./spells.component.scss"],
 })
 export class SpellsComponent implements OnInit {
+	constructor() {}
 
-  constructor() { }
-
-  ngOnInit(): void {
-  }
-
+	ngOnInit(): void {}
 }
-
-
 
 // .controller('SpellsCtrl', ['$rootScope', '$filter', '$window', 'filterFilter', '$scope', 'spellFactory', '$timeout', '$routeParams', '$sce',
 //     function($rootScope, $filter, $window, filterFilter, $scope, spellFactory, $timeout, $routeParams, $sce) {
@@ -95,7 +90,6 @@ export class SpellsComponent implements OnInit {
 //                 if(err.status == 401){console.log(21);$scope.Ui.turnOn('login');}
 //                     console.log(err);
 //                 });
-
 
 //         }
 //         $scope.saveSpell = function() {
