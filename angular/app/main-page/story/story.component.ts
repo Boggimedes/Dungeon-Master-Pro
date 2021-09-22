@@ -30,11 +30,16 @@ export class StoryComponent implements OnInit, AfterViewInit {
   faCogs = faCogs;
   faHourglassHalf = faHourglassHalf;
   public mapScale = 1;
-  public mapArray = [0.1, 0.2, 0.5, 1, 1.25, 1.6, 2];
+  public mapArray = [0.3, 0.6, 1, 2, 3, 5, 7.5, 10, 15, 20];
   currentX = 0;
   currentY = 0;
 
   constructor() {}
+
+  zoom = (event) => {
+    console.log(event);
+    this.mapScale = Date.now() * -event.deltaY;
+  }
 
   ngOnInit(): void {
     this.mapImg = {};

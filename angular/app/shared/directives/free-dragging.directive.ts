@@ -26,7 +26,7 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
   private maxBoundY;
   private originX: number = 0;
   private originY: number = 0;
-  public mapArray = [0.1, 0.2, 0.5, 1, 1.25, 1.6, 2];
+  public mapArray = [0.3, 0.6, 1, 2, 3, 5, 7.5, 10, 15, 20];
   clickTimeout;
   private subscriptions: Subscription[] = [];
   @ContentChild(FreeDraggingHandleDirective)
@@ -34,19 +34,30 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
 
   handleElement: HTMLElement;
   _scale = 1;
-  _level = 4;
+  _level = 1;
   private readonly DEFAULT_DRAGGING_BOUNDARY_QUERY = "body";
   @Input() boundaryQuery = this.DEFAULT_DRAGGING_BOUNDARY_QUERY;
   @Input() frameLocked = true;
 
   @Input()
   set scale(value) {
-    this._scale = value;
+    console.log(value);
+    if(value > 0) {
+      this._level = Math.max(Math.min(this.mapArray.length - 1, this._level+1),0);
+    } else {
+      this._level = Math.max(Math.min(this.mapArray.length - 1, this._level-1),0);
+    }
+    console.log(this._level);
+    this._scale = this.mapArray[this._level];
+    console.log(this._scale);
+    console.log(this.minBoundX);
+    console.log(this.minBoundY);
     this.minBoundX =
       this.draggingBoundaryElement.offsetWidth -
       150 -
       this.element.offsetLeft -
       this.element.scrollWidth * this.scale;
+
     if (this.frameLocked)
       this.minBoundY =
         this.draggingBoundaryElement.offsetHeight -
@@ -60,7 +71,10 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
         this.element.scrollHeight * this.scale;
     this.currentX = this.boundX(this.currentX);
     this.currentY = this.boundY(this.currentY);
-    // this.element.style.transformOrigin = "";
+    console.log(this.currentX);
+    console.log(this.currentY);
+   this.element.style.transformOrigin = this.originX + "px " + this.originY + "px";
+   console.log(this.element.style.transformOrigin);
     this.element.style.transform =
       "translate3d(" +
       this.currentX +
@@ -94,42 +108,33 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
         this.handle?.elementRef?.nativeElement || this.element;
       this.initDrag();
     }
-    fromEvent(this.element, "click").subscribe(($event: any) => {
-      let nextZoom = this.nextZoom(this.scale);
+    // fromEvent(this.element, "click").subscribe(($event: any) => {
+    //   let nextZoom = this.nextZoom(this.scale);
 
-      if (this.clickTimeout) {
-        console.log({
-          pageX: $event.pageX,
-          pageY: $event.pageY,
-          currentX: this.currentX,
-          currentY: this.currentY,
-          minBoundX: this.minBoundX,
-          minBoundY: this.minBoundY,
-          maxBoundX: this.maxBoundX,
-          maxBoundY: this.maxBoundY,
-          scale: this.scale,
-          nextZoom: nextZoom,
-          offsetWidth: this.draggingBoundaryElement.offsetWidth / 2,
-          offsetHeight: this.draggingBoundaryElement.offsetHeight / 2,
-        });
-        let cX = this.draggingBoundaryElement.offsetWidth / 2 - $event.pageX;
-        let cY = this.draggingBoundaryElement.offsetHeight / 2 - $event.pageY;
-        this.currentX = ((this.currentX + cX) / this.scale) * nextZoom;
-        this.currentY = ((this.currentY + cY) / this.scale) * nextZoom;
-        this.currentX = this.boundX(this.currentX);
-        this.currentY = this.boundY(this.currentY);
-        // elem.style.transformOrigin = ($event.pageX - this.currentX) + 'px ' + ($event.pageY - this.currentY) + 'px';
-        // this.element.style.transform =
-        // "translate3d(" + this.currentX + "px, " + this.currentY + "px, 0) "; //scale(" + this.scale + ")";
-        // this.zoomLevel = this.zoomLevel + 1;
-        this.scale = nextZoom;
-        clearTimeout(this.clickTimeout);
-        this.clickTimeout = null;
-      } else {
-        this.clickTimeout = setTimeout(() => {
-          this.clickTimeout = null;
-        }, 300);
-      }
+    //   if (this.clickTimeout) {
+    //     let cX = this.draggingBoundaryElement.offsetWidth / 2 - $event.pageX;
+    //     let cY = this.draggingBoundaryElement.offsetHeight / 2 - $event.pageY;
+    //     this.currentX = ((this.currentX + cX) / this.scale) * nextZoom;
+    //     this.currentY = ((this.currentY + cY) / this.scale) * nextZoom;
+    //     this.currentX = this.boundX(this.currentX);
+    //     this.currentY = this.boundY(this.currentY);
+    //     // elem.style.transformOrigin = ($event.pageX - this.currentX) + 'px ' + ($event.pageY - this.currentY) + 'px';
+    //     // this.element.style.transform =
+    //     // "translate3d(" + this.currentX + "px, " + this.currentY + "px, 0) "; //scale(" + this.scale + ")";
+    //     // this.zoomLevel = this.zoomLevel + 1;
+    //     this.scale = nextZoom;
+    //     clearTimeout(this.clickTimeout);
+    //     this.clickTimeout = null;
+    //   } else {
+    //     this.clickTimeout = setTimeout(() => {
+    //       this.clickTimeout = null;
+    //     }, 300);
+    //   }
+    // });
+
+    fromEvent(this.element, "mousemove").subscribe(($event: any) => {
+      this.originX = $event.offsetX;
+      this.originY = $event.offsetY;
     });
   }
   initDrag(): void {
@@ -152,20 +157,6 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
     else
       this.minBoundY =
         50 + this.element.offsetTop - this.element.scrollHeight * this.scale;
-    console.log({
-      // pageX: $event.pageX,
-      // pageY: $event.pageY,
-      currentX: this.currentX,
-      currentY: this.currentY,
-      minBoundX: this.minBoundX,
-      minBoundY: this.minBoundY,
-      maxBoundX: this.maxBoundX,
-      maxBoundY: this.maxBoundY,
-      scale: this.scale,
-      // nextZoom: nextZoom,
-      offsetWidth: this.draggingBoundaryElement.offsetWidth / 2,
-      offsetHeight: this.draggingBoundaryElement.offsetHeight / 2,
-    });
 
     if (this.draggingBoundaryElement.offsetWidth > this.element.scrollWidth) {
       this.maxBoundX =
@@ -177,11 +168,13 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
         this.draggingBoundaryElement.offsetHeight - this.element.scrollHeight;
     } else this.maxBoundY = this.draggingBoundaryElement.offsetHeight / 2;
 
-    const dragStartSub = dragStart$.subscribe((event: MouseEvent) => {
+  const dragStartSub = dragStart$.subscribe((event: MouseEvent) => {
       initialX = event.clientX - this.currentX;
       initialY = event.clientY - this.currentY;
       this.element.classList.add("free-dragging");
-
+      console.log([this.minBoundX,this.draggingBoundaryElement.offsetWidth,this.element.offsetLeft, this.element.scrollWidth]);
+      console.log([this.minBoundY,this.draggingBoundaryElement.offsetHeight,this.element.offsetTop, this.element.scrollHeight]);
+  
       dragSub = drag$.subscribe((event: MouseEvent) => {
         event.preventDefault();
 
@@ -192,6 +185,8 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
         currentY = this.boundY(y);
         this.currentX = currentX;
         this.currentY = currentY;
+        console.log([x,this.currentX]);
+        console.log([y,this.currentY]);
 
         this.element.style.transform =
           "translate3d(" +
@@ -230,8 +225,8 @@ export class FreeDraggingDirective implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.subscriptions.forEach((s) => s?.unsubscribe());
   }
-  nextZoom = (current) => {
-    let index = this.mapArray.indexOf(current);
-    return this.mapArray[Math.min(this.mapArray.length - 1, index + 1)];
-  };
+  // nextZoom = (current) => {
+  //   let index = this.mapArray.indexOf(current);
+  //   return this.mapArray[Math.min(this.mapArray.length - 1, index + 1)];
+  // };
 }

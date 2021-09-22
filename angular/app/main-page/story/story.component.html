@@ -31,18 +31,18 @@
     </div>
   </div>
   <div class="boundary map col-12" style="height: 92vh">
-    <div
+    <div 
       appFreeDragging
       #map
       [scale]="mapScale"
       [frameLocked]="false"
       class="map-primary"
+      
     >
-      <img
-        src="https://game-master-pro.s3.us-west-2.amazonaws.com/maps/{{
-          mapImg?.id
-        }}.jpg"
+      <img (wheel)="zoom($event)"
+        src="https://game-master-pro.s3.us-west-2.amazonaws.com/map/r1.svg"
       />
+      <span style="position:absolute;left:200px;top:300px">Test Label</span>
     </div>
 
     <div class="story-box card" appFreeDragging *ngIf="mapBox">

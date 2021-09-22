@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\World;
 use App\Models\Region;
 use App\Models\Npc;
+use Illuminate\Support\Facades\Storage;
 
 class WorldController extends Controller
 {
@@ -20,7 +21,24 @@ class WorldController extends Controller
     {
         $me = \Auth::user();
         if(empty($me)) abort(401);
-        return response()->json(['npcs' => $region->npcs()->where('alive', '>', 0)->get()->load('race', 'profession')]); //->select(['name','id'])
+        return response()->json([
+            'region' => $region,
+            'npcs' => $region
+                ->npcs()
+                ->where('alive', '>', 0)
+                ->get()
+                ->load('race', 
+                    'profession',
+                    'spouse', 
+                    'spouse.race', 
+                    'spouse.profession',
+                    'birthParent', 
+                    'birthParent.race', 
+                    'birthParent.profession',
+                    'parent', 
+                    'parent.race', 
+                    'parent.profession')
+                ->append('children')]); //->select(['name','id'])
     }
 
     function deleteRegion(Region $region)
@@ -169,6 +187,47 @@ class WorldController extends Controller
         $npc->features = collect($npc->features)->keyBy('name')->merge(collect($features)->keyBy('name')->except($validatedData['locked_features']))->values()->filter(function ($value) {return !empty($value);});
         $npc->save();
         return response()->json(['npc' => $npc->refresh()]);
+    }
+
+    public function mapGenerator(Request $request, Region $region) {
+		// $me = \Auth::user();
+        // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
+
+
+
+        return view('map-generator',['region' => $region]);
+
+    }
+
+    public function uploadMap(Request $request, Region $region) {
+		// $me = \Auth::user();
+        // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
+        $validatedData = $request->validate([
+            'svgString'  => 'string',
+            // 'cultures'  => 'string',
+            'states'  => 'string',
+            'burgs'  => 'string',
+            'religions'  => 'string',
+        ]);
+
+        
+        Storage::disk('s3')->put('map/r' . $region->id . '.svg', $validatedData['svgString']);
+        // $region->cultures = $validatedData['cultures'];
+        $region->states = $validatedData['states'];
+        $region->burgs = $validatedData['burgs'];
+        $region->religions = 
+        $validatedData['religions'];
+        $region->save();
+        return response()->json(['message' => "Map Uploaded Successfully"]);
+        
+    }
+
+    public function getMap(Region $region) {
+		// $me = \Auth::user();
+        // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
+        $map = $region->map;
+        // header("Content-type: image/svg+xml");
+        return response()->make($map, '200', array('Content-Type' => 'image/svg+xml'));
     }
 }
 

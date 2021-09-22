@@ -3,8 +3,6 @@ import { NgForm, FormGroup, FormControl, Validators } from "@angular/forms";
 import { Router, ActivatedRoute } from "@angular/router";
 import { AuthService } from "./../../shared/auth/auth.service";
 import { NgxSpinnerService } from "ngx-spinner";
-import { TokenService } from "../../shared/services/token.service";
-import { AuthStateService } from "../../shared/services/auth-state.service";
 
 @Component({
   selector: "app-signin",
@@ -25,10 +23,11 @@ export class SigninComponent {
     private router: Router,
     private authService: AuthService,
     private spinner: NgxSpinnerService,
-    private token: TokenService,
-    private authState: AuthStateService,
     private route: ActivatedRoute
-  ) {}
+  ) {
+    console.log("Construct");
+
+  }
 
   get lf() {
     return this.loginForm.controls;
@@ -53,6 +52,7 @@ export class SigninComponent {
       .signinUser(this.loginForm.value.username, this.loginForm.value.password)
       .subscribe(
         (result) => {
+          console.log(result);
           this.responseHandler(result);
         },
         (error) => {
@@ -62,14 +62,15 @@ export class SigninComponent {
         },
         () => {
           this.spinner.hide();
-          this.authState.setAuthState(true);
           this.loginForm.reset();
-          this.router.navigate(["app/edit-worlds"]);
+          this.router.navigate(["app/world/1/edit"]);
         }
       );
   }
   // Handle response
   responseHandler(data) {
-    this.token.handleData(data.access_token);
+    console.log("auth token set");
+    this.authService.setToken(data.access_token);
+    // this.authService.refreshToken();
   }
 }

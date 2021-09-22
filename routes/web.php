@@ -12,12 +12,26 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-
 Route::get('/', function () {
+    return view('welcome');
+});
+
+Route::get('login/', function () {
     return view('app');
 });
+
+Route::get('app/', function () {
+    return view('app');
+});
+
+Route::get('signup/', function () {
+    return view('app');
+});
+
 Route::group(['middleware' => []], function () {
-    Route::any('/app{all}', function () {
+    Route::get('region/{region}/map-generator', 'WorldController@mapGenerator');
+    Route::get('region/{region}/map', 'WorldController@getMap');
+        Route::any('/app{all}', function () {
         return view('app');
     })->where('all', '^(?!api|assets).*$');
     Route::any('/full{all}', function () {

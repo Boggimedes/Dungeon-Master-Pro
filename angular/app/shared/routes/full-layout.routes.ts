@@ -6,8 +6,6 @@ import { AuthGuard } from "../../shared/auth/auth-guard.service";
 export const Full_ROUTES: Routes = [
   {
     path: "",
-    canActivate: [AuthGuard],
-    canLoad: [AuthGuard],
     loadChildren: () =>
       import("../../main-page/page.module").then((m) => m.PageModule),
   },

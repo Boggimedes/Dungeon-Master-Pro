@@ -36,7 +36,7 @@ export class Npc {
   public race: Race;
   public spouse_id: number;
   public spouse: Npc;
-  public birthing_parent_id: number;
+  public birth_parent_id: number;
   public birting_parent: Npc;
   public parent_id: number;
   public parent: Npc;
@@ -50,6 +50,7 @@ export class Npc {
   public met_party: number;
   public abilities: string;
   public features;
+  public events;
   public notes: string;
   constructor(data: any = {}) {
     data = !!data ? data : {};

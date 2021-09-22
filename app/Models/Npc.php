@@ -21,7 +21,7 @@ class Npc extends Model
         'married',
         'race_id',
         'spouse_id',
-        'birthing_parent_id',
+        'birth_parent_id',
         'parent_id',
         'region_id',
         'age',
@@ -48,6 +48,7 @@ class Npc extends Model
      */
     protected $casts = [
         'features' => 'array',
+        'events' => 'array',
     ];
     
     public function user()
@@ -80,7 +81,7 @@ class Npc extends Model
 		return $this->belongsTo(Npc::class);
 	}
 
-    public function birthingParent()
+    public function birthParent()
 	{
 		return $this->belongsTo(Npc::class);
 	}
@@ -88,10 +89,7 @@ class Npc extends Model
     public function children()
     {
         return Npc::where(function($q) {
-            /**
-             * @var Builder $q
-             */
-            $q->where('birthing_parent_id',$this->id)
+            $q->where('birth_parent_id',$this->id)
                 ->orWhere('parent_id',$this->id);
         });
     }
@@ -121,7 +119,6 @@ class Npc extends Model
     public function generateName() 
     {
         $genString = 'fantasy';
-        \Log::info($this->race);
         foreach($this->race->genders as $gender) {
             if ($gender[0] == $this->gender) $genString = $gender[1];
         }
@@ -146,7 +143,7 @@ class Npc extends Model
         if ($this->parent && $this->parent->children) $relatives->merge($this->parent->children->pluck('id'));
         if ($this->children) $relatives->merge($this->children->pluck('id'));
         $relatives->merge(
-            [$this->birthing_parent_id],
+            [$this->birth_parent_id],
             [$this->parent_id],
         );
         return $relatives;
@@ -202,5 +199,21 @@ class Npc extends Model
         return $features['quirk'];
     }
 
+    public function getMarryAgeAttribute() {
+        return $this->race->adulthood - $this->race->middle_age/12;
+    }
 
+    public function getAgeGroupAttribute() {
+        if ($this->age < $this->race->adulthood) return 'youth';
+        if ($this->age < $this->race->middle_age) return 'adult';
+        if ($this->age < $this->race->old_age) return 'middle age';
+        if ($this->age < $this->race->venerable) return 'old age';
+        return 'venerable';
+    }
+    public function addEvent($event) {
+        $events = $this->events;
+        $events[] = $event;
+        $this->events = $events;
+        return $this;
+    }
 }

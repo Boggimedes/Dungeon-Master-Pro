@@ -1,4 +1,4 @@
-import { NgModule } from "@angular/core";
+import { NgModule, APP_INITIALIZER } from '@angular/core';
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 
 import { AngularFireModule } from "@angular/fire";
@@ -25,6 +25,7 @@ import {
 import { AppRoutingModule } from "./app-routing.module";
 import { SharedModule } from "./shared/shared.module";
 import { AppComponent } from "./app.component";
+import { appInitializer } from "./app.initializer";
 import { ContentLayoutComponent } from "./layouts/content/content-layout.component";
 import { FullLayoutComponent } from "./layouts/full/full-layout.component";
 
@@ -111,7 +112,11 @@ export function createTranslateLoader(http: HttpClient) {
     PerfectScrollbarModule,
   ],
   providers: [
-    {
+    { provide: APP_INITIALIZER, 
+      useFactory: appInitializer, 
+      multi: true, 
+      deps: [AuthService] 
+    },    {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true,

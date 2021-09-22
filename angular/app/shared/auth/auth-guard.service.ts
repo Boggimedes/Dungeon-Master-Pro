@@ -1,29 +1,27 @@
 import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
 import { Injectable } from '@angular/core';
 import { AuthService } from './auth.service';
-import { TokenService } from '../services/token.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
 
-  constructor(private tokenService: TokenService, private router: Router) { }
+  constructor(private authService: AuthService, private router: Router) { }
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
-    let isAuth = this.tokenService.isLoggedIn();
+    let isAuth = this.authService.isLoggedIn();
+    console.log(isAuth);
     if (!isAuth) {
-      this.router.navigate(['/login']);
-    }
-    else {
+      this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+    } else {
       return true;
     }
   }
 
   canLoad(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
-    let isAuth = this.tokenService.isLoggedIn();
+    let isAuth = this.authService.isLoggedIn();
     if (!isAuth) {
-      this.router.navigate(['/login']);
-    }
-    else {
+      this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+    } else {
       return true;
     }
   }

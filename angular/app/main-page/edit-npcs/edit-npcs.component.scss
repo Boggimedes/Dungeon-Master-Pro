@@ -33,3 +33,19 @@ ngb-accordion .card-body {
 .npc-row > div > div.dropdown {
   margin-top: 1.5rem;
 }
+
+btn-md, .btn-group-md > .btn {
+  padding: 0.25rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.npc-groups {
+  max-height: 90vh;
+  overflow: auto;
+}
+
+::ng-deep .tooltip .tooltip-inner, ::ng-deep .tooltip-inner {
+  text-align: left !important;
+  padding: 1rem !important;
+}

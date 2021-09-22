@@ -46,7 +46,8 @@ export class EditNpcsComponent implements OnInit {
   }
 
   selectRegion = (region) => {
-    this.worldService.getNpcs(region.id).subscribe((data: { npcs }) => {
+    this.worldService.getNpcs(region.id).subscribe((data: { npcs, region }) => {
+      this.selectedRegion = data.region;
       this.npcs = data.npcs;
     });
   };
@@ -66,25 +67,29 @@ export class EditNpcsComponent implements OnInit {
         "special",
       ];
     for (var i = 0; i < sortOrder.length; i++) ordering[sortOrder[i]] = i;
-    this.selectedNpc = npc;
-    this.featuresArray = Object.values(this.selectedNpc.features).sort(
+    this.featuresArray = Object.values(npc.features).sort(
       function (a: any, b: any) {
         return (
           ordering[a.name] - ordering[b.name] || a.name.localeCompare(b.name)
         );
       }
     );
+    npc.events = npc.events.sort((a, b) => (a.age > b.age) ? 1 : -1)
+    this.selectedNpc = npc;
+
   };
 
   ngOnInit(): void {
     this.worldSubscription = this.worldService.worldData$.subscribe((world) => {
       if (world) {
         this.selectedWorld = new World(world);
-        console.log(world);
         this.regions = this.selectedWorld.regions;
       }
     });
   }
+  public upperFirst(name, empty = 'None') {
+    return name ? (name.charAt(0).toUpperCase() + name.slice(1)) : empty;
+  };
 
   public groupBy(list, keyGetter) {
     const map = new Map();
@@ -111,27 +116,33 @@ export class EditNpcsComponent implements OnInit {
         this.groupedNpcs = Array.from(groupObject).sort();
         break;
       case "profession":
-        groupObject = this.groupBy(this.npcs, (npc) =>
+        groupObject = this.groupBy(this.npcs, (npc) => 
           npc.profession ? npc.profession.name : "None"
         );
         this.groupedNpcs = Array.from(groupObject).sort();
         break;
       case "lineage":
-        groupObject = this.groupBy(this.npcs, (npc) =>
-          npc.features["lineage"]["text"]
-            ? npc.features["lineage"]["text"]
-            : "None"
+        groupObject = this.groupBy(this.npcs, (npc) =>{
+          if (!npc.features.lineage) return "None";
+          let name = npc.features.lineage["text"];
+          return this.upperFirst(name);
+        }
         );
         this.groupedNpcs = Array.from(groupObject).sort();
         break;
     }
   };
+  findRace = (raceId) => {
+    return this.selectedWorld.races.find((r) => r.id == raceId);
+  }
+  findProfession = (professionId) => {
+    return this.selectedWorld.professions.find((p) => p.id == professionId);
+  }
   public generateFeatures = (npc) => {
     this.worldService
       .generateFeatures(npc.id, this.lockedFeatures)
       .subscribe((data: { npc }) => {
-        this.selectedNpc = data.npc;
-        this.featuresArray = Object.values(this.selectedNpc.features);
+        this.selectNpc(data.npc);
       });
   };
 

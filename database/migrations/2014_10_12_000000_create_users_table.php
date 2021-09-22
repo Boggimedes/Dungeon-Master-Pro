@@ -35,16 +35,16 @@ class CreateUsersTable extends Migration
             $table->smallinteger('married')->default(0);
             $table->integer('race_id')->unsigned();
             $table->integer('spouse_id')->unsigned()->nullable();;
-            $table->integer('birthing_parent_id')->unsigned()->nullable();;
+            $table->integer('birth_parent_id')->unsigned()->nullable();;
             $table->integer('parent_id')->unsigned()->nullable();;
             $table->integer('region_id')->unsigned();
             $table->integer('age')->nullable();
             $table->integer('birth_year')->nullable();
             $table->smallinteger('generation')->nullable();
             $table->boolean('excluded')->default(0);
-            $table->boolean('retired')->default(0);
+            // $table->boolean('retired')->default(0);
             $table->boolean('met_party')->default(0);
-            // $table->text('mannerisms')->nullable();
+            $table->text('events')->nullable();
             // $table->text('lineage')->nullable();
             // $table->text('quirks')->nullable();
             $table->text('abilities')->nullable();
@@ -52,22 +52,6 @@ class CreateUsersTable extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
         });
-        Schema::create('npc_friend', function (Blueprint $table) {
-			// keys
-			$table->integer('npc_id')->unsigned()->nullable();
-			$table->foreign('npc_id')->references('id')->on('npcs')->onDelete('cascade');
-
-			$table->integer('friend_id')->unsigned()->nullable();
-			$table->foreign('friend_id') ->references('id')->on('npcs')->onDelete('cascade');
-		});
-		Schema::create('npc_enemy', function (Blueprint $table) {
-			// keys
-			$table->integer('npc_id')->unsigned()->nullable();
-			$table->foreign('npc_id')->references('id')->on('npcs')->onDelete('cascade');
-
-			$table->integer('enemy_id')->unsigned()->nullable();
-			$table->foreign('enemy_id') ->references('id')->on('npcs')->onDelete('cascade');
-		});
         Schema::create('scene_collections', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('user_id')->unsigned();
@@ -186,6 +170,7 @@ class CreateUsersTable extends Migration
             $table->string('alive')->nullable();
             $table->string('abilities')->nullable();
             $table->integer('race_id')->unsigned()->nullable();
+            $table->boolean('random')->default(1);
             $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
         });
         Schema::create('professions', function (Blueprint $table) {
@@ -207,8 +192,6 @@ class CreateUsersTable extends Migration
             $table->integer('old_age')->nullable();
             $table->integer('venerable')->nullable();
             $table->integer('max_age')->nullable();
-            $table->integer('friend_rate')->nullable();
-            $table->integer('enemy_rate')->nullable();
 
             $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
         });
@@ -228,7 +211,12 @@ class CreateUsersTable extends Migration
             $table->text('prof_balance');
             $table->text('feature_types');
             $table->integer('epoch')->nullable();
-
+            $table->integer('states_count')->default(2);
+            $table->integer('religions_count')->default(4);
+            $table->text('states');
+            $table->text('burgs');
+            $table->text('religions');
+            $table->text('map');
             $table->timestamps();
             $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
         });

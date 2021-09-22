@@ -18,7 +18,10 @@ License: You must have a valid license purchased only from themeforest(the above
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Apex - Angular & Bootstrap 4 HTML Admin Template</title>
+  <title>Game Master Pro</title>
+  <script>
+    console.log("Head");
+    </script>
   <base href="/">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link href="https://maxcdn.bootstrapcdn.com/font-awesome/latest/css/font-awesome.min.css" rel="stylesheet">
@@ -67,10 +70,8 @@ License: You must have a valid license purchased only from themeforest(the above
 <link rel="stylesheet" href="styles.css"></head>
 
 <body class="layout-dark">
-  <app-root></app-root>
   <div class="page-loading">
     <img src="assets/img/oval.svg" class="loading-icon"/>
   </div>
-<script src="runtime.js" defer></script><script src="polyfills-es5.js" nomodule defer></script><script src="polyfills.js" defer></script><script src="scripts.js" defer></script><script src="vendor.js" defer></script><script src="main.js" defer></script></body>
 
 </html>

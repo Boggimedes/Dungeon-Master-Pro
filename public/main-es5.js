@@ -82,7 +82,7 @@
       /* harmony import */
 
 
-      var _angular_router__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(
+      var _angular_router__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(
       /*! @angular/router */
       3984);
       /* harmony import */
@@ -112,28 +112,17 @@
       /* harmony import */
 
 
-      var _shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(
-      /*! ./shared/auth/auth-guard.service */
-      16929);
-      /* harmony import */
-
-
-      var _angular_core__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(
+      var _angular_core__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(
       /*! @angular/core */
       74788);
 
       var appRoutes = [{
         path: "",
-        redirectTo: "/login",
-        pathMatch: "full"
-      }, {
-        path: "",
         component: _layouts_full_full_layout_component__WEBPACK_IMPORTED_MODULE_0__.FullLayoutComponent,
         data: {
           title: "full Views"
         },
-        children: _shared_routes_full_layout_routes__WEBPACK_IMPORTED_MODULE_2__.Full_ROUTES,
-        canActivate: [_shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_4__.AuthGuard]
+        children: _shared_routes_full_layout_routes__WEBPACK_IMPORTED_MODULE_2__.Full_ROUTES
       }, {
         path: "",
         component: _layouts_content_content_layout_component__WEBPACK_IMPORTED_MODULE_1__.ContentLayoutComponent,
@@ -154,20 +143,20 @@
         return new (t || _AppRoutingModule)();
       };
 
-      _AppRoutingModule.ɵmod = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_5__["ɵɵdefineNgModule"]({
+      _AppRoutingModule.ɵmod = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_4__["ɵɵdefineNgModule"]({
         type: _AppRoutingModule
       });
-      _AppRoutingModule.ɵinj = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_5__["ɵɵdefineInjector"]({
-        imports: [[_angular_router__WEBPACK_IMPORTED_MODULE_6__.RouterModule.forRoot(appRoutes, {
-          preloadingStrategy: _angular_router__WEBPACK_IMPORTED_MODULE_6__.PreloadAllModules,
+      _AppRoutingModule.ɵinj = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_4__["ɵɵdefineInjector"]({
+        imports: [[_angular_router__WEBPACK_IMPORTED_MODULE_5__.RouterModule.forRoot(appRoutes, {
+          preloadingStrategy: _angular_router__WEBPACK_IMPORTED_MODULE_5__.PreloadAllModules,
           relativeLinkResolution: "legacy"
-        })], _angular_router__WEBPACK_IMPORTED_MODULE_6__.RouterModule]
+        })], _angular_router__WEBPACK_IMPORTED_MODULE_5__.RouterModule]
       });
 
       (function () {
-        (typeof ngJitMode === "undefined" || ngJitMode) && _angular_core__WEBPACK_IMPORTED_MODULE_5__["ɵɵsetNgModuleScope"](_AppRoutingModule, {
-          imports: [_angular_router__WEBPACK_IMPORTED_MODULE_6__.RouterModule],
-          exports: [_angular_router__WEBPACK_IMPORTED_MODULE_6__.RouterModule]
+        (typeof ngJitMode === "undefined" || ngJitMode) && _angular_core__WEBPACK_IMPORTED_MODULE_4__["ɵɵsetNgModuleScope"](_AppRoutingModule, {
+          imports: [_angular_router__WEBPACK_IMPORTED_MODULE_5__.RouterModule],
+          exports: [_angular_router__WEBPACK_IMPORTED_MODULE_5__.RouterModule]
         });
       })();
       /***/
@@ -217,11 +206,13 @@
           _classCallCheck(this, _AppComponent);
 
           this.router = router;
+          console.log("App Construct");
         }
 
         _createClass(_AppComponent, [{
           key: "ngOnInit",
           value: function ngOnInit() {
+            console.log("ngOnInit");
             this.subscription = this.router.events.pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_0__.filter)(function (event) {
               return event instanceof _angular_router__WEBPACK_IMPORTED_MODULE_1__.NavigationEnd;
             })).subscribe(function () {
@@ -231,6 +222,8 @@
         }, {
           key: "ngOnDestroy",
           value: function ngOnDestroy() {
+            console.log("ngOnDestroy");
+
             if (this.subscription) {
               this.subscription.unsubscribe();
             }
@@ -258,6 +251,39 @@
         encapsulation: 2
       });
       /***/
+    },
+
+    /***/
+    28981: function _(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
+      "use strict";
+
+      __webpack_require__.r(__webpack_exports__);
+      /* harmony export */
+
+
+      __webpack_require__.d(__webpack_exports__, {
+        /* harmony export */
+        "appInitializer": function appInitializer() {
+          return (
+            /* binding */
+            _appInitializer
+          );
+        }
+        /* harmony export */
+
+      });
+
+      function _appInitializer(authService) {
+        return function () {
+          return new Promise(function (resolve) {
+            // attempt to refresh token on app start up to auto authenticate
+            console.log("refresh");
+            authService.refreshToken().subscribe().add(resolve);
+          });
+        };
+      }
+      /***/
+
     },
 
     /***/
@@ -290,61 +316,67 @@
       /* harmony import */
 
 
-      var _angular_platform_browser_animations__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(
+      var _angular_core__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(
+      /*! @angular/core */
+      74788);
+      /* harmony import */
+
+
+      var _angular_platform_browser_animations__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(
       /*! @angular/platform-browser/animations */
       27094);
       /* harmony import */
 
 
-      var _angular_fire__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(
+      var _angular_fire__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(
       /*! @angular/fire */
       77667);
       /* harmony import */
 
 
-      var _angular_fire_auth__WEBPACK_IMPORTED_MODULE_16__ = __webpack_require__(
+      var _angular_fire_auth__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(
       /*! @angular/fire/auth */
       2552);
       /* harmony import */
 
 
-      var _agm_core__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(
+      var _agm_core__WEBPACK_IMPORTED_MODULE_22__ = __webpack_require__(
       /*! @agm/core */
       66047);
       /* harmony import */
 
 
-      var _angular_common_http__WEBPACK_IMPORTED_MODULE_11__ = __webpack_require__(
+      var _angular_common_http__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(
       /*! @angular/common/http */
       58497);
       /* harmony import */
 
 
-      var _ngx_translate_core__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(
+      var _ngx_translate_core__WEBPACK_IMPORTED_MODULE_21__ = __webpack_require__(
       /*! @ngx-translate/core */
       75629);
       /* harmony import */
 
 
-      var _ngx_translate_http_loader__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(
+      var _ngx_translate_http_loader__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(
       /*! @ngx-translate/http-loader */
       93555);
       /* harmony import */
 
 
-      var ngx_spinner__WEBPACK_IMPORTED_MODULE_17__ = __webpack_require__(
+      var ngx_spinner__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(
       /*! ngx-spinner */
       79866);
       /* harmony import */
 
 
-      var _angular_platform_browser__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(
+      var _angular_platform_browser__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(
       /*! @angular/platform-browser */
       91211);
       /* harmony import */
 
 
-      var ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(
+      var ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(
       /*! ngx-perfect-scrollbar */
       99904);
       /* harmony import */
@@ -368,57 +400,57 @@
       /* harmony import */
 
 
-      var _layouts_content_content_layout_component__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(
+      var _app_initializer__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(
+      /*! ./app.initializer */
+      28981);
+      /* harmony import */
+
+
+      var _layouts_content_content_layout_component__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(
       /*! ./layouts/content/content-layout.component */
       11391);
       /* harmony import */
 
 
-      var _layouts_full_full_layout_component__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(
+      var _layouts_full_full_layout_component__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(
       /*! ./layouts/full/full-layout.component */
       20348);
       /* harmony import */
 
 
-      var _shared_auth_auth_service__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(
+      var _shared_auth_auth_service__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(
       /*! ./shared/auth/auth.service */
       6008);
       /* harmony import */
 
 
-      var _shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(
+      var _shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(
       /*! ./shared/auth/auth-guard.service */
       16929);
       /* harmony import */
 
 
-      var _shared_services_window_service__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(
+      var _shared_services_window_service__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(
       /*! ./shared/services/window.service */
       28370);
       /* harmony import */
 
 
-      var _shared_auth_auth_interceptor__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(
+      var _shared_auth_auth_interceptor__WEBPACK_IMPORTED_MODULE_9__ = __webpack_require__(
       /*! ./shared/auth/auth.interceptor */
       43209);
       /* harmony import */
 
 
-      var _fortawesome_angular_fontawesome__WEBPACK_IMPORTED_MODULE_18__ = __webpack_require__(
+      var _fortawesome_angular_fontawesome__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(
       /*! @fortawesome/angular-fontawesome */
       54163);
       /* harmony import */
 
 
-      var angular_resizable_element__WEBPACK_IMPORTED_MODULE_19__ = __webpack_require__(
+      var angular_resizable_element__WEBPACK_IMPORTED_MODULE_20__ = __webpack_require__(
       /*! angular-resizable-element */
-      72146);
-      /* harmony import */
-
-
-      var _angular_core__WEBPACK_IMPORTED_MODULE_10__ = __webpack_require__(
-      /*! @angular/core */
-      74788); // import { CombatComponent } from './components/combat/combat.component';
+      72146); // import { CombatComponent } from './components/combat/combat.component';
       // import { SoundComponent } from './components/sound/sound.component';
       // import { SpellsComponent } from './components/spells/spells.component';
       // import { NpcComponent } from './components/npc/npc.component';
@@ -454,7 +486,7 @@
       };
 
       function _createTranslateLoader(http) {
-        return new _ngx_translate_http_loader__WEBPACK_IMPORTED_MODULE_9__.TranslateHttpLoader(http, "./assets/i18n/", ".json");
+        return new _ngx_translate_http_loader__WEBPACK_IMPORTED_MODULE_10__.TranslateHttpLoader(http, "./assets/i18n/", ".json");
       }
 
       var _AppModule = function _AppModule() {
@@ -465,34 +497,39 @@
         return new (t || _AppModule)();
       };
 
-      _AppModule.ɵmod = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_10__["ɵɵdefineNgModule"]({
+      _AppModule.ɵmod = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_11__["ɵɵdefineNgModule"]({
         type: _AppModule,
         bootstrap: [_app_component__WEBPACK_IMPORTED_MODULE_2__.AppComponent]
       });
-      _AppModule.ɵinj = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_10__["ɵɵdefineInjector"]({
+      _AppModule.ɵinj = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_11__["ɵɵdefineInjector"]({
         providers: [{
-          provide: _angular_common_http__WEBPACK_IMPORTED_MODULE_11__.HTTP_INTERCEPTORS,
-          useClass: _shared_auth_auth_interceptor__WEBPACK_IMPORTED_MODULE_8__.AuthInterceptor,
+          provide: _angular_core__WEBPACK_IMPORTED_MODULE_11__.APP_INITIALIZER,
+          useFactory: _app_initializer__WEBPACK_IMPORTED_MODULE_3__.appInitializer,
+          multi: true,
+          deps: [_shared_auth_auth_service__WEBPACK_IMPORTED_MODULE_6__.AuthService]
+        }, {
+          provide: _angular_common_http__WEBPACK_IMPORTED_MODULE_12__.HTTP_INTERCEPTORS,
+          useClass: _shared_auth_auth_interceptor__WEBPACK_IMPORTED_MODULE_9__.AuthInterceptor,
           multi: true
-        }, _shared_auth_auth_service__WEBPACK_IMPORTED_MODULE_5__.AuthService, _shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_6__.AuthGuard, {
-          provide: ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_12__.PERFECT_SCROLLBAR_CONFIG,
+        }, _shared_auth_auth_service__WEBPACK_IMPORTED_MODULE_6__.AuthService, _shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_7__.AuthGuard, {
+          provide: ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_13__.PERFECT_SCROLLBAR_CONFIG,
           useValue: DEFAULT_PERFECT_SCROLLBAR_CONFIG
-        }, _shared_services_window_service__WEBPACK_IMPORTED_MODULE_7__.WINDOW_PROVIDERS],
-        imports: [[_angular_platform_browser__WEBPACK_IMPORTED_MODULE_13__.BrowserModule, _angular_platform_browser_animations__WEBPACK_IMPORTED_MODULE_14__.BrowserAnimationsModule, _app_routing_module__WEBPACK_IMPORTED_MODULE_0__.AppRoutingModule, _shared_shared_module__WEBPACK_IMPORTED_MODULE_1__.SharedModule, _angular_common_http__WEBPACK_IMPORTED_MODULE_11__.HttpClientModule, _angular_fire__WEBPACK_IMPORTED_MODULE_15__.AngularFireModule.initializeApp(firebaseConfig), _angular_fire_auth__WEBPACK_IMPORTED_MODULE_16__.AngularFireAuthModule, ngx_spinner__WEBPACK_IMPORTED_MODULE_17__.NgxSpinnerModule, _fortawesome_angular_fontawesome__WEBPACK_IMPORTED_MODULE_18__.FontAwesomeModule, angular_resizable_element__WEBPACK_IMPORTED_MODULE_19__.ResizableModule, _ngx_translate_core__WEBPACK_IMPORTED_MODULE_20__.TranslateModule.forRoot({
+        }, _shared_services_window_service__WEBPACK_IMPORTED_MODULE_8__.WINDOW_PROVIDERS],
+        imports: [[_angular_platform_browser__WEBPACK_IMPORTED_MODULE_14__.BrowserModule, _angular_platform_browser_animations__WEBPACK_IMPORTED_MODULE_15__.BrowserAnimationsModule, _app_routing_module__WEBPACK_IMPORTED_MODULE_0__.AppRoutingModule, _shared_shared_module__WEBPACK_IMPORTED_MODULE_1__.SharedModule, _angular_common_http__WEBPACK_IMPORTED_MODULE_12__.HttpClientModule, _angular_fire__WEBPACK_IMPORTED_MODULE_16__.AngularFireModule.initializeApp(firebaseConfig), _angular_fire_auth__WEBPACK_IMPORTED_MODULE_17__.AngularFireAuthModule, ngx_spinner__WEBPACK_IMPORTED_MODULE_18__.NgxSpinnerModule, _fortawesome_angular_fontawesome__WEBPACK_IMPORTED_MODULE_19__.FontAwesomeModule, angular_resizable_element__WEBPACK_IMPORTED_MODULE_20__.ResizableModule, _ngx_translate_core__WEBPACK_IMPORTED_MODULE_21__.TranslateModule.forRoot({
           loader: {
-            provide: _ngx_translate_core__WEBPACK_IMPORTED_MODULE_20__.TranslateLoader,
+            provide: _ngx_translate_core__WEBPACK_IMPORTED_MODULE_21__.TranslateLoader,
             useFactory: _createTranslateLoader,
-            deps: [_angular_common_http__WEBPACK_IMPORTED_MODULE_11__.HttpClient]
+            deps: [_angular_common_http__WEBPACK_IMPORTED_MODULE_12__.HttpClient]
           }
-        }), _agm_core__WEBPACK_IMPORTED_MODULE_21__.AgmCoreModule.forRoot({
+        }), _agm_core__WEBPACK_IMPORTED_MODULE_22__.AgmCoreModule.forRoot({
           apiKey: "YOUR_GOOGLE_MAP_API_KEY"
-        }), ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_12__.PerfectScrollbarModule]]
+        }), ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_13__.PerfectScrollbarModule]]
       });
 
       (function () {
-        (typeof ngJitMode === "undefined" || ngJitMode) && _angular_core__WEBPACK_IMPORTED_MODULE_10__["ɵɵsetNgModuleScope"](_AppModule, {
-          declarations: [_app_component__WEBPACK_IMPORTED_MODULE_2__.AppComponent, _layouts_full_full_layout_component__WEBPACK_IMPORTED_MODULE_4__.FullLayoutComponent, _layouts_content_content_layout_component__WEBPACK_IMPORTED_MODULE_3__.ContentLayoutComponent],
-          imports: [_angular_platform_browser__WEBPACK_IMPORTED_MODULE_13__.BrowserModule, _angular_platform_browser_animations__WEBPACK_IMPORTED_MODULE_14__.BrowserAnimationsModule, _app_routing_module__WEBPACK_IMPORTED_MODULE_0__.AppRoutingModule, _shared_shared_module__WEBPACK_IMPORTED_MODULE_1__.SharedModule, _angular_common_http__WEBPACK_IMPORTED_MODULE_11__.HttpClientModule, _angular_fire__WEBPACK_IMPORTED_MODULE_15__.AngularFireModule, _angular_fire_auth__WEBPACK_IMPORTED_MODULE_16__.AngularFireAuthModule, ngx_spinner__WEBPACK_IMPORTED_MODULE_17__.NgxSpinnerModule, _fortawesome_angular_fontawesome__WEBPACK_IMPORTED_MODULE_18__.FontAwesomeModule, angular_resizable_element__WEBPACK_IMPORTED_MODULE_19__.ResizableModule, _ngx_translate_core__WEBPACK_IMPORTED_MODULE_20__.TranslateModule, _agm_core__WEBPACK_IMPORTED_MODULE_21__.AgmCoreModule, ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_12__.PerfectScrollbarModule]
+        (typeof ngJitMode === "undefined" || ngJitMode) && _angular_core__WEBPACK_IMPORTED_MODULE_11__["ɵɵsetNgModuleScope"](_AppModule, {
+          declarations: [_app_component__WEBPACK_IMPORTED_MODULE_2__.AppComponent, _layouts_full_full_layout_component__WEBPACK_IMPORTED_MODULE_5__.FullLayoutComponent, _layouts_content_content_layout_component__WEBPACK_IMPORTED_MODULE_4__.ContentLayoutComponent],
+          imports: [_angular_platform_browser__WEBPACK_IMPORTED_MODULE_14__.BrowserModule, _angular_platform_browser_animations__WEBPACK_IMPORTED_MODULE_15__.BrowserAnimationsModule, _app_routing_module__WEBPACK_IMPORTED_MODULE_0__.AppRoutingModule, _shared_shared_module__WEBPACK_IMPORTED_MODULE_1__.SharedModule, _angular_common_http__WEBPACK_IMPORTED_MODULE_12__.HttpClientModule, _angular_fire__WEBPACK_IMPORTED_MODULE_16__.AngularFireModule, _angular_fire_auth__WEBPACK_IMPORTED_MODULE_17__.AngularFireAuthModule, ngx_spinner__WEBPACK_IMPORTED_MODULE_18__.NgxSpinnerModule, _fortawesome_angular_fontawesome__WEBPACK_IMPORTED_MODULE_19__.FontAwesomeModule, angular_resizable_element__WEBPACK_IMPORTED_MODULE_20__.ResizableModule, _ngx_translate_core__WEBPACK_IMPORTED_MODULE_21__.TranslateModule, _agm_core__WEBPACK_IMPORTED_MODULE_22__.AgmCoreModule, ngx_perfect_scrollbar__WEBPACK_IMPORTED_MODULE_13__.PerfectScrollbarModule]
         });
       })();
       /***/
@@ -1543,9 +1580,9 @@
       /* harmony import */
 
 
-      var _services_token_service__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(
-      /*! ../services/token.service */
-      80723);
+      var _auth_service__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(
+      /*! ./auth.service */
+      6008);
       /* harmony import */
 
 
@@ -1554,20 +1591,25 @@
       3984);
 
       var _AuthGuard = /*#__PURE__*/function () {
-        function _AuthGuard(tokenService, router) {
+        function _AuthGuard(authService, router) {
           _classCallCheck(this, _AuthGuard);
 
-          this.tokenService = tokenService;
+          this.authService = authService;
           this.router = router;
         }
 
         _createClass(_AuthGuard, [{
           key: "canActivate",
           value: function canActivate(route, state) {
-            var isAuth = this.tokenService.isLoggedIn();
+            var isAuth = this.authService.isLoggedIn();
+            console.log(isAuth);
 
             if (!isAuth) {
-              this.router.navigate(['/login']);
+              this.router.navigate(['/login'], {
+                queryParams: {
+                  returnUrl: state.url
+                }
+              });
             } else {
               return true;
             }
@@ -1575,10 +1617,14 @@
         }, {
           key: "canLoad",
           value: function canLoad(route, state) {
-            var isAuth = this.tokenService.isLoggedIn();
+            var isAuth = this.authService.isLoggedIn();
 
             if (!isAuth) {
-              this.router.navigate(['/login']);
+              this.router.navigate(['/login'], {
+                queryParams: {
+                  returnUrl: state.url
+                }
+              });
             } else {
               return true;
             }
@@ -1589,7 +1635,7 @@
       }();
 
       _AuthGuard.ɵfac = function AuthGuard_Factory(t) {
-        return new (t || _AuthGuard)(_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_services_token_service__WEBPACK_IMPORTED_MODULE_0__.TokenService), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_angular_router__WEBPACK_IMPORTED_MODULE_2__.Router));
+        return new (t || _AuthGuard)(_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_auth_service__WEBPACK_IMPORTED_MODULE_0__.AuthService), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_angular_router__WEBPACK_IMPORTED_MODULE_2__.Router));
       };
 
       _AuthGuard.ɵprov = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵdefineInjectable"]({
@@ -1627,21 +1673,21 @@
       /* harmony import */
 
 
-      var _services_token_service__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(
-      /*! ../services/token.service */
-      80723);
+      var _auth_service__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(
+      /*! ./auth.service */
+      6008);
 
       var _AuthInterceptor = /*#__PURE__*/function () {
-        function _AuthInterceptor(tokenService) {
+        function _AuthInterceptor(authService) {
           _classCallCheck(this, _AuthInterceptor);
 
-          this.tokenService = tokenService;
+          this.authService = authService;
         }
 
         _createClass(_AuthInterceptor, [{
           key: "intercept",
           value: function intercept(req, next) {
-            var accessToken = this.tokenService.getToken();
+            var accessToken = this.authService.getToken();
             req = req.clone({
               setHeaders: {
                 Authorization: "Bearer " + accessToken
@@ -1655,7 +1701,7 @@
       }();
 
       _AuthInterceptor.ɵfac = function AuthInterceptor_Factory(t) {
-        return new (t || _AuthInterceptor)(_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_services_token_service__WEBPACK_IMPORTED_MODULE_0__.TokenService));
+        return new (t || _AuthInterceptor)(_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_auth_service__WEBPACK_IMPORTED_MODULE_0__.AuthService));
       };
 
       _AuthInterceptor.ɵprov = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵdefineInjectable"]({
@@ -1689,29 +1735,35 @@
 
       var rxjs_operators__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(
       /*! rxjs/operators */
+      88002);
+      /* harmony import */
+
+
+      var rxjs_operators__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(
+      /*! rxjs/operators */
       78345);
       /* harmony import */
 
 
-      var _angular_core__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(
+      var _angular_core__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(
       /*! @angular/core */
       74788);
       /* harmony import */
 
 
-      var _angular_fire_auth__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(
+      var _angular_fire_auth__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(
       /*! @angular/fire/auth */
       2552);
       /* harmony import */
 
 
-      var _angular_common_http__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(
+      var _angular_common_http__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(
       /*! @angular/common/http */
       58497);
       /* harmony import */
 
 
-      var _angular_router__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(
+      var _angular_router__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(
       /*! @angular/router */
       3984);
 
@@ -1725,6 +1777,25 @@
           this.http = http;
           this.router = router;
           this.userDetails = null;
+          this.issuer = {
+            login: 'http://127.0.0.1:8000/api/auth/login',
+            register: 'http://127.0.0.1:8000/api/auth/register',
+            refresh: 'http://127.0.0.1:8000/api/auth/refresh'
+          };
+
+          this.refreshToken = function () {
+            console.log("refresh");
+            return _this7.http.post("/api/auth/refresh", {}, {
+              withCredentials: true
+            }).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_0__.map)(function (data) {
+              _this7.setToken(data.access_token);
+
+              _this7.startRefreshTokenTimer(data.access_token);
+
+              return data;
+            }));
+          };
+
           this.user = _firebaseAuth.authState;
           this.user.subscribe(function (user) {
             if (user) {
@@ -1736,6 +1807,69 @@
         }
 
         _createClass(_AuthService, [{
+          key: "setToken",
+          value: function setToken(token) {
+            localStorage.setItem('auth_token', token);
+          }
+        }, {
+          key: "getToken",
+          value: function getToken() {
+            return localStorage.getItem('auth_token');
+          } // Verify the token
+
+        }, {
+          key: "isValidToken",
+          value: function isValidToken() {
+            var token = this.getToken();
+
+            if (token) {
+              var payload = this.payload(token);
+
+              if (payload) {
+                return Object.values(this.issuer).indexOf(payload.iss) > -1 ? true : false;
+              }
+            } else {
+              return false;
+            }
+          }
+        }, {
+          key: "payload",
+          value: function payload(token) {
+            var jwtPayload = token.split('.')[1];
+            return JSON.parse(atob(jwtPayload));
+          } // User state based on valid token
+
+        }, {
+          key: "isLoggedIn",
+          value: function isLoggedIn() {
+            return this.isValidToken();
+          } // Remove token
+
+        }, {
+          key: "removeToken",
+          value: function removeToken() {
+            localStorage.removeItem('auth_token');
+          }
+        }, {
+          key: "startRefreshTokenTimer",
+          value: function startRefreshTokenTimer(token) {
+            var _this8 = this;
+
+            // parse json object from base64 encoded jwt token
+            var jwtToken = JSON.parse(atob(token.split('.')[1])); // set a timeout to refresh the token a minute before it expires
+
+            var expires = new Date(jwtToken.exp * 1000);
+            var timeout = expires.getTime() - Date.now() - 120 * 1000;
+            this.refreshTokenTimeout = setTimeout(function () {
+              return _this8.refreshToken().subscribe();
+            }, timeout);
+          }
+        }, {
+          key: "stopRefreshTokenTimer",
+          value: function stopRefreshTokenTimer() {
+            clearTimeout(this.refreshTokenTimeout);
+          }
+        }, {
           key: "signupUser",
           value: function signupUser(value) {
             //your code for signing up the new user
@@ -1744,7 +1878,7 @@
               email: value.email,
               password: value.password
             };
-            var call = this.http.post('/api/auth/register', value).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_0__.share)());
+            var call = this.http.post('/api/auth/register', value).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_1__.share)());
             return call;
           }
         }, {
@@ -1756,7 +1890,7 @@
               email: email,
               password: password
             };
-            var call = this.http.post('/api/auth/login', body).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_0__.share)());
+            var call = this.http.post('/api/auth/login', body).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_1__.share)());
             return call;
           }
         }, {
@@ -1776,10 +1910,10 @@
       }();
 
       _AuthService.ɵfac = function AuthService_Factory(t) {
-        return new (t || _AuthService)(_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_angular_fire_auth__WEBPACK_IMPORTED_MODULE_2__.AngularFireAuth), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_3__.HttpClient), _angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵinject"](_angular_router__WEBPACK_IMPORTED_MODULE_4__.Router));
+        return new (t || _AuthService)(_angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_angular_fire_auth__WEBPACK_IMPORTED_MODULE_3__.AngularFireAuth), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_angular_common_http__WEBPACK_IMPORTED_MODULE_4__.HttpClient), _angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵinject"](_angular_router__WEBPACK_IMPORTED_MODULE_5__.Router));
       };
 
-      _AuthService.ɵprov = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_1__["ɵɵdefineInjectable"]({
+      _AuthService.ɵprov = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_2__["ɵɵdefineInjectable"]({
         token: _AuthService,
         factory: _AuthService.ɵfac
       });
@@ -2079,27 +2213,27 @@
         }, {
           key: "ngOnInit",
           value: function ngOnInit() {
-            var _this8 = this;
+            var _this9 = this;
 
             (0, rxjs__WEBPACK_IMPORTED_MODULE_0__.fromEvent)(this.origin, "focus").pipe((0, ngx_take_until_destroy__WEBPACK_IMPORTED_MODULE_1__.untilDestroyed)(this)).subscribe(function () {
-              _this8.openDropdown();
+              _this9.openDropdown();
 
-              _this8.appAutocomplete.optionsClick().pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.takeUntil)(_this8.overlayRef.detachments())).subscribe(function (value) {
-                _this8.control.setValue(value);
+              _this9.appAutocomplete.optionsClick().pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.takeUntil)(_this9.overlayRef.detachments())).subscribe(function (value) {
+                _this9.control.setValue(value);
 
-                _this8.close();
+                _this9.close();
               });
             });
             this.router.events.pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_3__.filter)(function (event) {
               return event instanceof _angular_router__WEBPACK_IMPORTED_MODULE_4__.NavigationEnd;
             })).subscribe(function (routeChange) {
-              _this8.close();
+              _this9.close();
             });
           }
         }, {
           key: "openDropdown",
           value: function openDropdown() {
-            var _this9 = this;
+            var _this10 = this;
 
             this.close();
             this.overlayRef = this.overlay.create({
@@ -2113,7 +2247,7 @@
             this.overlayRef.attach(template);
 
             _overlayClickOutside(this.overlayRef, this.origin).subscribe(function () {
-              return _this9.close();
+              return _this10.close();
             });
           }
         }, {
@@ -3640,17 +3774,17 @@
         }, {
           key: "ngOnInit",
           value: function ngOnInit() {
-            var _this10 = this;
+            var _this11 = this;
 
             this.innerWidth = window.innerWidth;
             this.layoutSub = this.configService.templateConf$.subscribe(function (templateConf) {
               if (templateConf) {
-                _this10.config = templateConf;
+                _this11.config = templateConf;
               }
 
-              _this10.loadLayout();
+              _this11.loadLayout();
 
-              _this10.cdr.markForCheck();
+              _this11.cdr.markForCheck();
             });
           }
         }, {
@@ -3707,7 +3841,7 @@
         }, {
           key: "setSidebarGroupActive",
           value: function setSidebarGroupActive() {
-            var _this11 = this;
+            var _this12 = this;
 
             if (this.navlinks.length > 0) {
               this.navlinks.forEach(function (link) {
@@ -3715,7 +3849,7 @@
                 link.navCollapsedOpen = false;
               });
               var matched = this.navlinks.find(function (link) {
-                return link.path === _this11.router.url;
+                return link.path === _this12.router.url;
               });
 
               if (matched) {
@@ -3735,10 +3869,10 @@
         }, {
           key: "setSidebarGroupActiveCollapsed",
           value: function setSidebarGroupActiveCollapsed() {
-            var _this12 = this;
+            var _this13 = this;
 
             this.closeOtherLinks(this.navlinks.find(function (link) {
-              return link.path === _this12.router.url;
+              return link.path === _this13.router.url;
             }));
 
             if (this.navlinks.length > 0) {
@@ -3747,7 +3881,7 @@
                 link.navCollapsedOpen = false;
               });
               var matched = this.navlinks.find(function (link) {
-                return link.path === _this12.router.url;
+                return link.path === _this13.router.url;
               });
 
               if (matched) {
@@ -4810,16 +4944,16 @@
         }, {
           key: "ngAfterViewInit",
           value: function ngAfterViewInit() {
-            var _this13 = this;
+            var _this14 = this;
 
             this.layoutSub = this.configService.templateConf$.subscribe(function (templateConf) {
               if (templateConf) {
-                _this13.config = templateConf;
+                _this14.config = templateConf;
               }
 
-              _this13.loadLayout();
+              _this14.loadLayout();
 
-              _this13.cdr.markForCheck();
+              _this14.cdr.markForCheck();
             });
           }
         }, {
@@ -5007,13 +5141,13 @@
       /* harmony import */
 
 
-      var _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(
+      var _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(
       /*! @fortawesome/free-solid-svg-icons */
       49976);
       /* harmony import */
 
 
-      var _fortawesome_free_regular_svg_icons__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(
+      var _fortawesome_free_regular_svg_icons__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(
       /*! @fortawesome/free-regular-svg-icons */
       51903);
       /* harmony import */
@@ -5115,7 +5249,7 @@
 
       var _NavbarComponent = /*#__PURE__*/function () {
         function _NavbarComponent(translate, layoutService, router, configService, cdr, route) {
-          var _this14 = this;
+          var _this15 = this;
 
           _classCallCheck(this, _NavbarComponent);
 
@@ -5132,33 +5266,34 @@
           this.placement = "bottom-right";
           this.logoUrl = "assets/img/logo.png";
           this.menuPosition = "Side";
+          this.faCaretSquareLeft = _fortawesome_free_regular_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faCaretSquareLeft;
           this.isSmallScreen = false;
           this.searchOpenClass = "";
           this.transparentBGClass = "";
           this.hideSidebar = true;
           this.isCollapsed = true;
-          this.faHatWizard = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faHatWizard;
-          this.faUserFriends = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faUserFriends;
-          this.faMap = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faMap;
-          this.faCaretSquareDown = _fortawesome_free_regular_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faCaretSquareDown;
-          this.faSlidersH = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faSlidersH;
-          this.faBookOpen = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faBookOpen;
-          this.faGlobe = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faGlobe;
+          this.faHatWizard = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faHatWizard;
+          this.faUserFriends = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faUserFriends;
+          this.faMap = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faMap;
+          this.faCaretSquareDown = _fortawesome_free_regular_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faCaretSquareDown;
+          this.faSlidersH = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faSlidersH;
+          this.faBookOpen = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faBookOpen;
+          this.faGlobe = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faGlobe;
           this.toggleHideSidebar = new _angular_core__WEBPACK_IMPORTED_MODULE_5__.EventEmitter();
           this.seachTextEmpty = new _angular_core__WEBPACK_IMPORTED_MODULE_5__.EventEmitter();
           this.listItems = [];
           this.control = new _angular_forms__WEBPACK_IMPORTED_MODULE_8__.FormControl();
-          this.faDragon = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_6__.faDragon;
+          this.faDragon = _fortawesome_free_solid_svg_icons__WEBPACK_IMPORTED_MODULE_7__.faDragon;
           this.config = {};
           route.paramMap.subscribe(function (p) {
             console.log(p);
 
             if (!!p.get("worldId")) {
-              _this14.worldId = parseInt(p.get("worldId"), 10);
+              _this15.worldId = parseInt(p.get("worldId"), 10);
             }
 
             if (!!p.get("regionId")) {
-              _this14.regionId = parseInt(p.get("regionId"), 10);
+              _this15.regionId = parseInt(p.get("regionId"), 10);
             }
           });
           var browserLang = translate.getBrowserLang();
@@ -5166,7 +5301,7 @@
           this.config = this.configService.templateConf;
           this.innerWidth = window.innerWidth;
           this.layoutSub = layoutService.toggleSidebar$.subscribe(function (isShow) {
-            _this14.hideSidebar = !isShow;
+            _this15.hideSidebar = !isShow;
           });
         }
 
@@ -5184,16 +5319,16 @@
         }, {
           key: "ngAfterViewInit",
           value: function ngAfterViewInit() {
-            var _this15 = this;
+            var _this16 = this;
 
             this.configSub = this.configService.templateConf$.subscribe(function (templateConf) {
               if (templateConf) {
-                _this15.config = templateConf;
+                _this16.config = templateConf;
               }
 
-              _this15.loadLayout();
+              _this16.loadLayout();
 
-              _this15.cdr.markForCheck();
+              _this16.cdr.markForCheck();
             });
           }
         }, {
@@ -5315,14 +5450,14 @@
         }, {
           key: "toggleSearchOpenClass",
           value: function toggleSearchOpenClass(display) {
-            var _this16 = this;
+            var _this17 = this;
 
             this.control.setValue("");
 
             if (display) {
               this.searchOpenClass = "open";
               setTimeout(function () {
-                _this16.searchElement.nativeElement.focus();
+                _this17.searchElement.nativeElement.focus();
               }, 0);
             } else {
               this.searchOpenClass = "";
@@ -5379,7 +5514,7 @@
         },
         decls: 59,
         vars: 21,
-        consts: [[3, "ngClass"], [1, "container-fluid", "navbar-wrapper"], [1, "navbar-header", "d-flex"], ["data-toggle", "collapse", 1, "navbar-toggle", "menu-toggle", "d-xl-none", "d-block", "float-left", "align-items-center", "justify-content-center", 3, "click"], [1, "ft-menu", "font-medium-3"], [1, "navbar-nav", 3, "clickOutside"], [1, "nav-item", "mr-2", "d-none", "d-lg-block"], ["id", "navbar-fullscreen", "routerLink", "javascript:;", "appToggleFullscreen", "", 1, "nav-link", "apptogglefullscreen", 3, "click"], ["routerLink", "/app/story", 1, "nav-link"], ["routerLink", "/app/combat", 1, "nav-link"], [1, "navbar-container"], ["id", "navbarSupportedContent", 1, "collapse", "navbar-collapse", "d-block"], [1, "navbar-nav"], ["placement", "bottom-left", "display", "static", "ngbDropdown", "", 1, "dropdown", "nav-item", "mr-1"], ["id", "dropdownBasic2", "href", "javascript:;", "data-toggle", "dropdown", "ngbDropdownToggle", "", 1, "nav-link", "dropdown-toggle", "user-dropdown", "d-flex", "align-items-end"], [1, "user", "d-md-flex", "d-none", "mr-2"], [1, "text-right", "mb-0", "mt-1"], ["aria-labelledby", "dropdownBasic2", "ngbDropdownMenu", "", 1, "dropdown-menu", "text-left", "dropdown-menu-right", "m-0", "pb-0", 2, "font-size", "1.5rem"], [1, "dropdown-item", 3, "routerLink"], [1, "d-flex", "align-items-center"], [3, "icon"], [1, "pl-2"], ["routerLink", "/app/edit-monsters", 1, "dropdown-item"], ["routerLink", "/app/edit-spells", 1, "dropdown-item"], ["class", "dropdown-item", 3, "routerLink", 4, "ngIf"], ["routerLink", "/app/edit-sounds", 1, "dropdown-item"], ["routerLink", "/app/edit-maps", 1, "dropdown-item"], ["routerLink", "/app/edit-story", 1, "dropdown-item"], [1, "dropdown-divider"], [1, "nav-item", "p-0", "m-0"], [1, "nav-link", "notification-sidebar-toggle", "p-0", "m-0", 3, "click"], [2, "font-size", "2.2em", 3, "icon"]],
+        consts: [[3, "ngClass"], [1, "container-fluid", "navbar-wrapper"], [1, "navbar-header", "d-flex"], ["data-toggle", "collapse", 1, "navbar-toggle", "menu-toggle", "d-xl-none", "d-block", "float-left", "align-items-center", "justify-content-center", 3, "click"], [1, "ft-menu", "font-medium-3"], [1, "navbar-nav", 3, "clickOutside"], [1, "nav-item", "mr-2", "d-none", "d-lg-block"], ["id", "navbar-fullscreen", "routerLink", "javascript:;", "appToggleFullscreen", "", 1, "nav-link", "apptogglefullscreen", 3, "click"], ["routerLink", "/app/story", 1, "nav-link"], ["routerLink", "/app/combat", 1, "nav-link"], [1, "navbar-container"], ["id", "navbarSupportedContent", 1, "collapse", "navbar-collapse", "d-block"], [1, "navbar-nav"], ["placement", "bottom-left", "display", "static", "ngbDropdown", "", 1, "dropdown", "nav-item", "mr-1"], ["id", "dropdownBasic2", "href", "javascript:;", "data-toggle", "dropdown", "ngbDropdownToggle", "", 1, "nav-link", "dropdown-toggle", "user-dropdown", "d-flex", "align-items-end"], [1, "user", "d-md-flex", "d-none", "mr-2"], [1, "text-right", "mb-0", "mt-1"], ["aria-labelledby", "dropdownBasic2", "ngbDropdownMenu", "", 1, "dropdown-menu", "text-left", "dropdown-menu-right", "m-0", "pb-0", 2, "font-size", "1.5rem"], [1, "dropdown-item", 3, "routerLink"], [1, "d-flex", "align-items-center"], [3, "icon"], [1, "pl-2"], ["routerLink", "/app/edit-monsters", 1, "dropdown-item"], ["routerLink", "/app/edit-spells", 1, "dropdown-item"], ["class", "dropdown-item", 3, "routerLink", 4, "ngIf"], ["routerLink", "/app/edit-sounds", 1, "dropdown-item"], ["routerLink", "/app/edit-maps", 1, "dropdown-item"], ["routerLink", "/app/edit-story", 1, "dropdown-item"], [1, "dropdown-divider"], [1, "nav-item", "p-0", "m-0"], [1, "border", "side-toggle", "notification-sidebar-toggle", "p-0", "m-0", 3, "click"], [2, "font-size", "2.2em", 3, "icon"]],
         template: function NavbarComponent_Template(rf, ctx) {
           if (rf & 1) {
             _angular_core__WEBPACK_IMPORTED_MODULE_5__["ɵɵelementStart"](0, "nav", 0);
@@ -5638,11 +5773,11 @@
 
             _angular_core__WEBPACK_IMPORTED_MODULE_5__["ɵɵadvance"](6);
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_5__["ɵɵproperty"]("icon", ctx.faCaretSquareDown);
+            _angular_core__WEBPACK_IMPORTED_MODULE_5__["ɵɵproperty"]("icon", ctx.faCaretSquareLeft);
           }
         },
         directives: [_angular_common__WEBPACK_IMPORTED_MODULE_11__.NgClass, ng_click_outside__WEBPACK_IMPORTED_MODULE_3__.ClickOutsideDirective, _angular_router__WEBPACK_IMPORTED_MODULE_10__.RouterLinkWithHref, _directives_toggle_fullscreen_directive__WEBPACK_IMPORTED_MODULE_4__.ToggleFullscreenDirective, _ng_bootstrap_ng_bootstrap__WEBPACK_IMPORTED_MODULE_12__.NgbDropdown, _ng_bootstrap_ng_bootstrap__WEBPACK_IMPORTED_MODULE_12__.NgbDropdownToggle, _ng_bootstrap_ng_bootstrap__WEBPACK_IMPORTED_MODULE_12__.NgbDropdownMenu, _fortawesome_angular_fontawesome__WEBPACK_IMPORTED_MODULE_13__.FaIconComponent, _angular_common__WEBPACK_IMPORTED_MODULE_11__.NgIf],
-        styles: ["\n/*# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IiIsImZpbGUiOiJuYXZiYXIuY29tcG9uZW50LnNjc3MifQ== */"]
+        styles: [".side-toggle[_ngcontent-%COMP%] {\n  position: absolute;\n  right: 0;\n  top: 25vh;\n  display: flex;\n  height: 50vh;\n  align-items: center;\n  justify-content: center;\n}\n/*# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbIm5hdmJhci5jb21wb25lbnQuc2NzcyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQTtFQUNJLGtCQUFBO0VBQ0EsUUFBQTtFQUNBLFNBQUE7RUFDQSxhQUFBO0VBQ0EsWUFBQTtFQUNBLG1CQUFBO0VBQ0EsdUJBQUE7QUFDSiIsImZpbGUiOiJuYXZiYXIuY29tcG9uZW50LnNjc3MiLCJzb3VyY2VzQ29udGVudCI6WyIuc2lkZS10b2dnbGUge1xyXG4gICAgcG9zaXRpb246IGFic29sdXRlO1xyXG4gICAgcmlnaHQ6IDA7XHJcbiAgICB0b3A6IDI1dmg7XHJcbiAgICBkaXNwbGF5OiBmbGV4O1xyXG4gICAgaGVpZ2h0OiA1MHZoO1xyXG4gICAgYWxpZ24taXRlbXM6IGNlbnRlcjtcclxuICAgIGp1c3RpZnktY29udGVudDogY2VudGVyO1xyXG59Il19 */"]
       });
       /***/
     },
@@ -6027,7 +6162,7 @@
 
       var _NotificationSidebarComponent = /*#__PURE__*/function () {
         function _NotificationSidebarComponent(layoutService, worldService) {
-          var _this17 = this;
+          var _this18 = this;
 
           _classCallCheck(this, _NotificationSidebarComponent);
 
@@ -6051,7 +6186,7 @@
           };
 
           this.layoutSub = layoutService.toggleNotiSidebar$.subscribe(function (open) {
-            _this17.isOpen = open;
+            _this18.isOpen = open;
           });
         }
 
@@ -6530,19 +6665,11 @@
         }
         /* harmony export */
 
-      });
-      /* harmony import */
-
-
-      var _shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(
-      /*! ../../shared/auth/auth-guard.service */
-      16929); //Route for content layout with sidebar, navbar and footer.
+      }); //Route for content layout with sidebar, navbar and footer.
 
 
       var _Full_ROUTES = [{
         path: "",
-        canActivate: [_shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_0__.AuthGuard],
-        canLoad: [_shared_auth_auth_guard_service__WEBPACK_IMPORTED_MODULE_0__.AuthGuard],
         loadChildren: function loadChildren() {
           return __webpack_require__.e(
           /*! import() */
@@ -6871,54 +6998,54 @@
         }, {
           key: "getlightDarkLayoutGradientBGColors",
           value: function getlightDarkLayoutGradientBGColors() {
-            var _this18 = this;
-
-            return this.light_dark_colors.filter(function (_) {
-              return _.type === "gradient";
-            }).map(function (color) {
-              color.active = color.code === _this18.config.templateConf.layout.sidebar.backgroundColor;
-              return _objectSpread({}, color);
-            });
-          }
-        }, {
-          key: "getlightDarkLayoutSolidBGColors",
-          value: function getlightDarkLayoutSolidBGColors() {
             var _this19 = this;
 
             return this.light_dark_colors.filter(function (_) {
-              return _.type === "solid";
+              return _.type === "gradient";
             }).map(function (color) {
               color.active = color.code === _this19.config.templateConf.layout.sidebar.backgroundColor;
               return _objectSpread({}, color);
             });
           }
         }, {
-          key: "getTransparentLayoutBGColors",
-          value: function getTransparentLayoutBGColors() {
+          key: "getlightDarkLayoutSolidBGColors",
+          value: function getlightDarkLayoutSolidBGColors() {
             var _this20 = this;
 
+            return this.light_dark_colors.filter(function (_) {
+              return _.type === "solid";
+            }).map(function (color) {
+              color.active = color.code === _this20.config.templateConf.layout.sidebar.backgroundColor;
+              return _objectSpread({}, color);
+            });
+          }
+        }, {
+          key: "getTransparentLayoutBGColors",
+          value: function getTransparentLayoutBGColors() {
+            var _this21 = this;
+
             return this.transparent_colors.map(function (color) {
-              color.active = color["class"] === _this20.config.templateConf.layout.sidebar.backgroundColor;
+              color.active = color["class"] === _this21.config.templateConf.layout.sidebar.backgroundColor;
               return _objectSpread({}, color);
             });
           }
         }, {
           key: "GetTransparentLayoutBGColorsWithShades",
           value: function GetTransparentLayoutBGColorsWithShades() {
-            var _this21 = this;
+            var _this22 = this;
 
             return this.transparent_colors_with_shade.map(function (color) {
-              color.active = color["class"] === _this21.config.templateConf.layout.sidebar.backgroundColor;
+              color.active = color["class"] === _this22.config.templateConf.layout.sidebar.backgroundColor;
               return _objectSpread({}, color);
             });
           }
         }, {
           key: "getLightDarkLayoutBGImages",
           value: function getLightDarkLayoutBGImages() {
-            var _this22 = this;
+            var _this23 = this;
 
             return this.light_dark_bg_images.map(function (image) {
-              image.active = image.src === _this22.config.templateConf.layout.sidebar.backgroundImageURL;
+              image.active = image.src === _this23.config.templateConf.layout.sidebar.backgroundImageURL;
               return _objectSpread({}, image);
             });
           } //called when click to change on any Gradient/Solid color for Light & Dark layout in customizer
@@ -7137,103 +7264,6 @@
     },
 
     /***/
-    80723: function _(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
-      "use strict";
-
-      __webpack_require__.r(__webpack_exports__);
-      /* harmony export */
-
-
-      __webpack_require__.d(__webpack_exports__, {
-        /* harmony export */
-        "TokenService": function TokenService() {
-          return (
-            /* binding */
-            _TokenService
-          );
-        }
-        /* harmony export */
-
-      });
-      /* harmony import */
-
-
-      var _angular_core__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(
-      /*! @angular/core */
-      74788);
-
-      var _TokenService = /*#__PURE__*/function () {
-        function _TokenService() {
-          _classCallCheck(this, _TokenService);
-
-          this.issuer = {
-            login: 'http://127.0.0.1:8000/api/auth/login',
-            register: 'http://127.0.0.1:8000/api/auth/register'
-          };
-        }
-
-        _createClass(_TokenService, [{
-          key: "handleData",
-          value: function handleData(token) {
-            localStorage.setItem('auth_token', token);
-          }
-        }, {
-          key: "getToken",
-          value: function getToken() {
-            return localStorage.getItem('auth_token');
-          } // Verify the token
-
-        }, {
-          key: "isValidToken",
-          value: function isValidToken() {
-            var token = this.getToken();
-
-            if (token) {
-              var payload = this.payload(token);
-
-              if (payload) {
-                return Object.values(this.issuer).indexOf(payload.iss) > -1 ? true : false;
-              }
-            } else {
-              return false;
-            }
-          }
-        }, {
-          key: "payload",
-          value: function payload(token) {
-            var jwtPayload = token.split('.')[1];
-            return JSON.parse(atob(jwtPayload));
-          } // User state based on valid token
-
-        }, {
-          key: "isLoggedIn",
-          value: function isLoggedIn() {
-            return this.isValidToken();
-          } // Remove token
-
-        }, {
-          key: "removeToken",
-          value: function removeToken() {
-            localStorage.removeItem('auth_token');
-          }
-        }]);
-
-        return _TokenService;
-      }();
-
-      _TokenService.ɵfac = function TokenService_Factory(t) {
-        return new (t || _TokenService)();
-      };
-
-      _TokenService.ɵprov = /*@__PURE__*/_angular_core__WEBPACK_IMPORTED_MODULE_0__["ɵɵdefineInjectable"]({
-        token: _TokenService,
-        factory: _TokenService.ɵfac,
-        providedIn: 'root'
-      });
-      /***/
-    },
-
-    /***/
     28370: function _(__unused_webpack_module, __webpack_exports__, __webpack_require__) {
       "use strict";
 
@@ -7445,7 +7475,7 @@
       58497);
 
       var _WorldService = function _WorldService(http) {
-        var _this23 = this;
+        var _this24 = this;
 
         _classCallCheck(this, _WorldService);
 
@@ -7458,14 +7488,14 @@
         this.worldData$ = this.worldDataSource.asObservable();
 
         this.getWorld = function (id) {
-          _this23.http.get("/api/world/" + id).subscribe(function (data) {
-            return _this23.worldDataSource.next(data);
+          _this24.http.get("/api/world/" + id).subscribe(function (data) {
+            return _this24.worldDataSource.next(data);
           });
         };
 
         this.getWorldFromRegion = function (id) {
-          _this23.http.get("/api/world/fr/" + id).subscribe(function (data) {
-            return _this23.worldDataSource.next(data);
+          _this24.http.get("/api/world/fr/" + id).subscribe(function (data) {
+            return _this24.worldDataSource.next(data);
           });
         };
 
@@ -7473,45 +7503,45 @@
         };
 
         this.getNpc = function (npcId) {
-          _this23.http.get("/api/npc/" + npcId).subscribe(function (data) {
-            return _this23.selectedNpcSource.next(data.npc);
+          _this24.http.get("/api/npc/" + npcId).subscribe(function (data) {
+            return _this24.selectedNpcSource.next(data.npc);
           });
         };
 
         this.getNpcs = function (regionId) {
-          return _this23.http.get("/api/region/" + regionId + "/npcs");
+          return _this24.http.get("/api/region/" + regionId + "/npcs");
         };
 
         this.getAspects = function () {
-          return _this23.http.get("/api/aspects");
+          return _this24.http.get("/api/aspects");
         };
 
         this.updateNpc = function (params) {
-          return _this23.http.post("/api/npcs/npc/update", params);
+          return _this24.http.post("/api/npcs/npc/update", params);
         };
 
         this.addNpc = function (params) {
-          return _this23.http.post("/api/npcs/npc/add", params);
+          return _this24.http.post("/api/npcs/npc/add", params);
         };
 
         this.deleteNpc = function (params) {
-          return _this23.http.post("/api/npcs/npc/delete", params);
+          return _this24.http.post("/api/npcs/npc/delete", params);
         };
 
         this.seedRegion = function (region) {
-          var call = _this23.http.get("/api/region/" + region.id + "/seed").pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
+          var call = _this24.http.get("/api/region/" + region.id + "/seed").pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
 
           return call;
         };
 
         this.saveRegion = function (region) {
-          var call = _this23.http.put("/api/region/" + region.id, region).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
+          var call = _this24.http.put("/api/region/" + region.id, region).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
 
           return call;
         };
 
         this.generateFeatures = function (npcId, lockedFeatures) {
-          return _this23.http.put("/api/npc/" + npcId + "/generate-features", {
+          return _this24.http.put("/api/npc/" + npcId + "/generate-features", {
             locked_features: lockedFeatures
           }).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
         }; // getRegions = (params) => {
@@ -7520,13 +7550,13 @@
 
 
         this.ageRegion = function (region, years) {
-          var call = _this23.http.get("/api/region/" + region.id + "/age/" + years).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
+          var call = _this24.http.get("/api/region/" + region.id + "/age/" + years).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
 
           return call;
         };
 
         this.clearRegion = function (region) {
-          var call = _this23.http.get("/api/region/" + region.id + "/clear").pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
+          var call = _this24.http.get("/api/region/" + region.id + "/clear").pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
 
           return call;
         }; // updateRegion = (params) => {
@@ -7539,7 +7569,7 @@
         this.addRegion = function (world) {
           var region = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : null;
 
-          var call = _this23.http.post("/api/world/" + world.id + "/region/add", {
+          var call = _this24.http.post("/api/world/" + world.id + "/region/add", {
             region: region
           }).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
 
@@ -7547,7 +7577,7 @@
         };
 
         this.deleteRegion = function (region) {
-          var call = _this23.http["delete"]("/api/region/" + region.id).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
+          var call = _this24.http["delete"]("/api/region/" + region.id).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
 
           return call;
         };
@@ -8721,36 +8751,36 @@
         }, {
           key: "ngAfterViewInit",
           value: function ngAfterViewInit() {
-            var _this24 = this;
+            var _this25 = this;
 
             this.configSub = this.configService.templateConf$.subscribe(function (templateConf) {
               if (templateConf) {
-                _this24.config = templateConf;
+                _this25.config = templateConf;
               }
 
-              _this24.loadLayout();
+              _this25.loadLayout();
 
-              _this24.cdr.markForCheck();
+              _this25.cdr.markForCheck();
             });
             this.layoutSub = this.layoutService.overlaySidebarToggle$.subscribe(function (collapse) {
-              if (_this24.config.layout.menuPosition === "Side") {
-                _this24.collapseSidebar = collapse;
+              if (_this25.config.layout.menuPosition === "Side") {
+                _this25.collapseSidebar = collapse;
               }
             });
           }
         }, {
           key: "onWindowResize",
           value: function onWindowResize(event) {
-            var _this25 = this;
+            var _this26 = this;
 
             if (this.resizeTimeout) {
               clearTimeout(this.resizeTimeout);
             }
 
             this.resizeTimeout = setTimeout(function () {
-              _this25.innerWidth = event.target.innerWidth;
+              _this26.innerWidth = event.target.innerWidth;
 
-              _this25.loadLayout();
+              _this26.loadLayout();
             }.bind(this), 500);
           }
         }, {
@@ -8782,7 +8812,7 @@
         }, {
           key: "toggleSidebar",
           value: function toggleSidebar() {
-            var _this26 = this;
+            var _this27 = this;
 
             var conf = this.config;
             conf.layout.sidebar.collapsed = !this.config.layout.sidebar.collapsed;
@@ -8790,7 +8820,7 @@
               layout: conf.layout
             });
             setTimeout(function () {
-              _this26.fireRefreshEventOnWindow();
+              _this27.fireRefreshEventOnWindow();
             }, 300);
           }
         }, {

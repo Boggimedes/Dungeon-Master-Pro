@@ -5,12 +5,15 @@ import { CombatComponent } from "./combat/combat.component";
 import { StoryComponent } from "./story/story.component";
 import { EditWorldsComponent } from "./edit-worlds/edit-worlds.component";
 import { EditNpcsComponent } from "./edit-npcs/edit-npcs.component";
+import { AuthGuard } from "../shared/auth/auth-guard.service";
 
 const routes: Routes = [
 	{
 		path: "app",
 		component: PageComponent,
-		data: {
+		canActivate: [AuthGuard],
+		canLoad: [AuthGuard],
+			data: {
 			title: "Game Master Pro",
 		},
 		children: [

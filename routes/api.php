@@ -35,6 +35,7 @@ Route::group(['middleware' => ['api']], function ($router) {
     Route::get('region/{region}/clear', 'WorldController@clearRegion');
     Route::get('region/{region}/age/{years}', 'WorldController@ageRegion');
     Route::get('region/{region}/npcs', 'WorldController@getNpcs');
+    Route::post('region/{region}/upload-map', 'WorldController@uploadMap');
     Route::put('npc/{npc}/generate-features', 'WorldController@generateFeatures');
 
 });

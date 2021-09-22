@@ -27,7 +27,7 @@ import { faDragon } from "@fortawesome/free-solid-svg-icons";
 import { faHatWizard } from "@fortawesome/free-solid-svg-icons";
 import { faUserFriends } from "@fortawesome/free-solid-svg-icons";
 import { faSlidersH } from "@fortawesome/free-solid-svg-icons";
-import { faCogs } from "@fortawesome/free-solid-svg-icons";
+import { faCaretSquareLeft } from "@fortawesome/free-regular-svg-icons";
 import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-solid-svg-icons";
 import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
@@ -47,6 +47,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   placement = "bottom-right";
   logoUrl = "assets/img/logo.png";
   menuPosition = "Side";
+  faCaretSquareLeft = faCaretSquareLeft;
   isSmallScreen = false;
   protected innerWidth: any;
   searchOpenClass = "";
