@@ -1904,6 +1904,9 @@ body {
     svg {
       stroke: $dl-headings-color;
     }
+    #map-wrapper {
+      svg {stroke:none}
+    }
     .apexcharts-toolbar {
       svg {
         stroke: none;

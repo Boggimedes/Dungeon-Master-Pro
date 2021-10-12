@@ -828,7 +828,7 @@
 
       function FullLayoutComponent_div_2_div_2_Template(rf, ctx) {
         if (rf & 1) {
-          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](0, "div", 12);
+          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](0, "div", 11);
         }
 
         if (rf & 2) {
@@ -850,7 +850,7 @@
         if (rf & 1) {
           var _r4 = _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵgetCurrentView"]();
 
-          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](0, "div", 10);
+          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](0, "div", 9);
 
           _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵlistener"]("mouseenter", function FullLayoutComponent_div_2_Template_div_mouseenter_0_listener($event) {
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵrestoreView"](_r4);
@@ -868,7 +868,7 @@
 
           _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](1, "app-sidebar");
 
-          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵtemplate"](2, FullLayoutComponent_div_2_div_2_Template, 1, 3, "div", 11);
+          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵtemplate"](2, FullLayoutComponent_div_2_div_2_Template, 1, 3, "div", 10);
 
           _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementEnd"]();
         }
@@ -886,13 +886,13 @@
         }
       }
 
-      function FullLayoutComponent_button_9_Template(rf, ctx) {
+      function FullLayoutComponent_button_8_Template(rf, ctx) {
         if (rf & 1) {
           var _r7 = _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵgetCurrentView"]();
 
-          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](0, "button", 13);
+          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](0, "button", 12);
 
-          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵlistener"]("click", function FullLayoutComponent_button_9_Template_button_click_0_listener() {
+          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵlistener"]("click", function FullLayoutComponent_button_8_Template_button_click_0_listener() {
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵrestoreView"](_r7);
 
             var ctx_r6 = _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵnextContext"]();
@@ -900,7 +900,7 @@
             return ctx_r6.scrollToTop();
           });
 
-          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](1, "i", 14);
+          _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](1, "i", 13);
 
           _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementEnd"]();
         }
@@ -1336,9 +1336,9 @@
             }, false, _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵresolveWindow"]);
           }
         },
-        decls: 13,
+        decls: 12,
         vars: 9,
-        consts: [[3, "seachTextEmpty"], [1, "wrapper", 3, "ngClass", "click", "resize"], ["appSidebar", "", "class", "app-sidebar", "data-active-color", "white", 3, "ngClass", "mouseenter", "mouseleave", 4, "ngIf"], [1, "main-panel"], [1, "main-content"], [1, "content-overlay"], [1, "content-wrapper"], ["class", "btn btn-primary scroll-top", "type", "button", 3, "click", 4, "ngIf"], [1, "sidenav-overlay", 3, "ngClass", "click"], [1, "drag-target"], ["appSidebar", "", "data-active-color", "white", 1, "app-sidebar", 3, "ngClass", "mouseenter", "mouseleave"], ["class", "sidebar-background", 3, "ngStyle", 4, "ngIf"], [1, "sidebar-background", 3, "ngStyle"], ["type", "button", 1, "btn", "btn-primary", "scroll-top", 3, "click"], [1, "ft-arrow-up"]],
+        consts: [[3, "seachTextEmpty"], [1, "wrapper", 3, "ngClass", "click", "resize"], ["appSidebar", "", "class", "app-sidebar", "data-active-color", "white", 3, "ngClass", "mouseenter", "mouseleave", 4, "ngIf"], [1, "main-panel"], [1, "main-content"], [1, "content-overlay"], ["class", "btn btn-primary scroll-top", "type", "button", 3, "click", 4, "ngIf"], [1, "sidenav-overlay", 3, "ngClass", "click"], [1, "drag-target"], ["appSidebar", "", "data-active-color", "white", 1, "app-sidebar", 3, "ngClass", "mouseenter", "mouseleave"], ["class", "sidebar-background", 3, "ngStyle", 4, "ngIf"], [1, "sidebar-background", 3, "ngStyle"], ["type", "button", 1, "btn", "btn-primary", "scroll-top", 3, "click"], [1, "ft-arrow-up"]],
         template: function FullLayoutComponent_Template(rf, ctx) {
           if (rf & 1) {
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](0, "app-navbar", 0);
@@ -1365,31 +1365,27 @@
 
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](5, "div", 5);
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](6, "div", 6);
-
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](7, "router-outlet");
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](6, "router-outlet");
 
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementEnd"]();
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementEnd"]();
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](7, "app-footer");
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](8, "app-footer");
-
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵtemplate"](9, FullLayoutComponent_button_9_Template, 2, 0, "button", 7);
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵtemplate"](8, FullLayoutComponent_button_8_Template, 2, 0, "button", 6);
 
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementEnd"]();
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](10, "app-notification-sidebar");
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](9, "app-notification-sidebar");
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](11, "div", 8);
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementStart"](10, "div", 7);
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵlistener"]("click", function FullLayoutComponent_Template_div_click_11_listener($event) {
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵlistener"]("click", function FullLayoutComponent_Template_div_click_10_listener($event) {
               return ctx.onOutsideClick($event);
             });
 
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementEnd"]();
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](12, "div", 9);
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelement"](11, "div", 8);
 
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵelementEnd"]();
           }
@@ -1403,7 +1399,7 @@
 
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵproperty"]("ngIf", ctx.menuPosition === "Side" || ctx.displayOverlayMenu);
 
-            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵadvance"](7);
+            _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵadvance"](6);
 
             _angular_core__WEBPACK_IMPORTED_MODULE_9__["ɵɵproperty"]("ngIf", ctx.isScrollTopVisible);
 
@@ -1443,12 +1439,11 @@
 
         _classCallCheck(this, _Region);
 
-        this.feature_types = [];
+        this.feature_types = {};
         this.prof_balance = [];
         this.racial_balance = [];
         this.linked = false;
         data = !!data ? data : {};
-        if (data.feature_types == null) data.feature_types = [];
         Object.assign(this, data);
       };
       /***/
@@ -7535,6 +7530,8 @@
         };
 
         this.saveRegion = function (region) {
+          console.log(region.feature_types.body);
+
           var call = _this24.http.put("/api/region/" + region.id, region).pipe((0, rxjs_operators__WEBPACK_IMPORTED_MODULE_2__.share)());
 
           return call;

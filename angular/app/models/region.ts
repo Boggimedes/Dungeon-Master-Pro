@@ -1,7 +1,7 @@
 export class Region {
   public id: number;
   public name: string;
-  public feature_types: any[] = [];
+  public feature_types: any = {};
   public epoch: number;
   public prof_balance: any = [];
   public racial_balance: any = [];
@@ -11,7 +11,6 @@ export class Region {
 
   constructor(data: any = {}) {
     data = !!data ? data : {};
-    if (data.feature_types == null) data.feature_types = [];
     Object.assign(this, data);
   }
 }

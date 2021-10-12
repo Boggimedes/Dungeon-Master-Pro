@@ -208,6 +208,7 @@ class WorldController extends Controller
             'states'  => 'string',
             'burgs'  => 'string',
             'religions'  => 'string',
+            'map'  => 'string',
         ]);
 
         
@@ -215,6 +216,7 @@ class WorldController extends Controller
         // $region->cultures = $validatedData['cultures'];
         $region->states = $validatedData['states'];
         $region->burgs = $validatedData['burgs'];
+        $region->map = $validatedData['map'];
         $region->religions = 
         $validatedData['religions'];
         $region->save();

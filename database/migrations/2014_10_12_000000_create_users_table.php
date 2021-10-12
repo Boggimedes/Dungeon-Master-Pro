@@ -209,16 +209,29 @@ class CreateUsersTable extends Migration
             $table->string('name');
             $table->text('racial_balance');
             $table->text('prof_balance');
-            $table->text('feature_types');
+            $table->text('feature_types')->default('{}');
             $table->integer('epoch')->nullable();
-            $table->integer('states_count')->default(2);
-            $table->integer('religions_count')->default(4);
-            $table->text('states');
-            $table->text('burgs');
-            $table->text('religions');
+            $table->text('cultures')->default('[]');
+            $table->text('religions')->default('[]');
+            $table->text('states')->default('[]');
             $table->text('map');
             $table->timestamps();
             $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
+        });
+        Schema::create('cities', function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('region_id')->unsigned();
+            $table->integer('origin_id')->unsigned();
+            $table->string('name');
+            $table->text('population');
+            $table->text('prof_balance');
+            $table->text('feature_types');
+            $table->integer('epoch')->nullable();
+            $table->text('cultures');
+            $table->text('religions');
+            $table->text('map');
+            $table->timestamps();
+            $table->foreign('region_id')->references('id')->on('regions')->onDelete('cascade');
         });
         Schema::create('spells', function (Blueprint $table) {
             $table->increments('id');

@@ -1,12 +1,6 @@
+<base href="/assets/map-generator/">
 <div class="row">
   <div class="btn-group-vertical map-buttons">
-    <button
-      class="btn btn-sm btn-secondary"
-      *ngFor="let z of mapArray; let i = index"
-      (click)="mapScale = z"
-    >
-      {{ i }}
-    </button>
     <button
       class="btn btn-sm btn-outline-secondary"
       [ngbTooltip]="'Toggle map info window'"
@@ -24,32 +18,15 @@
     >
       <fa-icon [icon]="faHourglassHalf"></fa-icon>
     </button>
-    <div class="zoom-label">
-      <div>&nbsp;</div>
-      <div>&nbsp;</div>
-      <div>Zoom Levels</div>
-    </div>
   </div>
-  <div class="boundary map col-12" style="height: 92vh">
-    <div 
-      appFreeDragging
-      #map
-      [scale]="mapScale"
-      [frameLocked]="false"
-      class="map-primary"
-      
-    >
-      <img (wheel)="zoom($event)"
-        src="https://game-master-pro.s3.us-west-2.amazonaws.com/map/r1.svg"
-      />
-      <span style="position:absolute;left:200px;top:300px">Test Label</span>
-    </div>
+  
+<app-story-map (clickedEmitter)="mapClicked($event)" class="col-12"></app-story-map>
 
     <div class="story-box card" appFreeDragging *ngIf="mapBox">
       <div class="card-content">
         <div class="card-body">
           <div class="card-title">
-            Card Title
+            <h3><input type="text" class="no-border bg-transparent text-primary" [(ngModel)]="selectedBurg.name"></h3>
             <div appFreeDraggingHandle class="drag-handle">
               <svg width="16px" fill="currentColor" viewBox="0 0 24 24">
                 <path
@@ -59,11 +36,40 @@
               </svg>
             </div>
           </div>
-          <p>Something page-header</p>
-          <button class="btn btn-primary">maybe some buttons</button>
+          <div>
+            <div class="label">Temperature: <span id="burgTemperature">{{ selectedBurg.temperature }}</span></div>
+            
+          </div>
+  
+          <div data-tip="Burg height above mean sea level">
+            <div class="label">Elevation: <span id="burgElevation">{{ selectedBurg.elevation }}</span></div>
+            
+          </div>
+
+        <div>
+          <div class="label">Dominant Culture: {{ selectedBurg.culture }}</div>
+        </div>
+
+        <div>
+          <div class="label">Population: <span *ngIf="!editPop" (click)="editPop=true">{{ population | number:'1.0':'en-US' }}</span><input id="burgPopulation" *ngIf="editPop" (blur)="editPop=false" class="no-border bg-transparent" type="number" min=0 step=1 [(ngModel)]="population" style="color:#B2B1B5"></div>
+          
+        </div>
+
+        <div>
+          <div class="label">Features:</div>
+          <span ngbTooltip="State Capital" (click)="selectedBurg.capital = !selectedBurg.capital" id="burgCapital" [class.text-light]="selectedBurg.capital" [class.text-dark]="!selectedBurg.capital" style="font-size:2rem" class="burgFeature icon-star"></span>
+          <span ngbTooltip="Port City" (click)="selectedBurg.port = !selectedBurg.port" id="burgPort" [class.text-light]="selectedBurg.port" [class.text-dark]="!selectedBurg.port" style="font-size:2rem" class="burgFeature icon-anchor"></span>
+          <span ngbTooltip="Has Citadel" (click)="selectedBurg.citadel = !selectedBurg.citadel" id="burgCitadel" [class.text-light]="selectedBurg.citadel" [class.text-dark]="!selectedBurg.citadel" class="burgFeature icon-chess-rook" ></span>
+          <span ngbTooltip="Has Walls" (click)="selectedBurg.walls = !selectedBurg.walls" id="burgWalls" [class.text-light]="selectedBurg.walls" [class.text-dark]="!selectedBurg.walls" class="burgFeature icon-fort-awesome"></span>
+          <span ngbTooltip="Has Bazaar " (click)="selectedBurg.plaza = !selectedBurg.plaza" id="burgPlaza"  [class.text-light]="selectedBurg.plaza" [class.text-dark]="!selectedBurg.plaza" class="burgFeature icon-store" ></span>
+          <span ngbTooltip="Has Temple" (click)="selectedBurg.temple = !selectedBurg.temple" id="burgTemple" [class.text-light]="selectedBurg.temple" [class.text-dark]="!selectedBurg.temple" class="burgFeature icon-chess-bishop"></span>
+          <span ngbTooltip="Has Shanty" (click)="selectedBurg.shanty = !selectedBurg.shanty" id="burgShanty" [class.text-light]="selectedBurg.shanty" [class.text-dark]="!selectedBurg.shanty" class="burgFeature icon-campground"></span>
+        </div>
+        <textarea class="form-control mt-3 w-100" rows="3" [(ngModel)]="selectedBurg.notes"></textarea>
+
+      </div>
         </div>
       </div>
-    </div>
 
     <div class="story-box card" appFreeDragging *ngIf="npcBox">
       <div class="card-content">
@@ -122,5 +128,5 @@
     <div class="map-editor"></div>
     <div class="sounds"></div>
   </div>
-</div>
 <div class="row"></div>
+

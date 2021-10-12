@@ -15,21 +15,38 @@
   <link rel="icon" type="image/png" href="images/favicon-32x32.png" sizes="32x32"/>
   <link rel="icon" type="image/png" href="images/favicon-16x16.png" sizes="16x16"/>
   <link rel="canonical" href="https://azgaar.github.io/Fantasy-Map-Generator/">
-
+  <link rel="stylesheet" href="assets/vendor/pace/themes/black/pace-theme-flash.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <link rel="stylesheet" href="styles.css">
   <style type="text/css">
 
  .map-templates {
       position:absolute;
       z-index:1000;
-      top:0.35rem;
-      left:0;
+      bottom: 1.35rem;
+      left: 2rem;
       display:flex;
       flex-direction: column;
+  }
+  .subtle input[type=number], .subtle input[type=text], .subtle select {
+    color: white;
+    background: transparent;
+    border: 0px;
+  }
+  .subtle option {
+    color: white;
+    background: black;
   }
   #statesRegenerateButtons, #statesBottom {
       display:none !important;
   }
   .map-templates img {
+      border-radius: 1rem;
+      margin-bottom: 0.25rem;
+      margin-top: 0.25rem;
+      cursor:pointer;
+  }
+  .land-shapes img {
       border-radius: 1rem;
       margin-bottom: 0.25rem;
       margin-top: 0.25rem;
@@ -43,8 +60,7 @@
     display: flex;
     text-align: center;
   }
-    body {margin: 0; font-size: 11px; overflow: hidden;}
-    #map {position: absolute;}
+.card {font-size:1rem};
     #initial {fill: none; stroke: black; pointer-events: none;}
     #init-rose {animation: 20s infinite spin; opacity: .7; transform-origin: center;}
     @keyframes spin {0% {transform: rotate(0deg);} 100% {transform: rotate(359deg);}}
@@ -60,26 +76,578 @@
     @keyframes blink {0% {opacity: 0;} 20% {opacity: 1;} 100% {opacity: .1;}}
   </style>
   <script>
-      var regionCultures = [
-      @foreach ($region->racial_balance as $race)
-        @if ($race->homeland) 
-        {name:'{{$race->name}}', base:1, odd:1, shield:"round"},
-        @endif
-      @endforeach
+      var regionRaces = window.regionRaces = [
+        @foreach ($region->racial_balance as $race)
+          {name:'{{$race->name}}', id: {{$race->id}}},
+        @endforeach
       ];
+      var regionReligions = window.regionReligions = [
+        @foreach ($region->religions as $religion)
+          {name:'{{$religion->name}}'},
+        @endforeach
+      ];
+      var regionCultures = window.regionCultures = [
+        // {name: "Wildlands", i: 0, base: 1, origin: null, shield: "round"},
+        @if (empty($region->cultures))
+        @foreach ($region->racial_balance as $race)
+          {name:'{{$race->name}}', dominant_race: {{$race->id}}, exp: 1, namebase: 'generic', state: 0, base:1, odd:1, shield:"random"},
+        @endforeach
+      @else
+        @foreach($region->cultures as $culture)
+        {name:'{{$culture->name}}', dominant_race: {{$culture->race_id}}, exp: {{$culture->exp}}, namebase: '{{$culture->namebase}}', state: {{$culture->state}}, base:1, odd:1, shield:"round"},
+          @endforeach
+      @endif
+      ];
+      var regionStates = window.regionStates = [
+        @foreach($region->states as $state)
+        {name:'{{$state->name}}', dominant_Culture: {{$state->culture}}, exp: {{$state->exp}}, form: '{{$state->form}}', base:1, odd:1, shield:"random"},
+        @endforeach
+
+      ];
+      var testing = [];
+      Object.assign(testing, regionCultures);
+      console.log(testing);
+      var regionRaceNames = {
+        @foreach ($region->racial_balance as $race)
+        {{$race->id}}: '{{$race->name}}',
+        @endforeach
+      };
       var regionId = {{ $region->id }};
+
+  function changeTemplate(value) {
+    document.getElementById('map').style.display = 'none';
+    if (value == 'random') {
+      const templates = {
+        volcano: 3,
+        highIsland: 22,
+        lowIsland: 9,
+        continents: 19,
+        archipelago: 23,
+        mediterranean: 5,
+        peninsula: 3,
+        pangea: 5,
+        isthmus: 2,
+        atoll: 1,
+        shattered: 7,
+        taklamakan: 1
+      };
+      value = rw(templates);
+    }
+    document.getElementById('templateInput').value = value;
+    setTimeout(regeneratePrompt, 1500);
+    // setTimeout(()=> editStates(), 3000);
+    }
+
+    window.Cultures = (function () {
+  let cells;
+   
+
+  const generate = function () {
+    TIME && console.time("generateCultures");
+    cells = pack.cells;
+    cells.culture = new Uint16Array(cells.i.length); // cell cultures
+    let count = Math.min(+culturesInput.value, +culturesSet.selectedOptions[0].dataset.max);
+
+    const populated = cells.i.filter(i => cells.s[i]); // populated cells
+    console.log(populated);
+    if (populated.length < count * 25) {
+      count = Math.floor(populated.length / 50);
+      if (!count) {
+        WARN && console.warn(`There are no populated cells. Cannot generate cultures`);
+        pack.cultures = [{name: "Wildlands", i: 0, base: 1, shield: "round"}];
+        alertMessage.innerHTML = `
+          The climate is harsh and people cannot live in this world.<br>
+          No cultures, states and burgs will be created.<br>
+          Please consider changing climate settings in the World Configurator`;
+        $("#alert").dialog({
+          resizable: false,
+          title: "Extreme climate warning",
+          buttons: {
+            Ok: function () {
+              $(this).dialog("close");
+            }
+          }
+        });
+        return;
+      } else {
+        WARN && console.warn(`Not enough populated cells (${populated.length}). Will generate only ${count} cultures`);
+        alertMessage.innerHTML = `
+          There are only ${populated.length} populated cells and it's insufficient livable area.<br>
+          Only ${count} out of ${culturesInput.value} requested cultures will be generated.<br>
+          Please consider changing climate settings in the World Configurator`;
+        $("#alert").dialog({
+          resizable: false,
+          title: "Extreme climate warning",
+          buttons: {
+            Ok: function () {
+              $(this).dialog("close");
+            }
+          }
+        });
+      }
+    }
+    count = regionCultures.length+1;
+    console.log(count);
+    const cultures = (pack.cultures = selectCultures(count));
+    console.log(pack.cultures);
+    const centers = d3.quadtree();
+    const colors = getColors(count);
+    const emblemShape = document.getElementById("emblemShape").value;
+    console.log(cultures);
+
+    const codes = [];
+    cultures.forEach(function (c, i) {
+      console.log(c);
+      const cell = (c.center = placeCenter(c.sort ? c.sort : i => cells.s[i]));
+      centers.add(cells.p[cell]);
+      c.i = i;
+      delete c.odd;
+      delete c.sort;
+      c.color = colors[i];
+      c.type = defineCultureType(cell);
+      c.expansionism = c.exp; //defineCultureExpansionism(c.type);
+      c.origin = 0;
+      c.code = abbreviate(c.name, codes);
+      codes.push(c.code);
+      cells.culture[cell] = i + 1;
+      if (emblemShape === "random") c.shield = getRandomShield();
+    });
+
+    function placeCenter(v) {
+      let c,
+        spacing = (graphWidth + graphHeight) / 2 / count;
+      const sorted = [...populated].sort((a, b) => v(b) - v(a)),
+        max = Math.floor(sorted.length / 2);
+      do {
+        c = sorted[biased(0, max, 5)];
+        spacing *= 0.9;
+      } while (centers.find(cells.p[c][0], cells.p[c][1], spacing) !== undefined);
+      return c;
+    }
+
+    // the first culture with id 0 is for wildlands
+    // cultures.unshift({name: "Wildlands", i: 0, base: 1, origin: null, shield: "round"});
+
+    // make sure all bases exist in nameBases
+    if (!nameBases.length) {
+      ERROR && console.error("Name base is empty, default nameBases will be applied");
+      nameBases = Names.getNameBases();
+    }
+
+    cultures.forEach(c => (c.base = c.base % nameBases.length));
+
+    function selectCultures(c) {
+      let def = getDefault(c);
+      console.log("selectCultures");
+      console.log(c);
+      console.log(def);
+      if (c === def.length) return def;
+      if (def.every(d => d.odd === 1)) return def.splice(0, c);
+
+      const count = Math.min(c, def.length);
+      const cultures = [];
+
+      for (let culture, rnd, i = 0; cultures.length < count && i < 200; i++) {
+        do {
+          rnd = rand(def.length - 1);
+          culture = def[rnd];
+        } while (!P(culture.odd));
+        cultures.push(culture);
+        def.splice(rnd, 1);
+      }
+      return cultures;
+    }
+
+    // set culture type based on culture center position
+    function defineCultureType(i) {
+      if (cells.h[i] < 70 && [1, 2, 4].includes(cells.biome[i])) return "Nomadic"; // high penalty in forest biomes and near coastline
+      if (cells.h[i] > 50) return "Highland"; // no penalty for hills and moutains, high for other elevations
+      const f = pack.features[cells.f[cells.haven[i]]]; // opposite feature
+      if (f.type === "lake" && f.cells > 5) return "Lake"; // low water cross penalty and high for growth not along coastline
+      if ((cells.harbor[i] && f.type !== "lake" && P(0.1)) || (cells.harbor[i] === 1 && P(0.6)) || (pack.features[cells.f[i]].group === "isle" && P(0.4))) return "Naval"; // low water cross penalty and high for non-along-coastline growth
+      if (cells.r[i] && cells.fl[i] > 100) return "River"; // no River cross penalty, penalty for non-River growth
+      if (cells.t[i] > 2 && [3, 7, 8, 9, 10, 12].includes(cells.biome[i])) return "Hunting"; // high penalty in non-native biomes
+      return "Generic";
+    }
+
+    function defineCultureExpansionism(type) {
+      let base = 1; // Generic
+      if (type === "Lake") base = 0.8;
+      else if (type === "Naval") base = 1.5;
+      else if (type === "River") base = 0.9;
+      else if (type === "Nomadic") base = 1.5;
+      else if (type === "Hunting") base = 0.7;
+      else if (type === "Highland") base = 1.2;
+      return rn(((Math.random() * powerInput.value) / 2 + 1) * base, 1);
+    }
+
+    TIME && console.timeEnd("generateCultures");
+  };
+
+  const add = function (center) {
+    const defaultCultures = getDefault();
+    let culture, base, name;
+
+    if (pack.cultures.length < defaultCultures.length) {
+      // add one of the default cultures
+      culture = pack.cultures.length;
+      base = defaultCultures[culture].base;
+      name = defaultCultures[culture].name;
+    } else {
+      // add random culture besed on one of the current ones
+      culture = rand(pack.cultures.length - 1);
+      name = Names.getCulture(culture, 5, 8, "");
+      base = pack.cultures[culture].base;
+    }
+    const code = abbreviate(
+      name,
+      pack.cultures.map(c => c.code)
+    );
+    const i = pack.cultures.length;
+    const color = d3.color(d3.scaleSequential(d3.interpolateRainbow)(Math.random())).hex();
+
+    // define emblem shape
+    let shield = culture.shield;
+    const emblemShape = document.getElementById("emblemShape").value;
+    if (emblemShape === "random") shield = getRandomShield();
+console.log("Add Culture");
+    pack.cultures.push({name, color, base, center, i, expansionism: 1, type: "Generic", cells: 0, area: 0, rural: 0, urban: 0, origin: 0, code, shield});
+  };
+
+  const getDefault = function (count) {
+    // generic sorting functions
+    // const cells = pack.cells,
+    //   s = cells.s,
+    //   sMax = d3.max(s),
+    //   t = cells.t,
+    //   h = cells.h,
+    //   temp = grid.cells.temp;
+    // const n = cell => Math.ceil((s[cell] / sMax) * 3); // normalized cell score
+    // const td = (cell, goal) => {
+    //   const d = Math.abs(temp[cells.g[cell]] - goal);
+    //   return d ? d + 1 : 1;
+    // }; // temperature difference fee
+    // const bd = (cell, biomes, fee = 4) => (biomes.includes(cells.biome[cell]) ? 1 : fee); // biome difference fee
+    // const sf = (cell, fee = 4) => (cells.haven[cell] && pack.features[cells.f[cells.haven[cell]]].type !== "lake" ? 1 : fee); // not on sea coast fee
+    let culturesCopy = JSON.parse(JSON.stringify(regionCultures));
+    console.log(culturesCopy);
+    culturesCopy.unshift({name: "Wildlands", i: 0, base: 1, origin: null, shield: "round"});
+    return culturesCopy;
+    }
+  // expand cultures across the map (Dijkstra-like algorithm)
+  const expand = function () {
+    TIME && console.time("expandCultures");
+    cells = pack.cells;
+
+    const queue = new PriorityQueue({comparator: (a, b) => a.p - b.p});
+    pack.cultures.forEach(function (c) {
+      if (!c.i || c.removed) return;
+      queue.queue({e: c.center, p: 0, c: c.i});
+    });
+
+    const neutral = (cells.i.length / 5000) * 3000 * neutralInput.value; // limit cost for culture growth
+    const cost = [];
+    while (queue.length) {
+      const next = queue.dequeue(),
+        n = next.e,
+        p = next.p,
+        c = next.c;
+      const type = pack.cultures[c].type;
+      cells.c[n].forEach(function (e) {
+        const biome = cells.biome[e];
+        const biomeCost = getBiomeCost(c, biome, type);
+        const biomeChangeCost = biome === cells.biome[n] ? 0 : 20; // penalty on biome change
+        const heightCost = getHeightCost(e, cells.h[e], type);
+        const riverCost = getRiverCost(cells.r[e], e, type);
+        const typeCost = getTypeCost(cells.t[e], type);
+        const totalCost = p + (biomeCost + biomeChangeCost + heightCost + riverCost + typeCost) / pack.cultures[c].expansionism;
+
+        if (totalCost > neutral) return;
+
+        if (!cost[e] || totalCost < cost[e]) {
+          if (cells.s[e] > 0) cells.culture[e] = c; // assign culture to populated cell
+          cost[e] = totalCost;
+          queue.queue({e, p: totalCost, c});
+        }
+      });
+    }
+
+    TIME && console.timeEnd("expandCultures");
+  };
+
+  function getBiomeCost(c, biome, type) {
+    if (cells.biome[pack.cultures[c].center] === biome) return 10; // tiny penalty for native biome
+    if (type === "Hunting") return biomesData.cost[biome] * 5; // non-native biome penalty for hunters
+    if (type === "Nomadic" && biome > 4 && biome < 10) return biomesData.cost[biome] * 10; // forest biome penalty for nomads
+    return biomesData.cost[biome] * 2; // general non-native biome penalty
+  }
+
+  function getHeightCost(i, h, type) {
+    const f = pack.features[cells.f[i]],
+      a = cells.area[i];
+    if (type === "Lake" && f.type === "lake") return 10; // no lake crossing penalty for Lake cultures
+    if (type === "Naval" && h < 20) return a * 2; // low sea/lake crossing penalty for Naval cultures
+    if (type === "Nomadic" && h < 20) return a * 50; // giant sea/lake crossing penalty for Nomads
+    if (h < 20) return a * 6; // general sea/lake crossing penalty
+    if (type === "Highland" && h < 44) return 3000; // giant penalty for highlanders on lowlands
+    if (type === "Highland" && h < 62) return 200; // giant penalty for highlanders on lowhills
+    if (type === "Highland") return 0; // no penalty for highlanders on highlands
+    if (h >= 67) return 200; // general mountains crossing penalty
+    if (h >= 44) return 30; // general hills crossing penalty
+    return 0;
+  }
+
+  function getRiverCost(r, i, type) {
+    if (type === "River") return r ? 0 : 100; // penalty for river cultures
+    if (!r) return 0; // no penalty for others if there is no river
+    return Math.min(Math.max(cells.fl[i] / 10, 20), 100); // river penalty from 20 to 100 based on flux
+  }
+
+  function getTypeCost(t, type) {
+    if (t === 1) return type === "Naval" || type === "Lake" ? 0 : type === "Nomadic" ? 60 : 20; // penalty for coastline
+    if (t === 2) return type === "Naval" || type === "Nomadic" ? 30 : 0; // low penalty for land level 2 for Navals and nomads
+    if (t !== -1) return type === "Naval" || type === "Lake" ? 100 : 0; // penalty for mainland for navals
+    return 0;
+  }
+
+  const getRandomShield = function () {
+    const type = rw(COA.shields.types);
+    return rw(COA.shields[type]);
+  };
+
+  return {generate, add, expand, getDefault, getRandomShield};
+})();
+
+
       </script>
   <link rel="stylesheet" href="index.css">
   <link rel="stylesheet" href="icons.css">
   <link rel="stylesheet" href="libs/jquery-ui.css">
 </head>
-<body style="background-color:black;">
-  <svg id="map" width="100%" height="100%" version="1.1"
-    xmlns="http://www.w3.org/2000/svg"
-    xmlns:xlink="http://www.w3.org/1999/xlink"
-    xmlns:dc="http://purl.org/dc/elements/1.1/"
-    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-    xmlns:svg="http://www.w3.org/2000/svg">
+<body style="background-color:black;overflow:hidden" >
+<div class="container-fluid">
+  <div class="row">
+<div id="mapSetup" class="col-4 pl-4 order-first text-light" style="height:100vh;overflow:auto;">
+  <h2>Region Setup</h2>
+  <div id="accordion">
+  <div class="card bg-transparent">
+    <div class="card-header" style="cursor: pointer;" id="headingOne">
+      <h4 class="mb-0 bg-transparent" data-toggle="collapse" data-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+      Settings
+      </h4>
+    </div>
+
+    <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
+      <div class="card-body">
+  <div id="unitsBody" class="row" style="margin-left:1.1em;font-size:1.2rem;">
+      <div class="col-6">
+        <div data-tip="Select a distance unit or provide a custom name">
+          <div><span class="icon-map-signs"></span> Distance: </div>
+          <select id="distanceUnitInput" data-stored="distanceUnit">
+            <option value="mi" selected>Mile (mi)</option>
+            <option value="km">Kilometer (km)</option>
+            <option value="lg">League (lg)</option>
+            <option value="vr">Versta (vr)</option>
+            <option value="custom_name">Custom name</option>
+          </select>
+        </div>
+    </div>
+    <div class="col-6">
+          <div><span class="icon-temperature-high"></span> Temperature: </div>
+          <select id="temperatureScale" data-stored="temperatureScale">
+            <option value="°C" selected>Celsius (°C)</option>
+            <option value="°F">Fahrenheit (°F)</option>
+            <option value="K">Kelvin (K)</option>
+            <option value="°R">Rankine (°R)</option>
+            <option value="°De">Delisle (°De)</option>
+            <option value="°N">Newton (°N)</option>
+            <option value="°Ré">Réaumur (°Ré)</option>
+            <option value="°Rø">Rømer (°Rø)</option>
+          </select>
+        </div>
+    <div class="col-6">
+        <div data-tip="Select an altitude unit or provide a custom name">
+          <div><span class="icon-signal"></span> Height:</div>
+          <select id="heightUnit" data-stored="heightUnit">
+            <option value="ft" selected>Feet (ft)</option>
+            <option value="m">Meters (m)</option>
+            <option value="f">Fathoms (f)</option>
+            <option value="custom_name">Custom name</option>
+          </select>
+        </div>
+      </div>
+    <div class="col-6">
+        <div data-tip="Set how many people are in one population point">
+          <div><span class="icon-male"></span> Population:</div>
+            <input class="d-none" id="populationRateOutput" data-stored="populationRate" type="range" min=10 max=9990 step=10 value=1000 />
+            1 <span class="icon-male"></span> = <input id="populationRateInput" data-stored="populationRate" type="number" min=10 max=9990 step=10 value=1000 />
+        </div>
+    </div>
+    <div class="col-12">
+    <h4>Epoch</h4>
+    <p>This value is the "Age" of this region.  This doesn't have to be the same as your campaign date, this defines the scope of expansion for all states & cultures.  A society with low cultural expasion values (less than 2) would have a lot of "Neutral" territory in the region at 1000ep.  Conversely a region with an epoch of 4000 (and/or higher expansionism values) would have little to no neutral territory.</p>
+    <input type="number" id="epoch" step="100" min="0" max="10000" value="1000" onchange="updateEpoch()">
+  </div>
+  <h4>City Density</h4>
+  <div class="col-12">
+<div class="btn-group" role="group" aria-label="Basic example">
+  <button type="button" class="btn btn-primary burg-density" data-value="100" onclick="setBurgs(100)">1 City/200mi</button>
+  <button type="button" class="btn btn-secondary burg-density" data-value="200" onclick="setBurgs(200)">1 City/100mi</button>
+  <button type="button" class="btn btn-secondary burg-density" data-value="300" onclick="setBurgs(300)">1 City/50mi</button>
+  <button type="button" class="btn btn-secondary burg-density" data-value="1000" onclick="setBurgs(1000)">All The Cities</button>
+</div>
+</div>
+      </div>
+      <i data-locked="1" id="lock_distanceScale" class="icon-lock-closed d-none"></i>
+        <div class="d-none" data-tip="Select how many distance units are in one pixel">
+          <div>1 map pixel =</div>
+          <input id="distanceScaleOutput" type="range" min=.01 max=20 step=.1 value=3>
+          <input id="distanceScaleInput" data-stored="distanceScale" type="number" min=.01 max=100 step=.01 value=3 data-value=3>
+        </div>
+
+        <div class="d-none" data-tip='Area unit name, type "square" to add ² to the distance unit'>
+          <div>Area unit:</div>
+          <input id="areaUnit" data-stored="areaUnit" type="text" value="square">
+        </div>
+
+        <div class="d-none" data-tip="Set height exponent, i.e. a value for altitude change sharpness. Altitude affects temperature and hence biomes">
+          <div>Exponent:</div>
+          <input id="heightExponentOutput" type="range" min=1.5 max=2.2 value=2 step=.01>
+          <input id="heightExponentInput" data-stored="heightExponent" type="number" min=1.5 max=2.2 value=2 step=.01>
+        </div>
+        <div class="d-none" class="unitsHeader">
+          <span class="icon-minus"></span>
+          <div>Scale bar:</div>
+        </div>
+
+        <div class="d-none" data-tip="Set scale bar size">
+          <div>Bar size:</div>
+          <input id="barSizeOutput" data-stored="barSize" type="range" min=.5 max=5 value=2 step=.1>
+          <input id="barSizeInput" data-stored="barSize" type="number" min=.5 max=5 value=2 step=.1>
+        </div>
+
+        <div class="d-none" data-tip="Type scale bar label, leave blank to hide label">
+          <div>Bar label:</div>
+          <input id="barLabel" data-stored="barLabel" type="text" placeholder="hidden" value="">
+        </div>
+
+        <div class="d-none" data-tip="Set background for Scale bar">
+          <div>Bar background:</div>
+          <input id="barBackOpacity" data-stored="barBackOpacity" type="range" min=0 max=1 value=.2 step=.01>
+          <input id="barBackColor" data-stored="barBackColor" type="color" value="#ffffff">
+        </div>
+
+        <div class="d-none" data-tip="Set position of the Scale bar bottom right corner in percents">
+          <div>Bar position:</div>
+          x:<input id="barPosX" data-stored="barPosX" type="number" min=0 max=100 step=.1 value=99>
+          y:<input id="barPosY" data-stored="barPosY" type="number" min=0 max=100 step=.1 value=99>
+        </div>
+
+        <div class="d-none" data-tip="Set urbanization rate: burgs population relative to all population">
+          <div>Urbanization rate:</div>
+          <input id="urbanizationOutput" data-stored="urbanization" type="range" min=.01 max=5 step=.01 value=1 >
+          <input id="urbanizationInput" data-stored="urbanization" type="number" min=.01 max=5 step=.01 value=1 >
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="card bg-transparent">
+    <div class="card-header" style="cursor: pointer;" id="headingTwo">
+      <h4 class="mb-0" data-toggle="collapse" data-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+        Cultures
+      </h4>
+    </div>
+    <div id="collapseTwo" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+      <div class="card-body">
+        <div style="overflow:auto">
+        <table class="table table-sm table-striped table-dark" style="white-space: nowrap;">
+        <thead><tr>
+          <th>Name</th><th>Dominant Race</th><th title="Expansionism">Exp</th><th>Namebase</th>
+        </tr></thead>
+        <tbody id="cultures">
+        </tbody>
+        </table>
+      </div>
+        <br><button class="btn btn-primary" onclick="newCulture()">Add Culture</button>
+      </div>
+    </div>
+  </div>
+  <div class="card bg-transparent">
+    <div class="card-header" style="cursor: pointer;" id="headingTwo">
+      <h4 class="mb-0" data-toggle="collapse" data-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+        States
+      </h4>
+    </div>
+    <div id="collapseFive" class="collapse" aria-labelledby="headingTwo" data-parent="#accordion">
+      <div class="card-body">
+        <div style="overflow:auto">
+        <table class="table table-sm table-striped table-dark" style="white-space: nowrap;">
+        <thead><tr>
+          <th>Name</th><th>Dominant Culture</th><th title="Expansionism">Exp</th><th>Form</th>
+        </tr></thead>
+        <tbody id="states">
+        </tbody>
+        </table>
+      </div>
+        <br><button class="btn btn-primary" onclick="newState()">Add State</button>
+      </div>
+    </div>
+  </div>
+  <div class="card bg-transparent">
+    <div class="card-header" style="cursor: pointer;" id="headingThree">
+      <h4 class="mb-0" data-toggle="collapse" data-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+        Religion Centers
+      </h4>
+    </div>
+    <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
+      <div class="card-body">
+      <p>Religion centers represent the birth/spread of the religions in your world.  These are entirely optional.  Leaving these blank represents a society where religions are wide spread and have no "homelands".  Unless your campaign will feature religious conflict, blank is recommended.
+      <div style="overflow:auto;">
+      <table class="table table-sm table-striped table-dark" style="white-space: nowrap;">
+        <thead><tr>
+          <th>Name</th><th>Origin Culture</th><th>Type</th><th>Form</th><th>Diety</th><th title="Expansionism">Exp</th><th>Believers</th>
+        </tr></thead>
+        <tbody id="religions">
+        </tbody>
+        </table>
+        </div>
+        <br><button class="btn btn-primary" onclick="newReligion()">Add Religion</button>
+      </div>
+    </div>
+  </div>
+</div>  
+
+    <div class="row pt-3 land-shapes">
+      <h4 class="w-100">Click Land Shape to Generate</h4>
+    <img class="col-4" title="Generate Island" onclick="changeTemplate('highIsland')" src="../img/landshapes/island.png">
+      <img class="col-4" title="Generate Archipelago" onclick="changeTemplate('archipelago')" src="../img/landshapes/archipelago.png">
+      <img class="col-4" title="Generate Atoll" onclick="changeTemplate('atoll')" src="../img/landshapes/atoll.png">
+      <img class="col-4 pt-3" title="Generate Isthmus" onclick="changeTemplate('isthmus')" src="../img/landshapes/isthmus.png">
+      <img class="col-4 pt-3" title="Generate Pangea" onclick="changeTemplate('random')" src="../img/landshapes/random.png">
+      <img class="col-4 pt-3" title="Generate Mediterranean" onclick="changeTemplate('mediterranean')" src="../img/landshapes/mediterranean.png">
+      <img class="col-4 pt-3" title="Generate Continents" onclick="changeTemplate('continents')" src="../img/landshapes/two_continents.png">
+      <img class="col-4 pt-3" title="Generate Pangea" onclick="changeTemplate('pangea')" src="../img/landshapes/pangea.png">
+      <img class="col-4 pt-3" title="Generate Inland" onclick="changeTemplate('taklamakan')" src="../img/landshapes/inland.png">
+    </div>
+    <div class="text-center pt-5">
+      <button class="btn btn-primary"  onclick="saveToServer()">Save Region</button>
+      <button class="pl-3 btn btn-secondary" id="loadButton" data-tip="Load fully-functional map in .map format">Load Map File</button>
+      <button class="pl-3 btn btn-secondary" id="saveButton" data-tip="Save fully-functional map in .map format">Save Map File</button>
+    </div>
+
+</div>
+    <div class="col-8" id="map-wrapper">
+    <div class="map-templates">
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="changePreset('GMP');svg.attr('data-filter', null).attr('filter', null);">Default</button>
+      <button class="btn btn-primary" onclick="changePreset('political')">Political</button>
+      <button class="btn btn-primary" onclick="changePreset('religions')">Religions</button>
+        <button class="btn btn-primary" onclick="changePreset('cultural')">Cultural</button>
+    </div>
+
+  </div>
+    <svg id="map" height="100%" width="100%" version="1.1">
     <defs>
       <g id="filters">
         <filter id="blurFilter" name="Blur 0.2" x="-1" y="-1" width="100" height="100">
@@ -267,37 +835,15 @@
       <use href="#rose" id="init-rose" x="50%" y="50%"/>
     </g>
   </svg>
-
+    </div>
+    </div>
+    </div>
   <div id="loading">
-    <div id="titleName"><t data-t="titleName">Azgaar's</t></div>
-    <div id="title"><t data-t="title">Fantasy Map Generator</t></div>
+    <div id="titleName"><t data-t="titleName">Based on:</t></div>
+    <div id="title" style="font-size:2.5rem"><t data-t="title">Azgaar's Amazing<br> Fantasy Map Generator</t></div>
     <div id="version"><t data-t="version">v. </t>1.66</div>
     <p id="loading-text"><t data-t="loading">LOADING</t><span>.</span><span>.</span><span>.</span></p>
   </div>
-  <div class="map-templates">
-  <img title="Generate Island" onclick="changeTemplate('highIsland')" src="../img/landshapes/island.png">
-  <img title="Generate Archipelago" onclick="changeTemplate('archipelago')" src="../img/landshapes/archipelago.png">
-  <img title="Generate Atoll" onclick="changeTemplate('atoll')" src="../img/landshapes/atoll.png">
-  <img title="Generate Isthmus" onclick="changeTemplate('isthmus')" src="../img/landshapes/isthmus.png">
-  <img title="Generate Mediterranean" onclick="changeTemplate('mediterranean')" src="../img/landshapes/mediterranean.png">
-  <img title="Generate Continents" onclick="changeTemplate('continents')" src="../img/landshapes/two_continents.png">
-  <img title="Generate Pangea" onclick="changeTemplate('pangea')" src="../img/landshapes/pangea.png">
-  <label style="width:100%;font-align:center;">Views</label>
-  <div style="display:flex;justify-content: center;">
-  <button onclick="changePreset('GMP');svg.attr('data-filter', null).attr('filter', null);">Default</button>
-  <button onclick="changePreset('political')">Political</button>
-</div>
-<div style="display:flex;justify-content: center;">
-  <button onclick="changePreset('religions')">Religions</button>
-    <button onclick="changePreset('cultural')">Cultural</button>
-</div>
-<div style="display:flex;justify-content: center;">
-    <button id="grayscale" onclick="svg.attr('data-filter', this.id).attr('filter', 'url(#filter-' + this.id + ')')">Grayscale</button>
-    <button id="sepia" onclick="svg.attr('data-filter', this.id).attr('filter', 'url(#filter-' + this.id + ')')">Sepia</button>
-</div>
-</div>
-<button style="position:absolute;bottom:0;right:0;" onclick="saveToServer()">Save</button>
-
 <div id="optionsContainer" style="opacity:0position: absolute;left: 20vw;display:none">
 
     <div id="collapsible">
@@ -1082,10 +1628,10 @@
             </td>
             <td>Cultures number</td>
             <td>
-              <input id="culturesInput" data-stored="cultures" type="range" min=1 max=32 {{ $region->states }}>
+              <input id="culturesInput" data-stored="cultures" type="range" min=1 max=32 {{ $region->states_count }}>
             </td>
             <td>
-              <input id="culturesOutput" data-stored="cultures" type="number" min=1 max=32 {{ $region->states }}>
+              <input id="culturesOutput" data-stored="cultures" type="number" min=1 max=32 {{ $region->states_count }}>
             </td>
           </tr>
 
@@ -1115,10 +1661,10 @@
             </td>
             <td>States number</td>
             <td>
-              <input id="regionsInput" data-stored="regions" type="range" min=0 max=99 value={{ $region->religions }}>
+              <input id="regionsInput" data-stored="regions" type="range" min=0 max=99 value=0>
             </td>
             <td>
-              <input id="regionsOutput" data-stored="regions" type="number" min=0 max=99 value={{ $region->religions }}>
+              <input id="regionsOutput" data-stored="regions" type="number" min=0 max=99 value=0>
             </td>
           </tr>
 
@@ -1167,7 +1713,7 @@
             </td>
             <td>Towns number</td>
             <td>
-              <input id="manorsInput" data-stored="manors" type="range" min=0 max=1000 step=1 value=1000>
+              <input id="manorsInput" data-stored="manors" type="range" min=0 max=1000 step=1 value=100>
             </td>
             <td>
               <output id="manorsOutput" data-stored="manors" value="auto"></output>
@@ -1180,7 +1726,7 @@
             </td>
             <td>Religions number</td>
             <td>
-              <input id="religionsInput" data-stored="religions" type="range" min=0 max=50 step=1 value={{ $region->religions }}>
+              <input id="religionsInput" data-stored="religions" type="range" min=0 max=50 step=1>
             </td>
             <td>
               <output id="religionsOutput" data-stored="religions" value="auto"></output>
@@ -1498,13 +2044,6 @@
         </ul>
       </div>
 
-      <div id="sticked">
-        <button id="newMapButton" data-tip="Generate a new map based on options. Shortcut: F2">New Map</button>
-        <button id="exportButton" data-tip="Select format to download image or export map data">Export</button>
-        <button id="saveButton" data-tip="Save fully-functional map in .map format">Save</button>
-        <button id="loadButton" data-tip="Load fully-functional map in .map format">Load</button>
-        <button id="zoomReset" data-tip="Reset map zoom. Shortcut: 0">Reset Zoom</button>
-      </div>
     </div>
 
   </div>
@@ -3115,120 +3654,6 @@
     </div>
 
     <div id="unitsEditor" class="dialog stable" style="display: none">
-      <div id="unitsBody" style="margin-left:1.1em">
-        <div class="unitsHeader" style="margin-top:.4em">
-          <span class="icon-map-signs"></span>
-          <div>Distance:</div>
-        </div>
-
-        <div data-tip="Select a distance unit or provide a custom name">
-          <div>Distance unit: </div>
-          <select id="distanceUnitInput" data-stored="distanceUnit">
-            <option value="mi" selected>Mile (mi)</option>
-            <option value="km">Kilometer (km)</option>
-            <option value="lg">League (lg)</option>
-            <option value="vr">Versta (vr)</option>
-            <option value="custom_name">Custom name</option>
-          </select>
-        </div>
-
-        <i data-locked="0" id="lock_distanceScale" class="icon-lock-open"></i>
-        <div data-tip="Select how many distance units are in one pixel">
-          <div>1 map pixel =</div>
-          <input id="distanceScaleOutput" type="range" min=.01 max=20 step=.1 value=3>
-          <input id="distanceScaleInput" data-stored="distanceScale" type="number" min=.01 max=100 step=.01 value=3 data-value=3>
-        </div>
-
-        <div data-tip='Area unit name, type "square" to add ² to the distance unit'>
-          <div>Area unit:</div>
-          <input id="areaUnit" data-stored="areaUnit" type="text" value="square">
-        </div>
-
-        <div class="unitsHeader">
-          <span class="icon-signal"></span>
-          <div>Altitude:</div>
-        </div>
-
-        <div data-tip="Select an altitude unit or provide a custom name">
-          <div>Height unit:</div>
-          <select id="heightUnit" data-stored="heightUnit">
-            <option value="ft" selected>Feet (ft)</option>
-            <option value="m">Meters (m)</option>
-            <option value="f">Fathoms (f)</option>
-            <option value="custom_name">Custom name</option>
-          </select>
-        </div>
-
-        <div data-tip="Set height exponent, i.e. a value for altitude change sharpness. Altitude affects temperature and hence biomes">
-          <div>Exponent:</div>
-          <input id="heightExponentOutput" type="range" min=1.5 max=2.2 value=2 step=.01>
-          <input id="heightExponentInput" data-stored="heightExponent" type="number" min=1.5 max=2.2 value=2 step=.01>
-        </div>
-
-        <div class="unitsHeader" data-tip="Select Temperature scale">
-          <span class="icon-temperature-high"></span>
-          <div>Temperature:</div>
-        </div>
-
-        <div>
-          <div>Temperature scale: </div>
-          <select id="temperatureScale" data-stored="temperatureScale">
-            <option value="°C" selected>degree Celsius (°C)</option>
-            <option value="°F">degree Fahrenheit (°F)</option>
-            <option value="K">Kelvin (K)</option>
-            <option value="°R">degree Rankine (°R)</option>
-            <option value="°De">degree Delisle (°De)</option>
-            <option value="°N">degree Newton (°N)</option>
-            <option value="°Ré">degree Réaumur (°Ré)</option>
-            <option value="°Rø">degree Rømer (°Rø)</option>
-          </select>
-        </div>
-
-        <div class="unitsHeader">
-          <span class="icon-minus"></span>
-          <div>Scale bar:</div>
-        </div>
-
-        <div data-tip="Set scale bar size">
-          <div>Bar size:</div>
-          <input id="barSizeOutput" data-stored="barSize" type="range" min=.5 max=5 value=2 step=.1>
-          <input id="barSizeInput" data-stored="barSize" type="number" min=.5 max=5 value=2 step=.1>
-        </div>
-
-        <div data-tip="Type scale bar label, leave blank to hide label">
-          <div>Bar label:</div>
-          <input id="barLabel" data-stored="barLabel" type="text" placeholder="hidden" value="">
-        </div>
-
-        <div data-tip="Set background for Scale bar">
-          <div>Bar background:</div>
-          <input id="barBackOpacity" data-stored="barBackOpacity" type="range" min=0 max=1 value=.2 step=.01>
-          <input id="barBackColor" data-stored="barBackColor" type="color" value="#ffffff">
-        </div>
-
-        <div data-tip="Set position of the Scale bar bottom right corner in percents">
-          <div>Bar position:</div>
-          x:<input id="barPosX" data-stored="barPosX" type="number" min=0 max=100 step=.1 value=99>
-          y:<input id="barPosY" data-stored="barPosY" type="number" min=0 max=100 step=.1 value=99>
-        </div>
-
-        <div class="unitsHeader">
-          <span class="icon-male"></span>
-          <div>Population:</div>
-        </div>
-
-        <div data-tip="Set how many people are in one population point">
-          <div>1 population point =</div>
-          <input id="populationRateOutput" data-stored="populationRate" type="range" min=10 max=9990 step=10 value=1000 />
-          <input id="populationRateInput" data-stored="populationRate" type="number" min=10 max=9990 step=10 value=1000 />
-        </div>
-
-        <div data-tip="Set urbanization rate: burgs population relative to all population">
-          <div>Urbanization rate:</div>
-          <input id="urbanizationOutput" data-stored="urbanization" type="range" min=.01 max=5 step=.01 value=1 >
-          <input id="urbanizationInput" data-stored="urbanization" type="number" min=.01 max=5 step=.01 value=1 >
-        </div>
-      </div>
 
       <div id="unitsBottom">
         <button id="addLinearRuler" data-tip="Click to place a linear measurer (ruler)" class="icon-ruler"></button>
@@ -4296,7 +4721,328 @@
       </g>
     </defs>
   </svg>
+<div class="d-none">
+<div id="mapFilters" data-tip="Set a filter to be applied to the map in general">
+          <p>Toggle global filters:</p>
+          <button id="grayscale" class="radio">Grayscale</button>
+          <button id="sepia" class="radio">Sepia</button>
+          <button id="dingy" class="radio">Dingy</button>
+          <button id="tint" class="radio">Tint</button>
+        </div>
 
+      </div>
+  <script>
+    console.log(regionCultures);
+function updateReligion(event) {
+  console.log(event);
+  var i = event.target.getAttribute('data-id');
+  var field = event.target.getAttribute('data-field');
+  regionReligions[i][field] = event.target.value;
+  console.log(regionReligions[i][field]);
+}
+function religionsTable(){
+  var table = document.getElementById("religions");
+  table.innerHTML = '';
+  for(var i=0; i<regionReligions.length; i++){
+    var tr = document.createElement("tr");
+    var td = document.createElement("td");
+    var input = document.createElement("input");
+    tr.className = "subtle";
+    input.setAttribute('data-id', i);
+    input.setAttribute('data-field', 'name');
+    input.value = regionReligions[i]['name']
+    input.onchange = updateReligion;
+    input.type = "text";
+   td.append(input);
+    tr.append(td);
+
+    var select = document.createElement("select");
+    td = document.createElement("td");
+    select.setAttribute('data-id', i);
+    var option = document.createElement("option");
+    option.innerHTML = "Select";
+    select.append(option);
+    for(var l = 0; l < regionCultures.length; l++) {
+      if (!regionCultures[l]['name']) continue;
+      option = document.createElement("option");
+      option.value = regionCultures[l];
+      option.innerHTML = regionCultures[l]['name'][0].toUpperCase() + regionCultures[l]['name'].substring(1);
+      option.selected = regionCultures[l]['name'] == regionReligions[i]['culture'];
+      select.append(option);
+    }
+    select.setAttribute('data-field', 'culture');
+    select.onchange = updateReligion;
+    td.append(select);
+    tr.append(td);
+
+     var type = ['Folk', 'Organized', 'Cult', 'Heresy'];
+    var select = document.createElement("select");
+    td = document.createElement("td");
+    select.setAttribute('data-id', i);
+    var option = document.createElement("option");
+    option.innerHTML = "Select";
+    select.append(option);
+    for(var l = 0; l < type.length; l++) {
+      option = document.createElement("option");
+      option.value = type[l];
+      option.innerHTML = type[l][0].toUpperCase() + type[l].substring(1);
+      option.selected = type[l] == regionReligions[i]['type'];
+      select.append(option);
+    }
+    select.setAttribute('data-field', 'type');
+    select.onchange = updateReligion;
+    td.append(select);
+    tr.append(td);
+
+    var forms = ['Shamanism', 'Animism', 'Polytheism', 'Dualism', 'Monotheism', 'Non-Theism'];
+    var select = document.createElement("select");
+    td = document.createElement("td");
+    select.setAttribute('data-id', i);
+    var option = document.createElement("option");
+    option.innerHTML = "Select";
+    select.append(option);
+    for(var l = 0; l < forms.length; l++) {
+      option = document.createElement("option");
+      option.value = forms[l];
+      option.innerHTML = forms[l][0].toUpperCase() + forms[l].substring(1);
+      option.selected = forms[l] == regionReligions[i]['forms'];
+      select.append(option);
+    }
+    select.setAttribute('data-field', 'form');
+    select.onchange = updateReligion;
+    td.append(select);
+    tr.append(td);
+
+    input = document.createElement("input");
+    td = document.createElement("td");
+    input.setAttribute('data-id', i);
+    input.value = regionReligions[i]['diety']
+    input.setAttribute('data-field', 'diety');
+    input.onchange = updateReligion;
+    input.type = "text";
+    td.append(input);
+    tr.append(td);
+
+    input = document.createElement("input");
+    td = document.createElement("td");
+    input.setAttribute('data-id', i);
+    input.value = regionReligions[i]['exp']
+    input.type = 'number';
+    input.min = 0.1;
+    input.max = 20;
+    input.step = 0.1;
+    input.setAttribute('data-field', 'exp');
+    input.setAttribute('style', 'width:2rem');
+    input.onchange = updateReligion;
+    td.append(input);
+    tr.append(td);
+
+    input = document.createElement("input");
+    td = document.createElement("td");
+    input.setAttribute('data-id', i);
+    input.value = regionReligions[i]['believers']
+    input.setAttribute('data-field', 'believers');
+    input.setAttribute('style', 'width:5rem');
+    input.onchange = updateReligion;
+    td.append(input);
+    tr.append(td);
+    
+   table.append(tr);
+  }
+
+}
+function newReligion() {
+  regionReligions.push({'name':'','culture':'','type':'','form':'','diety':'','exp':1,'believers':''});
+  religionsTable();
+}
+
+function updateCulture(event) {
+  console.log(event);
+  var i = event.target.getAttribute('data-id');
+  var field = event.target.getAttribute('data-field');
+  console.log(regionCultures);
+  regionCultures[i][field] = event.target.value;
+  if (field == 'state') {
+    regionCultures[i][field] = event.target.checked;
+  }
+  if (field == 'name') {
+    religionsTable();
+    statesTable();
+  } 
+  console.log(regionCultures[i][field]);
+}
+function culturesTable(){
+  var table = document.getElementById("cultures");
+  table.innerHTML = '';
+  for(var i=0; i<regionCultures.length; i++){
+    var tr = document.createElement("tr");
+    var td = document.createElement("td");
+    var input = document.createElement("input");
+    tr.className = "subtle";
+    input.setAttribute('data-id', i);
+    input.setAttribute('data-field', 'name');
+    input.value = regionCultures[i]['name']
+    input.onchange = updateCulture;
+    input.type = "text";
+    td.append(input);
+    tr.append(td);
+
+    var select = document.createElement("select");
+    td = document.createElement("td");
+    select.setAttribute('data-id', i);
+    var option = document.createElement("option");
+    option.innerHTML = "Select";
+    select.append(option);
+    console.log(regionRaceNames);
+    for(var l = 0; l < regionRaces.length; l++) {
+      if (!regionRaces[l]['name']) continue;
+      option = document.createElement("option");
+      option.value = regionRaces[l].id;
+      option.innerHTML = regionRaces[l].name[0].toUpperCase() + regionRaces[l].name.substring(1);
+      option.selected = regionRaces[l].id == regionCultures[i]['dominant_race'];
+      select.append(option);
+    }
+    select.setAttribute('data-field', 'dominant_race');
+    select.onchange = updateCulture;
+    td.append(select);
+    tr.append(td);
+
+    input = document.createElement("input");
+    td = document.createElement("td");
+    input.setAttribute('data-id', i);
+    input.value = regionCultures[i]['exp'];
+    input.type = 'number';
+    input.min = 0.1;
+    input.max = 20;
+    input.step = 0.1;
+    input.setAttribute('data-field', 'exp');
+    input.onchange = updateCulture;
+    td.append(input);
+    tr.append(td);
+
+    var namebase = ["German","English","French","Italian","Castillian","Ruthenian","Nordic","Greek","Roman","Finnic","Korean","Chinese","Japanese","Portuguese","Nahuatl","Hungarian","Turkish","Berber","Arabic","Inuit","Basque","Nigerian","Celtic","Mesopotamian","Iranian","Hawaiian","Karnataka","Quechua","Swahili","Vietnamese","Cantonese","Mongolian","Human General","Elven","Dark Elven","Dwarven","Goblin","Orc","Giant","Draconic","Arachnid","Serpents"];
+    var select = document.createElement("select");
+    td = document.createElement("td");
+    select.setAttribute('data-id', i);
+    var option = document.createElement("option");
+    option.innerHTML = "Random";
+    select.append(option);
+    for(var l = 0; l < namebase.length; l++) {
+      option = document.createElement("option");
+      option.value = namebase[l];
+      option.innerHTML = namebase[l][0].toUpperCase() + namebase[l].substring(1);
+      option.selected = namebase[l] == regionCultures[i]['namebase'];
+      select.append(option);
+    }
+    select.setAttribute('data-field', 'namebase');
+    select.onchange = updateCulture;
+    td.append(select);
+    tr.append(td);
+
+   table.append(tr);
+  }
+
+}
+function newCulture() {
+  regionCultures.push({'name':'','race_id':'','exp':1,'namebase':0});
+  culturesTable();
+}
+function updateState(event) {
+  console.log(event);
+  var i = event.target.getAttribute('data-id');
+  var field = event.target.getAttribute('data-field');
+  console.log(regionStates);
+  regionStates[i][field] = event.target.value;
+  if (field == 'culture') {
+    regionStates[i]['dominant_culture'] = event.target.innerHTML;
+  }
+  if (field == 'name') religionsTable();
+  console.log(regionStates[i][field]);
+}
+function statesTable(){
+  console.log("States Table");
+  var table = document.getElementById("states");
+  table.innerHTML = '';
+  for(var i=0; i<regionStates.length; i++){
+    var tr = document.createElement("tr");
+    var td = document.createElement("td");
+    var input = document.createElement("input");
+    tr.className = "subtle";
+    input.setAttribute('data-id', i);
+    input.setAttribute('data-field', 'name');
+    input.setAttribute('placeholder', 'Generated');
+    input.value = regionStates[i]['name']
+    input.onchange = updateState;
+    input.type = "text";
+    td.append(input);
+    tr.append(td);
+
+    var select = document.createElement("select");
+    td = document.createElement("td");
+    select.setAttribute('data-id', i);
+    var option = document.createElement("option");
+    option.innerHTML = "Random";
+    select.append(option);
+    console.log(regionStates[i]);
+    console.log(regionCultures);
+    for(var l = 0; l < regionCultures.length; l++) {
+      if (!regionCultures[l]['name']) continue;
+      option = document.createElement("option");
+      option.value = regionCultures[l].id;
+      option.innerHTML = regionCultures[l].name[0].toUpperCase() + regionCultures[l].name.substring(1);
+      option.selected = l == regionStates[i]['culture']-1;
+      select.append(option);
+    }
+    select.setAttribute('data-field', 'culture');
+    select.onchange = updateState;
+    td.append(select);
+    tr.append(td);
+
+    input = document.createElement("input");
+    td = document.createElement("td");
+    input.setAttribute('data-id', i);
+    input.value = regionStates[i]['exp'];
+    input.type = 'number';
+    input.min = 0.1;
+    input.max = 20;
+    input.step = 1;
+    input.setAttribute('data-field', 'exp');
+    input.onchange = updateState;
+    td.append(input);
+    tr.append(td);
+
+    
+    td = document.createElement("td");
+      var stateForm = ["Monarchy","Republic","Union","Anarchy","Theocracy"];
+      var select = document.createElement("select");
+      select.setAttribute('data-id', i);
+      var option = document.createElement("option");
+      option.innerHTML = "Random";
+      select.append(option);
+      for(var l = 0; l < stateForm.length; l++) {
+        option = document.createElement("option");
+        option.value = stateForm[l];
+        option.innerHTML = stateForm[l];
+        console.log(regionStates[i]);
+        option.selected = stateForm[l] == regionStates[i]['form'];
+        select.append(option);
+      }
+      select.setAttribute('data-field', 'form');
+      select.onchange = updateState;
+      td.append(select);
+        
+      tr.append(td);
+
+   table.append(tr);
+  }
+
+}
+function newState() {
+  regionStates.push({name:'',culture:'',exp:1,dominant_culture: '', form: ''});
+  statesTable();
+}
+culturesTable()
+</script>
   <!-- <script src="libs/translate.js"></script> -->
   <script src="libs/jquery-3.1.1.min.js"></script>
   <script src="libs/d3.min.js"></script>
@@ -4310,7 +5056,7 @@
   <script src="modules/river-generator.js"></script>
   <script src="modules/lakes.js"></script>
   <script src="modules/names-generator.js"></script>
-  <script src="modules/cultures-generator.js"></script>
+  <!-- <script src="modules/cultures-generator.js"></script> -->
   <script src="modules/burgs-and-states.js"></script>
   <script src="modules/routes-generator.js"></script>
   <script src="modules/religions-generator.js"></script>
@@ -4325,15 +5071,16 @@
   <script src="modules/ui/layers.js"></script>
   <script src="modules/ui/measurers.js"></script>
   <script src="modules/save.js"></script>
+  <script src="modules/load.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js" integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF" crossorigin="anonymous"></script>
 
   <script defer src="https://unpkg.com/dropbox@10.8.0/dist/Dropbox-sdk.min.js"></script>
   <script defer src="modules/ui/general.js"></script>
   <script defer src="modules/ui/options.js"></script>
   <script defer src="modules/ui/style.js"></script>
-  <script defer src="modules/load.js"></script>
   <script defer src="modules/cloud.js"></script>
   <script defer src="main.js"></script>
-  <script defer src="modules/relief-icons.js"></script>
+  <script src="modules/relief-icons.js"></script>
   <script defer src="modules/ui/tools.js"></script>
   <script defer src="modules/ui/world-configurator.js"></script>
   <script defer src="modules/ui/heightmap-editor.js"></script>

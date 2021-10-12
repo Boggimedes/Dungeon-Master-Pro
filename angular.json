@@ -37,8 +37,20 @@
               "angular/styles.css"
             ],
             "scripts": [
-              "angular/assets/vendor/pace/pace.min.js"
-            ],
+              "angular/assets/vendor/pace/pace.min.js",
+              "angular/assets/libs/polylabel.min.js",
+              "angular/assets/libs/jquery-3.1.1.min.js",
+              "angular/assets/libs/d3.min.js",
+              "angular/assets/libs/delaunator.min.js",
+              "angular/assets/libs/priority-queue.min.js",
+              "angular/assets/libs/lineclip.min.js",
+              "angular/assets/libs/jquery-ui.min.js",
+              "angular/assets/libs/alea.min.js",
+              "angular/assets/libs/rgbquant.min.js",
+              "angular/assets/libs/jquery.ui.touch-punch.min.js",
+              "angular/assets/libs/pell.min.js",
+              "angular/assets/libs/jszip.min.js"
+                        ],
             "vendorChunk": true,
             "extractLicenses": false,
             "buildOptimizer": false,

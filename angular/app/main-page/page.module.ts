@@ -9,6 +9,7 @@ import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
 import { PageComponent } from "./page.component";
 import { CombatComponent } from "./combat/combat.component";
 import { StoryComponent } from "./story/story.component";
+import { StoryMapComponent } from "./story/map/map.component";
 import { CombatLogComponent } from "./combat/combat-log/combat-log.component";
 import { NgbModule } from "@ng-bootstrap/ng-bootstrap";
 import { NgbDropdownModule } from "@ng-bootstrap/ng-bootstrap/";
@@ -42,6 +43,7 @@ import { EditNpcsComponent } from "./edit-npcs/edit-npcs.component";
     FreeDraggingHandleDirective,
     PageComponent,
     StoryComponent,
+    StoryMapComponent,
     CombatComponent,
     CombatLogComponent,
     EditSoundsComponent,

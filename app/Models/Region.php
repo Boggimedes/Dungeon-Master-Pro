@@ -20,6 +20,9 @@ class Region extends Model
         'world_id',
         'prof_balance',
         'epoch',
+        'cultures', 
+        'religions', 
+        'map'
     ];
 
     private $transients = 0;
@@ -52,10 +55,10 @@ class Region extends Model
     protected $casts = [
         'racial_balance' => 'array',
         'prof_balance' => 'array',
-        'feature_types' => 'array',
-        'burgs' => 'array',
-        'states' => 'array',
+        'feature_types' => 'object',
         'religions' => 'array',
+        'cultures' => 'array',
+        'states' => 'array',
     ];
 
     public function world()

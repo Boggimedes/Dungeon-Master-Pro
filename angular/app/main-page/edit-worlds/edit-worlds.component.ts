@@ -95,7 +95,10 @@ export class EditWorldsComponent implements OnInit {
 
   saveProfession = () => {};
 
-  saveRegion = (region, index) => {
+  saveRegion = (index) => {
+    console.log(index);
+    console.log(this.selectedWorld.regions[index]);
+    let region = this.selectedWorld.regions[index];
     this.worldService.saveRegion(region).subscribe((data: { region }) => {
       this.selectedWorld.regions[index] = new Region(data.region);
     });
@@ -191,8 +194,8 @@ export class EditWorldsComponent implements OnInit {
     }
     return totalPopulation > 0;
   };
-  changeFeature = (feature, region) => {
-    if (region.linked) {
+  changeFeature = (feature, i) => {
+    if (this.selectedWorld.regions[i].linked) {
       this.selectedWorld.regions = this.selectedWorld.regions.map((r) => {
         if (r.linked) {
           r.feature_types[feature["name"]] = feature;
@@ -200,7 +203,8 @@ export class EditWorldsComponent implements OnInit {
         return r;
       });
     }
-    region.feature_types[feature["name"]] = feature;
+    this.selectedWorld.regions[i].feature_types[feature["name"]] = feature;
+    console.log(this.selectedWorld.regions[i]);
   };
   newRegion = (region = null) => {
     this.worldService

@@ -1,3 +1,5 @@
+
+
 #bodyContent em {
   margin: 0px 25px;
   display: block;
@@ -27,6 +29,20 @@ body {
 }
 .dragover {
   border: 5px dashed blue;
+}
+
+.burgFeature {
+  padding: .2rem;
+  font-size: 1.8rem;
+  cursor: pointer;
+}
+
+.burgFeature.inactive {
+  color: #ddd;
+}
+
+.burgFeature.inactive:hover {
+  color: #abaaaa;
 }
 
 .map-delete {
@@ -350,7 +366,10 @@ mwlResizable {
   text-align: center;
   right: -7rem;
 }
-
+.no-border{
+  border: 0px;
+  padding-left: 0px;
+}
 .map-buttons {
   position: absolute;
   top: 20px;
@@ -358,6 +377,7 @@ mwlResizable {
 }
 .story-box {
   position: absolute;
+  font-size: 1.2rem;
   right: 2rem;
   top: 2rem;
 }
@@ -386,3 +406,6 @@ mwlResizable {
   text-align: center;
   position: absolute;
 }
+
+
+

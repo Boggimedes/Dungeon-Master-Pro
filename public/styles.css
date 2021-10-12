@@ -20849,6 +20849,9 @@ body.layout-dark .customizer .cz-tl-bg-color .selected {
 body.layout-dark svg {
   stroke: #BFBEC2;
 }
+body.layout-dark #map-wrapper svg {
+  stroke: none;
+}
 body.layout-dark .apexcharts-toolbar svg {
   stroke: none;
 }
@@ -21367,6 +21370,9 @@ html body.layout-dark.layout-transparent .accordion .card .card-header {
 }
 html body.layout-dark.layout-transparent .accordion .card .card-header button:not([disabled]) {
   color: #EFDEFF;
+}
+html body.layout-dark svg {
+  stroke: unset;
 }
 .cd-horizontal-timeline .events-content li {
   transform: translateX(0);

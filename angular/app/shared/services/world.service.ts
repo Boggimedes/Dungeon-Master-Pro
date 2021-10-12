@@ -68,6 +68,7 @@ export class WorldService {
     return call;
   };
   public saveRegion = (region) => {
+    console.log(region.feature_types.body);
     const call = this.http
       .put("/api/region/" + region.id, region)
       .pipe(share());

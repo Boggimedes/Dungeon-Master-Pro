@@ -13,42 +13,11 @@
     </button>
   </div>
   <div class="col-12 p-3">
+    <h1>World Setup</h1>
     <div class="card">
       <div class="card-content">
         <div class="card-body">
           <ngb-accordion #acc="ngbAccordion" [closeOthers]="true">
-            <ngb-panel title="World Stats">
-              <ng-template ngbPanelHeader let-opened="opened">
-                <div
-                  class="d-flex align-items-center justify-content-between"
-                  [class.selected]="opened"
-                >
-                  <button ngbPanelToggle class="btn btn-link">
-                    World Stats
-                  </button>
-                </div>
-              </ng-template>
-              <ng-template ngbPanelContent>
-                <table class="table table-sm table-striped">
-                  <thead>
-                    <tr>
-                      <th>Race</th>
-                      <th>Alive</th>
-                      <th>Immortals</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <ng-container *ngFor="let stat of selectedWorld.stats">
-                      <tr *ngIf="stat.living > 0">
-                        <td>{{ stat.race }}</td>
-                        <td>{{ stat.living }}</td>
-                        <td>{{ stat.immortal }}</td>
-                      </tr>
-                    </ng-container>
-                  </tbody>
-                </table>
-              </ng-template>
-            </ngb-panel>
             <ngb-panel title="Races">
               <ng-template ngbPanelHeader let-opened="opened">
                 <div
@@ -813,7 +782,7 @@
                     type="button"
                     class="btn btn-info icon-buttons"
                     title="Save Changes"
-                    (click)="saveRegion(region, i)"
+                    (click)="saveRegion(i)"
                   >
                     <i class="fa fa-save"></i>
                   </button>
@@ -899,7 +868,7 @@
                                 name: type,
                                 chance: $event.target.value
                               },
-                              region
+                              i
                             )
                           "
                           [ngModel]="region.feature_types[type]?.chance"
