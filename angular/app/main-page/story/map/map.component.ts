@@ -8149,7 +8149,7 @@ restoreDefaultEvents() {
   let dragLegendBox = this.dragLegendBox;
   console.log("Restore Default");
   // this.viewbox._groups[0][0].addEventListener("drag", null);
-  // this.viewbox._groups[0][0].addEventListener("click", this.clicked);
+  this.viewbox._groups[0][0].addEventListener("click", this.clicked);
   // this.viewbox._groups[0][0].addEventListener("touchmove mousemove", this.moved);
   // this.viewbox.addEventListener("drag", null).addEventListener("click", this.clicked).addEventListener("touchmove mousemove", this.moved);
   this.viewbox.style("cursor", "default").on(".drag", null).on("click", this.clicked).on("touchmove mousemove", this.moved);
@@ -10901,6 +10901,7 @@ let Names = this.Names;
 
 // on viewbox click event - run function based on target
 clicked = (event) => {
+  console.log(event);
   const el = event.target;
   if (!el || !el.parentElement || !el.parentElement.parentElement) return;
   const parent = el.parentElement;
@@ -11250,7 +11251,7 @@ this.fonts = [
 ];
 
 this.modules.editors = true;
-this.quickLoad();
+this.loadMapFromURL("region/1/map", false);
   }
 
   

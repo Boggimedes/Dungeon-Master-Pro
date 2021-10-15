@@ -214,7 +214,7 @@ class CreateUsersTable extends Migration
             $table->text('cultures')->default('[]');
             $table->text('religions')->default('[]');
             $table->text('states')->default('[]');
-            $table->text('map');
+            $table->longText('map');
             $table->timestamps();
             $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
         });

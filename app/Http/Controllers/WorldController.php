@@ -204,30 +204,35 @@ class WorldController extends Controller
         // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
         $validatedData = $request->validate([
             'svgString'  => 'string',
-            // 'cultures'  => 'string',
+            'cultures'  => 'string',
             'states'  => 'string',
-            'burgs'  => 'string',
             'religions'  => 'string',
+            'provinces'  => 'string',
+            'burgs'  => 'string',
+            'markers'  => 'string',
             'map'  => 'string',
         ]);
 
-        
         Storage::disk('s3')->put('map/r' . $region->id . '.svg', $validatedData['svgString']);
-        // $region->cultures = $validatedData['cultures'];
+        $region->cultures = $validatedData['cultures'];
         $region->states = $validatedData['states'];
-        $region->burgs = $validatedData['burgs'];
         $region->map = $validatedData['map'];
-        $region->religions = 
-        $validatedData['religions'];
+        $region->religions = $validatedData['religions'];
         $region->save();
+        // $this->createPOI('burgs', $validatedData['burgs'], $region);
+        // $this->createPOI('markers', $validatedData['markers'], $region);
         return response()->json(['message' => "Map Uploaded Successfully"]);
         
     }
+    private function createPOI($type, $data, Region $region) {
 
+    }
     public function getMap(Region $region) {
 		// $me = \Auth::user();
         // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
         $map = $region->map;
+        \Log::info($map);
+        return response()->json($region->map);
         // header("Content-type: image/svg+xml");
         return response()->make($map, '200', array('Content-Type' => 'image/svg+xml'));
     }

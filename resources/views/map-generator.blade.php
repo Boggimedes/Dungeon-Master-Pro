@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-  <base href="/assets/map-generator/">
+  <base href="/map-generator/">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -20,6 +20,9 @@
     <link rel="stylesheet" href="styles.css">
   <style type="text/css">
 
+.ui-dialog .ui-dialog-titlebar {
+  color:black;
+}
  .map-templates {
       position:absolute;
       z-index:1000;
@@ -138,296 +141,17 @@
     // setTimeout(()=> editStates(), 3000);
     }
 
-    window.Cultures = (function () {
-  let cells;
-   
-
-  const generate = function () {
-    TIME && console.time("generateCultures");
-    cells = pack.cells;
-    cells.culture = new Uint16Array(cells.i.length); // cell cultures
-    let count = Math.min(+culturesInput.value, +culturesSet.selectedOptions[0].dataset.max);
-
-    const populated = cells.i.filter(i => cells.s[i]); // populated cells
-    console.log(populated);
-    if (populated.length < count * 25) {
-      count = Math.floor(populated.length / 50);
-      if (!count) {
-        WARN && console.warn(`There are no populated cells. Cannot generate cultures`);
-        pack.cultures = [{name: "Wildlands", i: 0, base: 1, shield: "round"}];
-        alertMessage.innerHTML = `
-          The climate is harsh and people cannot live in this world.<br>
-          No cultures, states and burgs will be created.<br>
-          Please consider changing climate settings in the World Configurator`;
-        $("#alert").dialog({
-          resizable: false,
-          title: "Extreme climate warning",
-          buttons: {
-            Ok: function () {
-              $(this).dialog("close");
-            }
-          }
-        });
-        return;
-      } else {
-        WARN && console.warn(`Not enough populated cells (${populated.length}). Will generate only ${count} cultures`);
-        alertMessage.innerHTML = `
-          There are only ${populated.length} populated cells and it's insufficient livable area.<br>
-          Only ${count} out of ${culturesInput.value} requested cultures will be generated.<br>
-          Please consider changing climate settings in the World Configurator`;
-        $("#alert").dialog({
-          resizable: false,
-          title: "Extreme climate warning",
-          buttons: {
-            Ok: function () {
-              $(this).dialog("close");
-            }
-          }
-        });
-      }
-    }
-    count = regionCultures.length+1;
-    console.log(count);
-    const cultures = (pack.cultures = selectCultures(count));
-    console.log(pack.cultures);
-    const centers = d3.quadtree();
-    const colors = getColors(count);
-    const emblemShape = document.getElementById("emblemShape").value;
-    console.log(cultures);
-
-    const codes = [];
-    cultures.forEach(function (c, i) {
-      console.log(c);
-      const cell = (c.center = placeCenter(c.sort ? c.sort : i => cells.s[i]));
-      centers.add(cells.p[cell]);
-      c.i = i;
-      delete c.odd;
-      delete c.sort;
-      c.color = colors[i];
-      c.type = defineCultureType(cell);
-      c.expansionism = c.exp; //defineCultureExpansionism(c.type);
-      c.origin = 0;
-      c.code = abbreviate(c.name, codes);
-      codes.push(c.code);
-      cells.culture[cell] = i + 1;
-      if (emblemShape === "random") c.shield = getRandomShield();
-    });
-
-    function placeCenter(v) {
-      let c,
-        spacing = (graphWidth + graphHeight) / 2 / count;
-      const sorted = [...populated].sort((a, b) => v(b) - v(a)),
-        max = Math.floor(sorted.length / 2);
-      do {
-        c = sorted[biased(0, max, 5)];
-        spacing *= 0.9;
-      } while (centers.find(cells.p[c][0], cells.p[c][1], spacing) !== undefined);
-      return c;
-    }
-
-    // the first culture with id 0 is for wildlands
-    // cultures.unshift({name: "Wildlands", i: 0, base: 1, origin: null, shield: "round"});
-
-    // make sure all bases exist in nameBases
-    if (!nameBases.length) {
-      ERROR && console.error("Name base is empty, default nameBases will be applied");
-      nameBases = Names.getNameBases();
-    }
-
-    cultures.forEach(c => (c.base = c.base % nameBases.length));
-
-    function selectCultures(c) {
-      let def = getDefault(c);
-      console.log("selectCultures");
-      console.log(c);
-      console.log(def);
-      if (c === def.length) return def;
-      if (def.every(d => d.odd === 1)) return def.splice(0, c);
-
-      const count = Math.min(c, def.length);
-      const cultures = [];
-
-      for (let culture, rnd, i = 0; cultures.length < count && i < 200; i++) {
-        do {
-          rnd = rand(def.length - 1);
-          culture = def[rnd];
-        } while (!P(culture.odd));
-        cultures.push(culture);
-        def.splice(rnd, 1);
-      }
-      return cultures;
-    }
-
-    // set culture type based on culture center position
-    function defineCultureType(i) {
-      if (cells.h[i] < 70 && [1, 2, 4].includes(cells.biome[i])) return "Nomadic"; // high penalty in forest biomes and near coastline
-      if (cells.h[i] > 50) return "Highland"; // no penalty for hills and moutains, high for other elevations
-      const f = pack.features[cells.f[cells.haven[i]]]; // opposite feature
-      if (f.type === "lake" && f.cells > 5) return "Lake"; // low water cross penalty and high for growth not along coastline
-      if ((cells.harbor[i] && f.type !== "lake" && P(0.1)) || (cells.harbor[i] === 1 && P(0.6)) || (pack.features[cells.f[i]].group === "isle" && P(0.4))) return "Naval"; // low water cross penalty and high for non-along-coastline growth
-      if (cells.r[i] && cells.fl[i] > 100) return "River"; // no River cross penalty, penalty for non-River growth
-      if (cells.t[i] > 2 && [3, 7, 8, 9, 10, 12].includes(cells.biome[i])) return "Hunting"; // high penalty in non-native biomes
-      return "Generic";
-    }
-
-    function defineCultureExpansionism(type) {
-      let base = 1; // Generic
-      if (type === "Lake") base = 0.8;
-      else if (type === "Naval") base = 1.5;
-      else if (type === "River") base = 0.9;
-      else if (type === "Nomadic") base = 1.5;
-      else if (type === "Hunting") base = 0.7;
-      else if (type === "Highland") base = 1.2;
-      return rn(((Math.random() * powerInput.value) / 2 + 1) * base, 1);
-    }
-
-    TIME && console.timeEnd("generateCultures");
-  };
-
-  const add = function (center) {
-    const defaultCultures = getDefault();
-    let culture, base, name;
-
-    if (pack.cultures.length < defaultCultures.length) {
-      // add one of the default cultures
-      culture = pack.cultures.length;
-      base = defaultCultures[culture].base;
-      name = defaultCultures[culture].name;
-    } else {
-      // add random culture besed on one of the current ones
-      culture = rand(pack.cultures.length - 1);
-      name = Names.getCulture(culture, 5, 8, "");
-      base = pack.cultures[culture].base;
-    }
-    const code = abbreviate(
-      name,
-      pack.cultures.map(c => c.code)
-    );
-    const i = pack.cultures.length;
-    const color = d3.color(d3.scaleSequential(d3.interpolateRainbow)(Math.random())).hex();
-
-    // define emblem shape
-    let shield = culture.shield;
-    const emblemShape = document.getElementById("emblemShape").value;
-    if (emblemShape === "random") shield = getRandomShield();
-console.log("Add Culture");
-    pack.cultures.push({name, color, base, center, i, expansionism: 1, type: "Generic", cells: 0, area: 0, rural: 0, urban: 0, origin: 0, code, shield});
-  };
-
-  const getDefault = function (count) {
-    // generic sorting functions
-    // const cells = pack.cells,
-    //   s = cells.s,
-    //   sMax = d3.max(s),
-    //   t = cells.t,
-    //   h = cells.h,
-    //   temp = grid.cells.temp;
-    // const n = cell => Math.ceil((s[cell] / sMax) * 3); // normalized cell score
-    // const td = (cell, goal) => {
-    //   const d = Math.abs(temp[cells.g[cell]] - goal);
-    //   return d ? d + 1 : 1;
-    // }; // temperature difference fee
-    // const bd = (cell, biomes, fee = 4) => (biomes.includes(cells.biome[cell]) ? 1 : fee); // biome difference fee
-    // const sf = (cell, fee = 4) => (cells.haven[cell] && pack.features[cells.f[cells.haven[cell]]].type !== "lake" ? 1 : fee); // not on sea coast fee
-    let culturesCopy = JSON.parse(JSON.stringify(regionCultures));
-    console.log(culturesCopy);
-    culturesCopy.unshift({name: "Wildlands", i: 0, base: 1, origin: null, shield: "round"});
-    return culturesCopy;
-    }
-  // expand cultures across the map (Dijkstra-like algorithm)
-  const expand = function () {
-    TIME && console.time("expandCultures");
-    cells = pack.cells;
-
-    const queue = new PriorityQueue({comparator: (a, b) => a.p - b.p});
-    pack.cultures.forEach(function (c) {
-      if (!c.i || c.removed) return;
-      queue.queue({e: c.center, p: 0, c: c.i});
-    });
-
-    const neutral = (cells.i.length / 5000) * 3000 * neutralInput.value; // limit cost for culture growth
-    const cost = [];
-    while (queue.length) {
-      const next = queue.dequeue(),
-        n = next.e,
-        p = next.p,
-        c = next.c;
-      const type = pack.cultures[c].type;
-      cells.c[n].forEach(function (e) {
-        const biome = cells.biome[e];
-        const biomeCost = getBiomeCost(c, biome, type);
-        const biomeChangeCost = biome === cells.biome[n] ? 0 : 20; // penalty on biome change
-        const heightCost = getHeightCost(e, cells.h[e], type);
-        const riverCost = getRiverCost(cells.r[e], e, type);
-        const typeCost = getTypeCost(cells.t[e], type);
-        const totalCost = p + (biomeCost + biomeChangeCost + heightCost + riverCost + typeCost) / pack.cultures[c].expansionism;
-
-        if (totalCost > neutral) return;
-
-        if (!cost[e] || totalCost < cost[e]) {
-          if (cells.s[e] > 0) cells.culture[e] = c; // assign culture to populated cell
-          cost[e] = totalCost;
-          queue.queue({e, p: totalCost, c});
-        }
-      });
-    }
-
-    TIME && console.timeEnd("expandCultures");
-  };
-
-  function getBiomeCost(c, biome, type) {
-    if (cells.biome[pack.cultures[c].center] === biome) return 10; // tiny penalty for native biome
-    if (type === "Hunting") return biomesData.cost[biome] * 5; // non-native biome penalty for hunters
-    if (type === "Nomadic" && biome > 4 && biome < 10) return biomesData.cost[biome] * 10; // forest biome penalty for nomads
-    return biomesData.cost[biome] * 2; // general non-native biome penalty
-  }
-
-  function getHeightCost(i, h, type) {
-    const f = pack.features[cells.f[i]],
-      a = cells.area[i];
-    if (type === "Lake" && f.type === "lake") return 10; // no lake crossing penalty for Lake cultures
-    if (type === "Naval" && h < 20) return a * 2; // low sea/lake crossing penalty for Naval cultures
-    if (type === "Nomadic" && h < 20) return a * 50; // giant sea/lake crossing penalty for Nomads
-    if (h < 20) return a * 6; // general sea/lake crossing penalty
-    if (type === "Highland" && h < 44) return 3000; // giant penalty for highlanders on lowlands
-    if (type === "Highland" && h < 62) return 200; // giant penalty for highlanders on lowhills
-    if (type === "Highland") return 0; // no penalty for highlanders on highlands
-    if (h >= 67) return 200; // general mountains crossing penalty
-    if (h >= 44) return 30; // general hills crossing penalty
-    return 0;
-  }
-
-  function getRiverCost(r, i, type) {
-    if (type === "River") return r ? 0 : 100; // penalty for river cultures
-    if (!r) return 0; // no penalty for others if there is no river
-    return Math.min(Math.max(cells.fl[i] / 10, 20), 100); // river penalty from 20 to 100 based on flux
-  }
-
-  function getTypeCost(t, type) {
-    if (t === 1) return type === "Naval" || type === "Lake" ? 0 : type === "Nomadic" ? 60 : 20; // penalty for coastline
-    if (t === 2) return type === "Naval" || type === "Nomadic" ? 30 : 0; // low penalty for land level 2 for Navals and nomads
-    if (t !== -1) return type === "Naval" || type === "Lake" ? 100 : 0; // penalty for mainland for navals
-    return 0;
-  }
-
-  const getRandomShield = function () {
-    const type = rw(COA.shields.types);
-    return rw(COA.shields[type]);
-  };
-
-  return {generate, add, expand, getDefault, getRandomShield};
-})();
 
 
       </script>
-  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="../map-generator-custom/index.css">
   <link rel="stylesheet" href="icons.css">
   <link rel="stylesheet" href="libs/jquery-ui.css">
 </head>
 <body style="background-color:black;overflow:hidden" >
 <div class="container-fluid">
   <div class="row">
-<div id="mapSetup" class="col-4 pl-4 order-first text-light" style="height:100vh;overflow:auto;">
+<div id="mapSetup" class="col-5 pl-4 order-first text-light" style="height:100vh;overflow:auto;">
   <h2>Region Setup</h2>
   <div id="accordion">
   <div class="card bg-transparent">
@@ -439,7 +163,9 @@ console.log("Add Culture");
 
     <div id="collapseOne" class="collapse" aria-labelledby="headingOne" data-parent="#accordion">
       <div class="card-body">
-  <div id="unitsBody" class="row" style="margin-left:1.1em;font-size:1.2rem;">
+      <button id="configureWorld" class="btn btn-primary" data-tip="Click to open world configurator to setup map position on Globe and World climate" onclick="editWorld()">Configure Climate</button>
+      <h4 class="pt-3">Units</h4>
+  <div id="unitsBody" class="row" style="font-size:1.2rem;">
       <div class="col-6">
         <div data-tip="Select a distance unit or provide a custom name">
           <div><span class="icon-map-signs"></span> Distance: </div>
@@ -484,11 +210,11 @@ console.log("Add Culture");
         </div>
     </div>
     <div class="col-12">
-    <h4>Epoch</h4>
+    <h4 class="pt-3">Epoch</h4>
     <p>This value is the "Age" of this region.  This doesn't have to be the same as your campaign date, this defines the scope of expansion for all states & cultures.  A society with low cultural expasion values (less than 2) would have a lot of "Neutral" territory in the region at 1000ep.  Conversely a region with an epoch of 4000 (and/or higher expansionism values) would have little to no neutral territory.</p>
     <input type="number" id="epoch" step="100" min="0" max="10000" value="1000" onchange="updateEpoch()">
   </div>
-  <h4>City Density</h4>
+  <h4 class="pt-3">City Density</h4>
   <div class="col-12">
 <div class="btn-group" role="group" aria-label="Basic example">
   <button type="button" class="btn btn-primary burg-density" data-value="100" onclick="setBurgs(100)">1 City/200mi</button>
@@ -602,11 +328,11 @@ console.log("Add Culture");
     </div>
     <div id="collapseThree" class="collapse" aria-labelledby="headingThree" data-parent="#accordion">
       <div class="card-body">
-      <p>Religion centers represent the birth/spread of the religions in your world.  These are entirely optional.  Leaving these blank represents a society where religions are wide spread and have no "homelands".  Unless your campaign will feature religious conflict, blank is recommended.
+      <p>Religion centers represent the birth/spread of the religions in your world.  These are entirely optional.  Leaving these blank represents a society where religions are wide spread and have no "homelands".
       <div style="overflow:auto;">
       <table class="table table-sm table-striped table-dark" style="white-space: nowrap;">
         <thead><tr>
-          <th>Name</th><th>Origin Culture</th><th>Type</th><th>Form</th><th>Diety</th><th title="Expansionism">Exp</th><th>Believers</th>
+          <th>Name</th><th>Origin Culture</th><th>Type</th><th>Form</th><th>Deity</th><th title="Expansionism">Exp</th><th>Believers</th>
         </tr></thead>
         <tbody id="religions">
         </tbody>
@@ -620,24 +346,24 @@ console.log("Add Culture");
 
     <div class="row pt-3 land-shapes">
       <h4 class="w-100">Click Land Shape to Generate</h4>
-    <img class="col-4" title="Generate Island" onclick="changeTemplate('highIsland')" src="../img/landshapes/island.png">
-      <img class="col-4" title="Generate Archipelago" onclick="changeTemplate('archipelago')" src="../img/landshapes/archipelago.png">
-      <img class="col-4" title="Generate Atoll" onclick="changeTemplate('atoll')" src="../img/landshapes/atoll.png">
-      <img class="col-4 pt-3" title="Generate Isthmus" onclick="changeTemplate('isthmus')" src="../img/landshapes/isthmus.png">
-      <img class="col-4 pt-3" title="Generate Pangea" onclick="changeTemplate('random')" src="../img/landshapes/random.png">
-      <img class="col-4 pt-3" title="Generate Mediterranean" onclick="changeTemplate('mediterranean')" src="../img/landshapes/mediterranean.png">
-      <img class="col-4 pt-3" title="Generate Continents" onclick="changeTemplate('continents')" src="../img/landshapes/two_continents.png">
-      <img class="col-4 pt-3" title="Generate Pangea" onclick="changeTemplate('pangea')" src="../img/landshapes/pangea.png">
-      <img class="col-4 pt-3" title="Generate Inland" onclick="changeTemplate('taklamakan')" src="../img/landshapes/inland.png">
+    <img class="col-4" title="Generate Island" onclick="changeTemplate('highIsland')" src="../map-generator-custom/images/island.png">
+      <img class="col-4" title="Generate Archipelago" onclick="changeTemplate('archipelago')" src="../map-generator-custom/images/archipelago.png">
+      <img class="col-4" title="Generate Atoll" onclick="changeTemplate('atoll')" src="../map-generator-custom/images/atoll.png">
+      <img class="col-4 pt-3" title="Generate Isthmus" onclick="changeTemplate('isthmus')" src="../map-generator-custom/images/isthmus.png">
+      <img class="col-4 pt-3" title="Generate Random" onclick="changeTemplate('random')" src="../map-generator-custom/images/random.png">
+      <img class="col-4 pt-3" title="Generate Mediterranean" onclick="changeTemplate('mediterranean')" src="../map-generator-custom/images/mediterranean.png">
+      <img class="col-4 pt-3" title="Generate Continents" onclick="changeTemplate('continents')" src="../map-generator-custom/images/two_continents.png">
+      <img class="col-4 pt-3" title="Generate Pangea" onclick="changeTemplate('pangea')" src="../map-generator-custom/images/pangea.png">
+      <img class="col-4 pt-3" title="Generate Inland" onclick="changeTemplate('taklamakan')" src="../map-generator-custom/images/inland.png">
     </div>
     <div class="text-center pt-5">
       <button class="btn btn-primary"  onclick="saveToServer()">Save Region</button>
       <button class="pl-3 btn btn-secondary" id="loadButton" data-tip="Load fully-functional map in .map format">Load Map File</button>
-      <button class="pl-3 btn btn-secondary" id="saveButton" data-tip="Save fully-functional map in .map format">Save Map File</button>
+      <button class="pl-3 btn btn-secondary" id="saveButton"   onclick="saveSVG()" data-tip="Save fully-functional map in .map format">Save Map File</button>
     </div>
 
 </div>
-    <div class="col-8" id="map-wrapper">
+    <div class="col-7" id="map-wrapper">
     <div class="map-templates">
     <div class="btn-group">
       <button class="btn btn-primary" onclick="changePreset('GMP');svg.attr('data-filter', null).attr('filter', null);">Default</button>
@@ -1910,7 +1636,7 @@ console.log("Add Culture");
         </table>
 
         <div>
-          <button id="configureWorld" data-tip="Click to open world configurator to setup map position on Globe and World climate" onclick="editWorld()">Configure World</button>
+          
           <button id="optionsReset" data-tip="Click to restore default options (page will be reloaded)" onclick="restoreDefaultOptions()">Reset to defaults</button>
         </div>
       </div>
@@ -3937,7 +3663,7 @@ console.log("Add Culture");
 
       <div id="options3dBottom" style="margin-top: .2em">
         <button id="options3dUpdate" data-tip="Update the scene" class="icon-cw"></button>
-        <button data-tip="Configure world and map size and climate settings" onclick="editWorld()" class="icon-globe"></button>
+        <button data-tip="Configure region map size and climate settings" onclick="editWorld()" class="icon-globe"></button>
         <button id="options3dSave" data-tip="Save screenshot of the 3d scene" class="icon-button-screenshot"></button>
         <button id="options3dOBJSave" data-tip="Save OBJ file of the 3d scene" class="icon-download"></button>
       </div>
@@ -4056,7 +3782,7 @@ console.log("Add Culture");
     <div id="notesBody"></div>
   </div>
 
-  <div id="tooltip" style="opacity:0" data-main="Сlick the arrow button for options. Zoom in to see the map in details">Сlick the arrow button for options. Zoom in to see the map in details</div>
+  <div id="tooltip" style="opacity:0" data-main=""></div>
 
   <div id="mapOverlay" style="display: none">Drop a .map file to open</div>
 
@@ -4743,6 +4469,11 @@ function updateReligion(event) {
 function religionsTable(){
   var table = document.getElementById("religions");
   table.innerHTML = '';
+  console.log(regionReligions);
+  let r;
+    let rural;
+    let urban;
+    let population;
   for(var i=0; i<regionReligions.length; i++){
     var tr = document.createElement("tr");
     var td = document.createElement("td");
@@ -4753,21 +4484,21 @@ function religionsTable(){
     input.value = regionReligions[i]['name']
     input.onchange = updateReligion;
     input.type = "text";
-   td.append(input);
+    td.append(input);
     tr.append(td);
 
     var select = document.createElement("select");
     td = document.createElement("td");
     select.setAttribute('data-id', i);
     var option = document.createElement("option");
-    option.innerHTML = "Select";
+    option.innerHTML = "Random";
     select.append(option);
     for(var l = 0; l < regionCultures.length; l++) {
       if (!regionCultures[l]['name']) continue;
       option = document.createElement("option");
-      option.value = regionCultures[l];
+      option.value = l + 1;
       option.innerHTML = regionCultures[l]['name'][0].toUpperCase() + regionCultures[l]['name'].substring(1);
-      option.selected = regionCultures[l]['name'] == regionReligions[i]['culture'];
+      option.selected = l == regionReligions[i]['culture']-1;
       select.append(option);
     }
     select.setAttribute('data-field', 'culture');
@@ -4780,7 +4511,7 @@ function religionsTable(){
     td = document.createElement("td");
     select.setAttribute('data-id', i);
     var option = document.createElement("option");
-    option.innerHTML = "Select";
+    option.innerHTML = "Random";
     select.append(option);
     for(var l = 0; l < type.length; l++) {
       option = document.createElement("option");
@@ -4794,18 +4525,18 @@ function religionsTable(){
     td.append(select);
     tr.append(td);
 
-    var forms = ['Shamanism', 'Animism', 'Polytheism', 'Dualism', 'Monotheism', 'Non-Theism'];
+    var forms = ['Shamanism', 'Animism', 'Polytheism', 'Dualism', 'Monotheism', 'Non-theism','Ancestor worship', 'Cult', 'Order','Coterie','Arcanum','Heresy','Sect','Schism','Dissenters','Apostates'];
     var select = document.createElement("select");
     td = document.createElement("td");
     select.setAttribute('data-id', i);
     var option = document.createElement("option");
-    option.innerHTML = "Select";
+    option.innerHTML = "Random";
     select.append(option);
     for(var l = 0; l < forms.length; l++) {
       option = document.createElement("option");
       option.value = forms[l];
       option.innerHTML = forms[l][0].toUpperCase() + forms[l].substring(1);
-      option.selected = forms[l] == regionReligions[i]['forms'];
+      option.selected = forms[l] == regionReligions[i]['form'];
       select.append(option);
     }
     select.setAttribute('data-field', 'form');
@@ -4816,8 +4547,8 @@ function religionsTable(){
     input = document.createElement("input");
     td = document.createElement("td");
     input.setAttribute('data-id', i);
-    input.value = regionReligions[i]['diety']
-    input.setAttribute('data-field', 'diety');
+    input.value = regionReligions[i]['deity']
+    input.setAttribute('data-field', 'deity');
     input.onchange = updateReligion;
     input.type = "text";
     td.append(input);
@@ -4826,23 +4557,35 @@ function religionsTable(){
     input = document.createElement("input");
     td = document.createElement("td");
     input.setAttribute('data-id', i);
-    input.value = regionReligions[i]['exp']
+    input.value = regionReligions[i]['expansionism']
     input.type = 'number';
-    input.min = 0.1;
+    input.min = 0.5;
     input.max = 20;
-    input.step = 0.1;
-    input.setAttribute('data-field', 'exp');
-    input.setAttribute('style', 'width:2rem');
+    input.step = 0.5;
+    input.setAttribute('data-field', 'expansionism');
+    input.setAttribute('style', 'width:3rem');
     input.onchange = updateReligion;
     td.append(input);
     tr.append(td);
 
-    input = document.createElement("input");
+    input = document.createElement("span");
     td = document.createElement("td");
     input.setAttribute('data-id', i);
-    input.value = regionReligions[i]['believers']
+    if (pack.religions && pack.religions.length > i && pack.religions[i+1].rural) {
+      r = pack.religions[i+1]
+      console.log(r)
+      console.log(populationRate)
+      rural = r.rural * populationRate;
+      console.log(rural)
+      urban = r.urban * populationRate * urbanization;
+      console.log(urban)
+      population = rn(rural + urban);
+      console.log(population)
+      input.innerHTML = population;
+    }
+
     input.setAttribute('data-field', 'believers');
-    input.setAttribute('style', 'width:5rem');
+    input.setAttribute('style', 'width:4rem');
     input.onchange = updateReligion;
     td.append(input);
     tr.append(td);
@@ -4852,7 +4595,7 @@ function religionsTable(){
 
 }
 function newReligion() {
-  regionReligions.push({'name':'','culture':'','type':'','form':'','diety':'','exp':1,'believers':''});
+  regionReligions.push({'name':'','culture':'','type':'','form':'','deity':'','expansionism':0,'believers':''});
   religionsTable();
 }
 
@@ -4910,31 +4653,33 @@ function culturesTable(){
     input = document.createElement("input");
     td = document.createElement("td");
     input.setAttribute('data-id', i);
-    input.value = regionCultures[i]['exp'];
+    input.value = regionCultures[i]['expansionism'];
     input.type = 'number';
     input.min = 0.1;
     input.max = 20;
     input.step = 0.1;
-    input.setAttribute('data-field', 'exp');
+    input.setAttribute('data-field', 'expansionism');
     input.onchange = updateCulture;
     td.append(input);
     tr.append(td);
 
-    var namebase = ["German","English","French","Italian","Castillian","Ruthenian","Nordic","Greek","Roman","Finnic","Korean","Chinese","Japanese","Portuguese","Nahuatl","Hungarian","Turkish","Berber","Arabic","Inuit","Basque","Nigerian","Celtic","Mesopotamian","Iranian","Hawaiian","Karnataka","Quechua","Swahili","Vietnamese","Cantonese","Mongolian","Human General","Elven","Dark Elven","Dwarven","Goblin","Orc","Giant","Draconic","Arachnid","Serpents"];
+    var namebase = ["German","English","French","Italian","Castillian","Ruthenian","Nordic","Greek","Roman","Finnic","Korean","Chinese","Japanese","Portuguese","Nahuatl","Hungarian","Turkish","Berber","Arabic","Inuit","Basque","Nigerian","Celtic","Mesopotamian","Iranian","Hawaiian","Karnataka","Quechua","Swahili","Vietnamese","Cantonese","Mongolian","Elven","Dark Elven","Dwarven","Goblin","Orc","Giant","Draconic","Arachnid","Serpents"];
     var select = document.createElement("select");
     td = document.createElement("td");
     select.setAttribute('data-id', i);
     var option = document.createElement("option");
-    option.innerHTML = "Random";
+    option.value = 32;
+    option.innerHTML = "Generic";
     select.append(option);
     for(var l = 0; l < namebase.length; l++) {
+      if (l == 32) continue;
       option = document.createElement("option");
-      option.value = namebase[l];
+      option.value = l;
       option.innerHTML = namebase[l][0].toUpperCase() + namebase[l].substring(1);
-      option.selected = namebase[l] == regionCultures[i]['namebase'];
+      option.selected = namebase[l] == regionCultures[i]['base'];
       select.append(option);
     }
-    select.setAttribute('data-field', 'namebase');
+    select.setAttribute('data-field', 'base');
     select.onchange = updateCulture;
     td.append(select);
     tr.append(td);
@@ -4944,7 +4689,7 @@ function culturesTable(){
 
 }
 function newCulture() {
-  regionCultures.push({'name':'','race_id':'','exp':1,'namebase':0});
+  regionCultures.push({'name':'','race_id':'','exp':1,'base':0});
   culturesTable();
 }
 function updateState(event) {
@@ -5003,9 +4748,9 @@ function statesTable(){
     input.setAttribute('data-id', i);
     input.value = regionStates[i]['exp'];
     input.type = 'number';
-    input.min = 0.1;
+    input.min = 0;
     input.max = 20;
-    input.step = 1;
+    input.step = 0.5;
     input.setAttribute('data-field', 'exp');
     input.onchange = updateState;
     td.append(input);
@@ -5013,33 +4758,119 @@ function statesTable(){
 
     
     td = document.createElement("td");
-      var stateForm = ["Monarchy","Republic","Union","Anarchy","Theocracy"];
-      var select = document.createElement("select");
-      select.setAttribute('data-id', i);
-      var option = document.createElement("option");
-      option.innerHTML = "Random";
+    var stateForm = ["Monarchy","Republic","Union","Anarchy","Theocracy"];
+    var select = document.createElement("select");
+    select.setAttribute('data-id', i);
+    var option = document.createElement("option");
+    option.innerHTML = "Random";
+    select.append(option);
+    for(var l = 0; l < stateForm.length; l++) {
+      option = document.createElement("option");
+      option.value = stateForm[l];
+      option.innerHTML = stateForm[l];
+      console.log(regionStates[i]);
+      option.selected = stateForm[l] == regionStates[i]['form'];
       select.append(option);
-      for(var l = 0; l < stateForm.length; l++) {
-        option = document.createElement("option");
-        option.value = stateForm[l];
-        option.innerHTML = stateForm[l];
-        console.log(regionStates[i]);
-        option.selected = stateForm[l] == regionStates[i]['form'];
-        select.append(option);
-      }
-      select.setAttribute('data-field', 'form');
-      select.onchange = updateState;
-      td.append(select);
-        
-      tr.append(td);
+    }
+    select.setAttribute('data-field', 'form');
+    select.onchange = updateState;
+    td.append(select);
+      
+    tr.append(td);
+    
+    td = document.createElement("td");
+    var button = document.createElement("button");
+    button.setAttribute('data-id', i);
+    button.setAttribute('style', "line-height: 1");
+    button.onclick = removeState;
+    button.innerHTML = "x";
+    button.className = "btn btn-sm btn-danger";
+    td.append(button);
+      
+    tr.append(td);
 
    table.append(tr);
   }
 
 }
+function removeState(event) {
+  let i = event.target.getAttribute('data-id');
+  window.regionStates.splice(i,1);
+  statesTable();
+}
 function newState() {
   regionStates.push({name:'',culture:'',exp:1,dominant_culture: '', form: ''});
   statesTable();
+}
+
+function religionsCalc(count, cultsCount) {
+  let religions = window.regionReligions;
+  if (religions.length == 0) return [count, cultsCount];
+  let organized = 0;
+  let cults = 0;
+  window.regionReligions = religions.map((r) => {
+    if(!r.type) {
+      if (P(0.5)) r.type = "Organized";
+      else r.type = "Cult";
+    } 
+    console.log(r);
+    if (r.type == "Cult") cults += 1;
+    if (r.type == "Organized") organized += 1;
+
+    return r;
+  });
+  console.log(organized, cults);
+  return [organized, cults];
+}
+function loadReligion(i, type) {
+  console.log(i);
+  console.log(type);
+  let religion = window.regionReligions.filter((r) => r.type === type)[i];
+  console.log(religion);
+  if (religion && !religion.expansionism) religion.expansionism = (rand(25,50)/10);
+
+  return religion;
+}
+function shuffle(array) {
+  let currentIndex = array.length,  randomIndex;
+
+  // While there remain elements to shuffle...
+  while (currentIndex != 0) {
+
+    // Pick a remaining element...
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+
+    // And swap it with the current element.
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex], array[currentIndex]];
+  }
+
+  return array;
+}
+function religiousCenter(i, type) {
+  console.log(window.regionReligions);
+  console.log(i);
+  console.log(type);
+  let religion = window.regionReligions.filter((r) => r.type === type)[i];
+console.log(religion);
+  if (religion && religion.culture) {
+    console.log(pack.cultures[religion.culture].center)
+    return pack.cultures[religion.culture].center;
+  }
+  return false;
+}
+function setBurgs(event) {
+  let elem = event.target;
+  let value = elem.getAttribute('data-value');
+  let manorsInput = document.getElementById('manorsInput');
+  let parent = elem.parent;
+  console.log(parent);
+  parent.children.forEach((c) => {
+    c.className = "btn btn-secondary burg-density";
+  });
+  elem.className = "btn btn-primary burg-density";
+  manorsInput.value = value;
 }
 culturesTable()
 </script>
@@ -5056,10 +4887,10 @@ culturesTable()
   <script src="modules/river-generator.js"></script>
   <script src="modules/lakes.js"></script>
   <script src="modules/names-generator.js"></script>
-  <!-- <script src="modules/cultures-generator.js"></script> -->
-  <script src="modules/burgs-and-states.js"></script>
+  <script src="../map-generator-custom/modules/cultures-generator.js"></script>
+  <script src="../map-generator-custom/modules/burgs-and-states.js"></script>
   <script src="modules/routes-generator.js"></script>
-  <script src="modules/religions-generator.js"></script>
+  <script src="../map-generator-custom/modules/religions-generator.js"></script>
   <script src="modules/military-generator.js"></script>
   <script src="modules/markers-generator.js"></script>
   <script src="modules/coa-generator.js"></script>
@@ -5070,19 +4901,19 @@ culturesTable()
   <script src="modules/fonts.js"></script>
   <script src="modules/ui/layers.js"></script>
   <script src="modules/ui/measurers.js"></script>
-  <script src="modules/save.js"></script>
+  <script src="../map-generator-custom/modules/save.js"></script>
   <script src="modules/load.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.min.js" integrity="sha384-+YQ4JLhjyBLPDQt//I+STsc9iw4uQqACwlvpslubQzn4u2UU2UFM80nGisd026JF" crossorigin="anonymous"></script>
 
   <script defer src="https://unpkg.com/dropbox@10.8.0/dist/Dropbox-sdk.min.js"></script>
   <script defer src="modules/ui/general.js"></script>
-  <script defer src="modules/ui/options.js"></script>
+  <script defer src="../map-generator-custom/modules/ui/options.js"></script>
   <script defer src="modules/ui/style.js"></script>
   <script defer src="modules/cloud.js"></script>
-  <script defer src="main.js"></script>
-  <script src="modules/relief-icons.js"></script>
+  <script defer src="../map-generator-custom/main.js"></script>
+  <script defer src="modules/relief-icons.js"></script>
   <script defer src="modules/ui/tools.js"></script>
-  <script defer src="modules/ui/world-configurator.js"></script>
+  <script defer src="../map-generator-custom/modules/ui/world-configurator.js"></script>
   <script defer src="modules/ui/heightmap-editor.js"></script>
   <script defer src="modules/ui/states-editor.js"></script>
   <script defer src="modules/ui/provinces-editor.js"></script>
