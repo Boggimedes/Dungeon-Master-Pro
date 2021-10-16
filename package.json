@@ -5,7 +5,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build && cp public/index.html resources/views/app.blade.php && cp resources/public/* public/",
+    "build": "ng build && cp public/index.html resources/views/app.blade.php && cp -r resources/public/* public/",
+    "copy": "cp -r resources/public/fmg/ public/ && cp -r resources/public/mgc/ public/",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e",
