@@ -46,8 +46,20 @@ window.Cultures = (function () {
         });
       }
     }
-
-    const cultures = (pack.cultures = selectCultures(count));
+    if (window.regionCultures.length > 0) {
+      let cultures = window.regionCultures;
+      let random = [];
+      const getName = () => Names.getBase(1, 5, 9, "", 0);
+      cultures = cultures.map((c) => {
+        if (!c.name) c.name = getName();
+        c.sort = i => n(i) / td(i, 10);
+        if (!c.expansionism) c.expansionism = rand(10, 50)/10;
+        return c;
+      });
+    } else {
+      pack.cultures = selectCultures(count);
+    }
+    const cultures = pack.cultures;
     const centers = d3.quadtree();
     const colors = getColors(count);
     const emblemShape = document.getElementById("emblemShape").value;
@@ -61,7 +73,7 @@ window.Cultures = (function () {
       delete c.sort;
       c.color = colors[i];
       c.type = defineCultureType(cell);
-      c.expansionism = defineCultureExpansionism(c.type);
+      if (!c.expansionism) c.expansionism = defineCultureExpansionism(c.type);
       c.origin = 0;
       c.code = abbreviate(c.name, codes);
       codes.push(c.code);

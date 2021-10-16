@@ -3789,8 +3789,8 @@
     <input type="file" accept=".map" id="mapToLoad">
     <input type="file" accept=".txt,.csv" id="burgsListToLoad">
     <input type="file" accept=".txt" id="legendsToLoad">
-    <input type="file" accept="image/*" id="imageToLoad">
-    <input type="file" accept="image/*" id="emblemImageToLoad">
+    <input type="file" accept="image" id="imageToLoad">
+    <input type="file" accept="image" id="emblemImageToLoad">
     <input type="file" accept=".svg" id="emblemSVGToLoad">
     <input type="file" accept=".txt" id="templateToLoad">
     <input type="file" accept=".txt" id="namesbaseToLoad">

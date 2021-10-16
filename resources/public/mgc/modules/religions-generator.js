@@ -283,7 +283,7 @@ window.Religions = (function () {
   const forms = {
     Folk: {Shamanism: 2, Animism: 2, "Ancestor worship": 1, Polytheism: 2},
     Organized: {Polytheism: 5, Dualism: 1, Monotheism: 4, "Non-theism": 1},
-    Cult: {Cult: 1, "Dark Cult": 1},
+    Cult: {Cult: 1},
     Heresy: {Heresy: 1}
   };
 
@@ -308,8 +308,9 @@ window.Religions = (function () {
     Monotheism: {Religion: 1, Church: 1},
     "Non-theism": {Beliefs: 3, Spirits: 1},
 
-    Cult: {Cult: 4, Sect: 4, Worship: 1, Orden: 1, Coterie: 1, Arcanum: 1},
-    "Dark Cult": {Cult: 2, Sect: 2, Occultism: 1, Idols: 1, Coven: 1, Circle: 1, Blasphemy: 1},
+    Cult: {Cult: 4, Arcanum: 1, Occultism: 1, Coven: 1},
+    // Cult: {Cult: 4, Sect: 4, Worship: 1, Orden: 1, Coterie: 1, Arcanum: 1},
+    // "Dark Cult": {Cult: 2, Sect: 2, Occultism: 1, Idols: 1, Coven: 1, Circle: 1, Blasphemy: 1},
 
     Heresy: {Heresy: 3, Sect: 2, Schism: 1, Dissenters: 1, Circle: 1, Brotherhood: 1, Society: 1, Iconoclasm: 1, Dissent: 1, Apostates: 1}
   };
@@ -320,25 +321,52 @@ window.Religions = (function () {
       states = pack.states,
       cultures = pack.cultures;
     const religions = (pack.religions = []);
-    cells.religion = new Uint16Array(cells.culture); // cell religion; initially based on culture
+    // cells.religion = new Uint16Array(cells.culture); // cell religion; initially based on culture
 
     // add folk religions
-    pack.cultures.forEach(c => {
-      if (!c.i) {
-        religions.push({i: 0, name: "No religion"});
-        return;
-      }
-      if (c.removed) {
-        religions.push({i: c.i, name: "Extinct religion for " + c.name, color: getMixedColor(c.color, 0.1, 0), removed: true});
-        return;
-      }
-      const form = rw(forms.Folk);
-      const name = c.name + " " + rw(types[form]);
-      const deity = form === "Animism" ? null : getDeityName(c.i);
-      const color = getMixedColor(c.color, 0.1, 0); // `url(#hatch${rand(8,13)})`;
-      religions.push({i: c.i, name, color, culture: c.i, type: "Folk", form, deity, center: c.center, origin: 0});
-    });
+    // pack.cultures.forEach(c => {
+    //   if (!c.i) {
+    //     religions.push({i: 0, name: "No religion"});
+    //     return;
+    //   }
+    //   if (c.removed) {
+    //     religions.push({i: c.i, name: "Extinct religion for " + c.name, color: getMixedColor(c.color, 0.1, 0), removed: true});
+    //     return;
+    //   }
+    //   const form = rw(forms.Folk);
+    //   const name = c.name + " " + rw(types[form]);
+    //   const deity = form === "Animism" ? null : getDeityName(c.i);
+    //   const color = getMixedColor(c.color, 0.1, 0); // `url(#hatch${rand(8,13)})`;
+    //   religions.push({i: c.i, name, color, culture: c.i, type: "Folk", form, deity, center: c.center, origin: 0});
+    // });
 
+    window.regionReligions = window.regionReligions.map((r) =>{
+      if (!r.type) r.type = P(0.2) ? "Folk" : "";
+      if (!r.expansionism) r.expansionism = rand(15, 45)/10;
+    });
+    let localCultures = JSON.parse(JSON.stringify(window.regionCultures));
+
+    window.regionReligions.map((r) => {
+      let culture;
+      if (r.culture) {
+        let index = 0;
+        localCultures.find((c,i) => {
+          index = i;
+          return (r.culture = c.i);
+        });
+        r.cultureObject = localCultures.splice(index,1);
+      } else {
+        r.cultureObject = localCultures.splice(rand(0,localCultures.length-1),1);
+        r.culture = r.cObject.i;
+      }
+
+      r.form = r.form ? r.form : rw(forms.Folk);
+      r.name = (c.name + " " + rw(types[form])).trim();
+      r.deity = form === "Animism" ? null : getDeityName(c.i);
+      const color = getMixedColor(c.color, 0.1, 0); // `url(#hatch${rand(8,13)})`;
+      religions.push({i: religions.length, name, color, culture: r.culture, type: "Folk", form, deity, center: r.cObject.center, origin: 0});
+    });
+    religions.inputValue = localCultures.length;
     if (religionsInput.value == 0 || pack.cultures.length < 2) {
       religions.filter(r => r.i).forEach(r => (r.code = abbreviate(r.name)));
       return;
@@ -351,23 +379,32 @@ window.Religions = (function () {
         : cells.i.filter(i => cells.s[i] > 2).sort((a, b) => cells.s[b] - cells.s[a]);
     const religionsTree = d3.quadtree();
     const spacing = (graphWidth + graphHeight) / 6 / religionsInput.value; // base min distance between towns
-    const cultsCount = Math.floor((rand(10, 40) / 100) * religionsInput.value);
-    const count = +religionsInput.value - cultsCount + religions.length;
-
+    // const cultsCount = Math.floor((rand(10, 40) / 100) * religionsInput.value);
+    // const count = +religionsInput.value - cultsCount + religions.length;
+    const cultsCount = Math.floor(+religionsInput.value / 2);
+    const count = Math.ceil(+religionsInput.value / 2);
     // generate organized religions
-    for (let i = 0; religions.length < count && i < 1000; i++) {
+    for (let i = 0; i < count; i++) {
+      let r =         r.cultureObject = localCultures.splice(rand(0,localCultures.length-1),1);
+        r.culture = r.cObject.i;
+
       let center = sorted[biased(0, sorted.length - 1, 5)]; // religion center
-      const form = rw(forms.Organized);
+      const form = r.form ? r.form : rw(forms.Organized);
       const state = cells.state[center];
-      const culture = cells.culture[center];
+      let culture = cells.culture[center];
+
+      if (!culture) {
+        r.cultureObject = localCultures.splice(rand(0,localCultures.length-1),1);
+        r.culture = r.cObject.i;
+      }
 
       const deity = form === "Non-theism" ? null : getDeityName(culture);
       let [name, expansion] = getReligionName(form, deity, center);
       if (expansion === "state" && !state) expansion = "global";
       if (expansion === "culture" && !culture) expansion = "global";
 
-      if (expansion === "state" && Math.random() > 0.5) center = states[state].center;
-      if (expansion === "culture" && Math.random() > 0.5) center = cultures[culture].center;
+      if (expansion === "state" && Math.random() > 0.8) center = states[state].center;
+      if (expansion === "culture" && Math.random() > 0.3) center = cultures[culture].center;
 
       if (!cells.burg[center] && cells.c[center].some(c => cells.burg[c])) center = cells.c[center].find(c => cells.burg[c]);
       const x = cells.p[center][0],
