@@ -321,7 +321,7 @@ window.Religions = (function () {
       states = pack.states,
       cultures = pack.cultures;
     const religions = (pack.religions = []);
-    // cells.religion = new Uint16Array(cells.culture); // cell religion; initially based on culture
+    cells.religion = new Uint16Array(cells.culture); // cell religion; initially based on culture
 
     // add folk religions
     // pack.cultures.forEach(c => {
@@ -349,6 +349,7 @@ window.Religions = (function () {
     const spacing = (graphWidth + graphHeight) / 6 / religionsInput.value; // base min distance between towns
 
     let localCultures = JSON.parse(JSON.stringify(window.regionCultures));
+
     window.regionReligions = window.regionReligions.map((r) =>{
       let origin = 0;
       if (!r.type) r.type = P(0.2) ? "Folk" : (P(0.5 ? "Organized" : "Cult"));
@@ -405,12 +406,14 @@ window.Religions = (function () {
       // let color = getMixedColor(religions[origin].color, 0.3, 0); // `url(#hatch${rand(0,5)})`;
       const color = getMixedColor(r.cObject.color, 0.1, 0); // `url(#hatch${rand(8,13)})`;
           
-        
+      console.log(r);
       religions.push({i: religions.length, name: r.name, color, culture: r.culture, type: r.type, form: r.form, deity: r.deity, expansion, expansionism: r.expansionism, center: r.center, origin});
       if(r.type !== "Folk") religionsTree.add([x, y]);
+      return r;
     });
-
-    religions.inputValue = localCultures.length;
+    
+    console.log(religions);
+    religionsInput.value = localCultures.length;
     if (religionsInput.value == 0 || pack.cultures.length < 2) {
       religions.filter(r => r.i).forEach(r => (r.code = abbreviate(r.name)));
       return;

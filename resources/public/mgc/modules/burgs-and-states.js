@@ -31,12 +31,12 @@ window.BurgsAndStates = (function () {
 
     function placeCapitals() {
       TIME && console.time("placeCapitals");
-      let count = +regionsInput.value;
+      let count = window.regionStates.length; //+regionsInput.value;
       let burgs = [0];
 
       const rand = () => 0.5 + Math.random() * 0.5;
       const score = new Int16Array(cells.s.map(s => s * rand())); // cell score for capitals placement
-      const sorted = cells.i.filter(i => score[i] > 0 && cells.culture[i]).sort((a, b) => score[b] - score[a]); // filtered and sorted array of indexes
+      const sorted = cells.i.filter(i => score[i] > 0 && cells.culture[i]); // filtered and sorted array of indexes
 
       if (sorted.length < count * 10) {
         count = Math.floor(sorted.length / 10);
@@ -50,9 +50,48 @@ window.BurgsAndStates = (function () {
 
       let burgsTree = d3.quadtree();
       let spacing = (graphWidth + graphHeight) / 2 / count; // min distance between capitals
+      let regionStates = window.regionStates;
+      let localCultures = JSON.parse(JSON.stringify(pack.cultures));
+      localCultures.shift();
+      console.log(localCultures);
+      localCultures = localCultures.map((c) => {
+        let sorted = cells.i.filter(l => {
+          return score[l] > 0 && cells.culture[l] == c.i;
+        }).sort((a, b) => score[b] - score[a]); // filtered and sorted array of indexes
+        console.log(c);
+        console.log(sorted.length);
+        if (sorted.length > 0) c.stateCenter = sorted[0];
+        return c;
+      }).filter((c) => {
+        return c.stateCenter > 0;
+      });
+      console.log(localCultures);
+      for (let i = 0; i < regionStates.length; i++) {
+        if (!regionStates[i].culture) {
+          regionStates[i].cObject = localCultures.splice(rand(0, localCultures.length-1),1)[0];
+          regionStates[i].culture = regionStates[i].cObject.i;
+        } else {
+          let index;
+          regionStates[i].cObject = localCultures.find((c, l) => {
+            if (c.i == regionStates[i].culture) {
+              index = l;
+            }
+          });
+          localCultures.splice(index, 1);
+        }
+        if (localCultures.length === 0) {
+          localCultures = JSON.parse(JSON.stringify(pack.cultures))
+          localCultures.shift();
+        }
+        console.log(regionStates[i]);
+        let cell;
+        if (!regionStates[i].cObject || !regionStates[i].cObject.stateCenter) {
+          const sorted = cells.i.filter(i => score[i] > 0 && cells.culture[i]).sort((a, b) => score[b] - score[a]); // filtered and sorted array of indexes
+          cell = sorted[0];
+        } else {
+          cell = regionStates[i].cObject.stateCenter;
+        }
 
-      for (let i = 0; burgs.length <= count; i++) {
-        const cell = sorted[i];
         const [x, y] = cells.p[cell];
 
         if (burgsTree.find(x, y, spacing) === undefined) {
@@ -83,7 +122,7 @@ window.BurgsAndStates = (function () {
 
       burgs.forEach(function (b, i) {
         if (!i) return; // skip first element
-
+console.log(b);
         // burgs data
         b.i = b.state = i;
         b.culture = cells.culture[b.cell];
@@ -970,8 +1009,8 @@ window.BurgsAndStates = (function () {
       const tier = expTiers[s.i];
 
       const religion = pack.cells.religion[s.center];
-      const isTheocracy =
-        (religion && pack.religions[religion].expansion === "state") || (P(0.1) && ["Organized", "Cult"].includes(pack.religions[religion].type));
+      const isTheocracy = religion && pack.religions[religion] && 
+        (pack.religions[religion].expansion === "state" || (P(0.1) && ["Organized", "Cult"].includes(pack.religions[religion].type)));
       const isAnarchy = P(0.01 - tier / 500);
 
       if (isTheocracy) s.form = "Theocracy";

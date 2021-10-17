@@ -188,7 +188,7 @@ function mapSizeInputChange() {
 function changeMapSize() {
   svgWidth = Math.min(+mapWidthInput.value, window.innerWidth);
   svgHeight = Math.min(+mapHeightInput.value, window.innerHeight);
-  svg.attr("width", svgWidth).attr("height", svgHeight);
+  svg.attr("width", svgWidth * 0.583333).attr("height", svgHeight);
 
   const maxWidth = Math.max(+mapWidthInput.value, graphWidth);
   const maxHeight = Math.max(+mapHeightInput.value, graphHeight);
@@ -215,7 +215,7 @@ function applyMapSize() {
   graphHeight = +mapHeightInput.value;
   svgWidth = Math.min(graphWidth, window.innerWidth);
   svgHeight = Math.min(graphHeight, window.innerHeight);
-  svg.attr("width", svgWidth).attr("height", svgHeight);
+  svg.attr("width", svgWidth * 0.583333).attr("height", svgHeight);
   zoom
     .translateExtent([
       [0, 0],

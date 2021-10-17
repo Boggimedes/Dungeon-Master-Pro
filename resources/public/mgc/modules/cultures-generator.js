@@ -46,17 +46,7 @@ window.Cultures = (function () {
         });
       }
     }
-    if (window.regionCultures.length > 0) {
-      let cultures = window.regionCultures;
-      let random = [];
-      const getName = () => Names.getBase(1, 5, 9, "", 0);
-      cultures = cultures.map((c) => {
-        if (!c.name) c.name = getName();
-        c.sort = i => n(i) / td(i, 10);
-        if (!c.expansionism) c.expansionism = rand(10, 50)/10;
-        return c;
-      });
-    } else {
+ else {
       pack.cultures = selectCultures(count);
     }
     const cultures = pack.cultures;
@@ -105,6 +95,7 @@ window.Cultures = (function () {
     cultures.forEach(c => (c.base = c.base % nameBases.length));
 
     function selectCultures(c) {
+      if (window.regionCultures.length > 0) c = window.regionCultures.length;
       let def = getDefault(c);
       if (c === def.length) return def;
       if (def.every(d => d.odd === 1)) return def.splice(0, c);
@@ -196,6 +187,17 @@ window.Cultures = (function () {
     const bd = (cell, biomes, fee = 4) => (biomes.includes(cells.biome[cell]) ? 1 : fee); // biome difference fee
     const sf = (cell, fee = 4) => (cells.haven[cell] && pack.features[cells.f[cells.haven[cell]]].type !== "lake" ? 1 : fee); // not on sea coast fee
 
+    if (window.regionCultures.length > 0) {
+      let cultures = window.regionCultures;
+      const getName = () => Names.getBase(1, 5, 9, "", 0);
+      cultures = cultures.map((c) => {
+        if (!c.name) c.name = getName();
+        c.sort = i => n(i) / td(i, 10);
+        if (!c.expansionism) c.expansionism = rand(10, 50)/10;
+        return c;
+      });
+      return cultures;
+    }
     if (culturesSet.value === "european") {
       return [
         {name: "Shwazen", base: 0, odd: 1, sort: i => n(i) / td(i, 10) / bd(i, [6, 8]), shield: "swiss"},

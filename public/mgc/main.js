@@ -562,7 +562,7 @@ let graphWidth = +mapWidthInput.value;
 let graphHeight = +mapHeightInput.value;
 
 // svg canvas resolution, can be changed
-let svgWidth = graphWidth;
+let svgWidth = graphWidth * 0.5833333;
 let svgHeight = graphHeight;
 
 landmass.append("rect").attr("x", 0).attr("y", 0).attr("width", graphWidth).attr("height", graphHeight);
