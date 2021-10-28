@@ -211,14 +211,20 @@ class WorldController extends Controller
             'burgs'  => 'string',
             'markers'  => 'string',
             'map'  => 'string',
+            'url'  => 'string',
+            'canvas'  => 'string',
         ]);
-
-        Storage::disk('s3')->put('map/r' . $region->id . '.svg', $validatedData['svgString']);
-        $region->cultures = $validatedData['cultures'];
-        $region->states = $validatedData['states'];
+        $image = $validatedData['url'];
+        $image = str_replace('data:image/png;base64,', '', $image);
+        $image = str_replace(' ', '+', $image);
+        Storage::disk('s3')->put('map/r' . $region->id . '.svg', $validatedData['svgString'], 'public');
+        Storage::disk('s3')->put('map/rt' . $region->id . '.png', base64_decode($image), 'public');
+        $region->cultures = json_decode($validatedData['cultures']);
+        $region->states = json_decode($validatedData['states']);
         $region->map = $validatedData['map'];
-        $region->religions = $validatedData['religions'];
+        $region->religions = json_decode($validatedData['religions']);
         $region->save();
+
         // $this->createPOI('burgs', $validatedData['burgs'], $region);
         // $this->createPOI('markers', $validatedData['markers'], $region);
         return response()->json(['message' => "Map Uploaded Successfully"]);
@@ -231,8 +237,7 @@ class WorldController extends Controller
 		// $me = \Auth::user();
         // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
         $map = $region->map;
-        \Log::info($map);
-        return response()->json($region->map);
+        // return response()->json($region->map);
         // header("Content-type: image/svg+xml");
         return response()->make($map, '200', array('Content-Type' => 'image/svg+xml'));
     }

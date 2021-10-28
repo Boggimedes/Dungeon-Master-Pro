@@ -41,7 +41,10 @@ function getJitteredGrid(width, height, spacing) {
 
 // return cell index on a regular square grid
 function findGridCell(x, y) {
-  return Math.floor(Math.min(y / grid.spacing, grid.cellsY - 1)) * grid.cellsX + Math.floor(Math.min(x / grid.spacing, grid.cellsX - 1));
+  return (
+    Math.floor(Math.min(y / grid.spacing, grid.cellsY - 1)) * grid.cellsX +
+    Math.floor(Math.min(x / grid.spacing, grid.cellsX - 1))
+  );
 }
 
 // return array of cell indexes in radius on a regular square grid
@@ -84,17 +87,17 @@ function findCell(x, y, radius = Infinity) {
 // return array of cell indexes in radius
 function findAll(x, y, radius) {
   const found = pack.cells.q.findAll(x, y, radius);
-  return found.map(r => r[2]);
+  return found.map((r) => r[2]);
 }
 
 // get polygon points for packed cells knowing cell id
 function getPackPolygon(i) {
-  return pack.cells.v[i].map(v => pack.vertices.p[v]);
+  return pack.cells.v[i].map((v) => pack.vertices.p[v]);
 }
 
 // get polygon points for initial cells knowing cell id
 function getGridPolygon(i) {
-  return grid.cells.v[i].map(v => grid.vertices.p[v]);
+  return grid.cells.v[i].map((v) => grid.vertices.p[v]);
 }
 
 // mbostock's poissonDiscSampler
@@ -133,7 +136,9 @@ function* poissonDiscSampler(x0, y0, x1, y1, r, k = 3) {
   }
 
   function sample(x, y) {
-    queue.push((grid[gridWidth * ((y / cellSize) | 0) + ((x / cellSize) | 0)] = [x, y]));
+    queue.push(
+      (grid[gridWidth * ((y / cellSize) | 0) + ((x / cellSize) | 0)] = [x, y])
+    );
     return [x + x0, y + y0];
   }
 
@@ -174,7 +179,9 @@ function toHEX(rgb) {
   if (rgb.charAt(0) === "#") {
     return rgb;
   }
-  rgb = rgb.match(/^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i);
+  rgb = rgb.match(
+    /^rgba?[\s+]?\([\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?,[\s+]?(\d+)[\s+]?/i
+  );
   return rgb && rgb.length === 4
     ? "#" +
         ("0" + parseInt(rgb[1], 10).toString(16)).slice(-2) +
@@ -185,20 +192,44 @@ function toHEX(rgb) {
 
 // return array of standard shuffled colors
 function getColors(number) {
-  const c12 = ["#dababf", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#c6b9c1", "#bc80bd", "#ccebc5", "#ffed6f", "#8dd3c7", "#eb8de7"];
+  const c12 = [
+    "#dababf",
+    "#fb8072",
+    "#80b1d3",
+    "#fdb462",
+    "#b3de69",
+    "#fccde5",
+    "#c6b9c1",
+    "#bc80bd",
+    "#ccebc5",
+    "#ffed6f",
+    "#8dd3c7",
+    "#eb8de7",
+  ];
   const cRB = d3.scaleSequential(d3.interpolateRainbow);
-  const colors = d3.shuffle(d3.range(number).map(i => (i < 12 ? c12[i] : d3.color(cRB((i - 12) / (number - 12))).hex())));
+  const colors = d3.shuffle(
+    d3
+      .range(number)
+      .map((i) =>
+        i < 12 ? c12[i] : d3.color(cRB((i - 12) / (number - 12))).hex()
+      )
+  );
   return colors;
 }
 
 function getRandomColor() {
-  return d3.color(d3.scaleSequential(d3.interpolateRainbow)(Math.random())).hex();
+  return d3
+    .color(d3.scaleSequential(d3.interpolateRainbow)(Math.random()))
+    .hex();
 }
 
 // mix a color with a random color
 function getMixedColor(color, mix = 0.2, bright = 0.3) {
   const c = color && color[0] === "#" ? color : getRandomColor(); // if provided color is not hex (e.g. harching), generate random one
-  return d3.color(d3.interpolate(c, getRandomColor())(mix)).brighter(bright).hex();
+  return d3
+    .color(d3.interpolate(c, getRandomColor())(mix))
+    .brighter(bright)
+    .hex();
 }
 
 // conver temperature from °C to other scales
@@ -226,24 +257,20 @@ function convertTemperature(c) {
 }
 
 // random number in a range
-function rand(min, max) {
-  if (min === undefined && max === undefined) return Math.random();
-  if (max === undefined) {
-    max = min;
-    min = 0;
-  }
-  return Math.floor(Math.random() * (max - min + 1)) + min;
+function rand(x, y) {
+  return x + (crypto.getRandomValues(new Uint32Array(1))[0] % (y - x + 1));
 }
 
 // probability shorthand
 function P(probability) {
   if (probability >= 1) return true;
   if (probability <= 0) return false;
-  return Math.random() < probability;
+  probability = probability * 100;
+  return rand(1, 100) < probability;
 }
 
 function each(n) {
-  return i => i % n === 0;
+  return (i) => i % n === 0;
 }
 
 // random number (normal or gaussian distribution)
@@ -321,7 +348,16 @@ void (function addFindAll() {
   };
 
   const tree_filter = function (x, y, radius) {
-    var t = {x, y, x0: this._x0, y0: this._y0, x3: this._x1, y3: this._y1, quads: [], node: this._root};
+    var t = {
+      x,
+      y,
+      x0: this._x0,
+      y0: this._y0,
+      x3: this._x1,
+      y3: this._y1,
+      quads: [],
+      node: this._root,
+    };
     if (t.node) {
       t.quads.push(new Quad(t.node, t.x0, t.y0, t.x3, t.y3));
     }
@@ -332,7 +368,14 @@ void (function addFindAll() {
       i++;
 
       // Stop searching if this quadrant can’t contain a closer node.
-      if (!(t.node = t.q.node) || (t.x1 = t.q.x0) > t.x3 || (t.y1 = t.q.y0) > t.y3 || (t.x2 = t.q.x1) < t.x0 || (t.y2 = t.q.y1) < t.y0) continue;
+      if (
+        !(t.node = t.q.node) ||
+        (t.x1 = t.q.x0) > t.x3 ||
+        (t.y1 = t.q.y0) > t.y3 ||
+        (t.x2 = t.q.x1) < t.x0 ||
+        (t.y2 = t.q.y1) < t.y0
+      )
+        continue;
 
       // Bisect the current quadrant.
       if (t.node.length) {
@@ -434,7 +477,7 @@ function biased(min, max, ex) {
 // return array of values common for both array a and array b
 function common(a, b) {
   const setB = new Set(b);
-  return [...new Set(a)].filter(a => setB.has(a));
+  return [...new Set(a)].filter((a) => setB.has(a));
 }
 
 // clip polygon by graph bbox
@@ -444,7 +487,9 @@ function clipPoly(points, secure = 0) {
 
 // check if char is vowel or can serve as vowel
 function vowel(c) {
-  return `aeiouyɑ'əøɛœæɶɒɨɪɔɐʊɤɯаоиеёэыуюяàèìòùỳẁȁȅȉȍȕáéíóúýẃőűâêîôûŷŵäëïöüÿẅãẽĩõũỹąęįǫųāēīōūȳăĕĭŏŭǎěǐǒǔȧėȯẏẇạẹịọụỵẉḛḭṵṳ`.includes(c);
+  return `aeiouyɑ'əøɛœæɶɒɨɪɔɐʊɤɯаоиеёэыуюяàèìòùỳẁȁȅȉȍȕáéíóúýẃőűâêîôûŷŵäëïöüÿẅãẽĩõũỹąęįǫųāēīōūȳăĕĭŏŭǎěǐǒǔȧėȯẏẇạẹịọụỵẉḛḭṵṳ`.includes(
+    c
+  );
 }
 
 // remove vowels from the end of the string
@@ -458,8 +503,10 @@ function trimVowels(string) {
 // get adjective form from noun
 function getAdjective(string) {
   // special cases for some suffixes
-  if (string.length > 8 && string.slice(-6) === "orszag") return string.slice(0, -6);
-  if (string.length > 6 && string.slice(-4) === "stan") return string.slice(0, -4);
+  if (string.length > 8 && string.slice(-6) === "orszag")
+    return string.slice(0, -6);
+  if (string.length > 6 && string.slice(-4) === "stan")
+    return string.slice(0, -4);
   if (P(0.5) && string.slice(-4) === "land") return string + "ic";
   if (string.slice(-4) === " Guo") string = string.slice(0, -4);
 
@@ -478,7 +525,8 @@ function getAdjective(string) {
 }
 
 // get ordinal out of integer: 1 => 1st
-const nth = n => n + (["st", "nd", "rd"][((((n + 90) % 100) - 10) % 10) - 1] || "th");
+const nth = (n) =>
+  n + (["st", "nd", "rd"][((((n + 90) % 100) - 10) % 10) - 1] || "th");
 
 // get two-letters code (abbreviation) from string
 function abbreviate(name, restricted = []) {
@@ -486,7 +534,8 @@ function abbreviate(name, restricted = []) {
   const words = parsed.split(" ");
   const letters = words.join("");
 
-  let code = words.length === 2 ? words[0][0] + words[1][0] : letters.slice(0, 2);
+  let code =
+    words.length === 2 ? words[0][0] + words[1][0] : letters.slice(0, 2);
   for (let i = 1; i < letters.length - 1 && restricted.includes(code); i++) {
     code = letters[0] + letters[i].toUpperCase();
   }
@@ -496,7 +545,10 @@ function abbreviate(name, restricted = []) {
 // conjunct array: [A,B,C] => "A, B and C"
 function list(array) {
   if (!Intl.ListFormat) return array.join(", ");
-  const conjunction = new Intl.ListFormat(window.lang || "en", {style: "long", type: "conjunction"});
+  const conjunction = new Intl.ListFormat(window.lang || "en", {
+    style: "long",
+    type: "conjunction",
+  });
   return conjunction.format(array);
 }
 
@@ -530,7 +582,11 @@ function last(array) {
 
 // return random value from the array
 function ra(array) {
-  return array[Math.floor(Math.random() * array.length)];
+  return array[cryptoRand(0, array.length - 1)];
+}
+
+function cryptoRand(x, y) {
+  return x + (crypto.getRandomValues(new Uint32Array(1))[0] % (y - x + 1));
 }
 
 // return random value from weighted array {"key1":weight1, "key2":weight2}
@@ -541,7 +597,7 @@ function rw(object) {
       array.push(key);
     }
   }
-  return array[Math.floor(Math.random() * array.length)];
+  return array[cryptoRand(0, array.length - 1)];
 }
 
 // return value in range [0, 100] (height range)
@@ -573,9 +629,11 @@ function getNumberInRange(r) {
 
 // return center point of common edge of 2 pack cells
 function getMiddlePoint(cell1, cell2) {
-  const {cells, vertices} = pack;
+  const { cells, vertices } = pack;
 
-  const commonVertices = cells.v[cell1].filter(vertex => vertices.c[vertex].some(cell => cell === cell2));
+  const commonVertices = cells.v[cell1].filter((vertex) =>
+    vertices.c[vertex].some((cell) => cell === cell2)
+  );
   const [x1, y1] = vertices.p[commonVertices[0]];
   const [x2, y2] = vertices.p[commonVertices[1]];
 
@@ -595,7 +653,7 @@ function drawCellsValue(data) {
     .append("text")
     .attr("x", (d, i) => pack.cells.p[i][0])
     .attr("y", (d, i) => pack.cells.p[i][1])
-    .text(d => d);
+    .text((d) => d);
 }
 
 // helper function non-used for the generation
@@ -603,7 +661,7 @@ function drawPolygons(data) {
   const max = d3.max(data),
     min = d3.min(data),
     scheme = getColorScheme();
-  data = data.map(d => 1 - normalize(d, min, max));
+  data = data.map((d) => 1 - normalize(d, min, max));
 
   debug.selectAll("polygon").remove();
   debug
@@ -612,8 +670,8 @@ function drawPolygons(data) {
     .enter()
     .append("polygon")
     .attr("points", (d, i) => getPackPolygon(i))
-    .attr("fill", d => scheme(d))
-    .attr("stroke", d => scheme(d));
+    .attr("fill", (d) => scheme(d))
+    .attr("stroke", (d) => scheme(d));
 }
 
 // polyfill for composedPath
@@ -629,7 +687,8 @@ function getComposedPath(node) {
 // polyfill for replaceAll
 if (!String.prototype.replaceAll) {
   String.prototype.replaceAll = function (str, newStr) {
-    if (Object.prototype.toString.call(str).toLowerCase() === "[object regexp]") return this.replace(str, newStr);
+    if (Object.prototype.toString.call(str).toLowerCase() === "[object regexp]")
+      return this.replace(str, newStr);
     return this.replace(new RegExp(str, "g"), newStr);
   };
 }
@@ -681,9 +740,15 @@ function throttle(func, ms) {
 // parse error to get the readable string in Chrome and Firefox
 function parseError(error) {
   const isFirefox = navigator.userAgent.toLowerCase().indexOf("firefox") > -1;
-  const errorString = isFirefox ? error.toString() + " " + error.stack : error.stack;
-  const regex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
-  const errorNoURL = errorString.replace(regex, url => "<i>" + last(url.split("/")) + "</i>");
+  const errorString = isFirefox
+    ? error.toString() + " " + error.stack
+    : error.stack;
+  const regex =
+    /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/gi;
+  const errorNoURL = errorString.replace(
+    regex,
+    (url) => "<i>" + last(url.split("/")) + "</i>"
+  );
   const errorParsed = errorNoURL.replace(/at /gi, "<br>&nbsp;&nbsp;at ");
   return errorParsed;
 }
@@ -691,12 +756,16 @@ function parseError(error) {
 // polyfills
 if (Array.prototype.flat === undefined) {
   Array.prototype.flat = function () {
-    return this.reduce((acc, val) => (Array.isArray(val) ? acc.concat(val.flat()) : acc.concat(val)), []);
+    return this.reduce(
+      (acc, val) =>
+        Array.isArray(val) ? acc.concat(val.flat()) : acc.concat(val),
+      []
+    );
   };
 }
 
 // check if string is a valid for JSON parse
-JSON.isValid = str => {
+JSON.isValid = (str) => {
   try {
     JSON.parse(str);
   } catch (e) {
@@ -733,7 +802,10 @@ function openURL(url) {
 
 // open project wiki-page
 function wiki(page) {
-  window.open("https://github.com/Azgaar/Fantasy-Map-Generator/wiki/" + page, "_blank");
+  window.open(
+    "https://github.com/Azgaar/Fantasy-Map-Generator/wiki/" + page,
+    "_blank"
+  );
 }
 
 // wrap URL into html a element
@@ -747,7 +819,11 @@ function isCtrlClick(event) {
 }
 
 function generateDate(from = 100, to = 1000) {
-  return new Date(rand(from, to), rand(12), rand(31)).toLocaleDateString("en", {year: "numeric", month: "long", day: "numeric"});
+  return new Date(rand(from, to), rand(12), rand(31)).toLocaleDateString("en", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 function getQGIScoordinates(x, y) {
@@ -761,9 +837,16 @@ void (function () {
   const prompt = document.getElementById("prompt");
   const form = prompt.querySelector("#promptForm");
 
-  window.prompt = function (promptText = "Please provide an input", options = {default: 1, step: 0.01, min: 0, max: 100}, callback) {
+  window.prompt = function (
+    promptText = "Please provide an input",
+    options = { default: 1, step: 0.01, min: 0, max: 100 },
+    callback
+  ) {
     if (options.default === undefined) {
-      ERROR && console.error("Prompt: options object does not have default value defined");
+      ERROR &&
+        console.error(
+          "Prompt: options object does not have default value defined"
+        );
       return;
     }
     const input = prompt.querySelector("#promptInput");
@@ -779,13 +862,13 @@ void (function () {
 
     form.addEventListener(
       "submit",
-      event => {
+      (event) => {
         prompt.style.display = "none";
         const v = type === "number" ? +input.value : input.value;
         event.preventDefault();
         if (callback) callback(v);
       },
-      {once: true}
+      { once: true }
     );
   };
 
@@ -797,7 +880,9 @@ void (function () {
 !(function () {
   function e(t, o) {
     return n
-      ? void (n.transaction("s").objectStore("s").get(t).onsuccess = function (e) {
+      ? void (n.transaction("s").objectStore("s").get(t).onsuccess = function (
+          e
+        ) {
           var t = (e.target.result && e.target.result.v) || null;
           o(t);
         })
@@ -805,10 +890,14 @@ void (function () {
           e(t, o);
         }, 100);
   }
-  var t = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+  var t =
+    window.indexedDB ||
+    window.mozIndexedDB ||
+    window.webkitIndexedDB ||
+    window.msIndexedDB;
   if (!t) return void ERROR && console.error("indexedDB not supported");
   var n,
-    o = {k: "", v: ""},
+    o = { k: "", v: "" },
     r = t.open("d2", 1);
   (r.onsuccess = function (e) {
     n = this.result;
@@ -818,7 +907,7 @@ void (function () {
     }),
     (r.onupgradeneeded = function (e) {
       n = null;
-      var t = e.target.result.createObjectStore("s", {keyPath: "k"});
+      var t = e.target.result.createObjectStore("s", { keyPath: "k" });
       t.transaction.oncomplete = function (e) {
         n = e.target.db;
       };
@@ -826,7 +915,9 @@ void (function () {
     (window.ldb = {
       get: e,
       set: function (e, t) {
-        (o.k = e), (o.v = t), n.transaction("s", "readwrite").objectStore("s").put(o);
-      }
+        (o.k = e),
+          (o.v = t),
+          n.transaction("s", "readwrite").objectStore("s").put(o);
+      },
     });
 })();

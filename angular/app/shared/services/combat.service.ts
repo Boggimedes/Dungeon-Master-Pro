@@ -254,9 +254,13 @@ export class CombatService {
     return log;
   }
 
-  public getRandomInt = (min, max) => {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  };
+  public getRandomInt = (x, y) =>
+    x + (crypto.getRandomValues(new Uint32Array(1))[0] % (y - x + 1));
+
+  // public getRandomInt = (min, max) => {
+  //   return Math.floor(Math.random() * (max - min + 1)) + min;
+  // };
+
   public addCombatant = (combatant: Combatant) => {
     let combatants = this.combatantsSource.getValue();
     combatants.push(new Combatant(combatant));

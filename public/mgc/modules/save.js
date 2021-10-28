@@ -4,15 +4,20 @@
 async function saveToServer() {
   TIME && console.time("saveToServer");
   const url = await getMapURL("svgToServer");
-  const link = document.createElement("a");
-  link.download = getFileName() + ".svg";
-  link.href = url;
   const cultures = JSON.stringify(pack.cultures);
   const states = JSON.stringify(pack.states);
   const burgs = JSON.stringify(pack.burgs);
   const religions = JSON.stringify(pack.religions);
   const provinces = JSON.stringify(pack.provinces);
   const markers = JSON.stringify(pack.markers);
+  const pngurl = await getMapURL("png");
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = 260;
+  canvas.height = 260;
+
+  let canvasData = canvas.toDataURL("image/png");
   let data = {
     svgString: url,
     cultures: cultures,
@@ -21,15 +26,35 @@ async function saveToServer() {
     religions: religions,
     provinces: provinces,
     markers: markers,
-    map: getMapData()
+    map: getMapData(),
+    canvas: canvasData,
+    url: null,
+    blob: null,
   };
+  const img = new Image();
 
-  $.ajax({
-    type: "POST",
-    url: "/api/region/" + regionId + "/upload-map",
-    data: data,
-    success: () => {alert('success');},
-  });
+  img.src = pngurl;
+
+  img.onload = function () {
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    data.url = canvas.toDataURL("image/png");
+
+    window.setTimeout(function () {
+      canvas.remove();
+    }, 5000);
+    canvas.toBlob(function (blob) {
+      data.blob = window.URL.createObjectURL(blob);
+
+      $.ajax({
+        type: "POST",
+        url: "/api/region/" + regionId + "/upload-map",
+        data: data,
+        success: () => {
+          console.log("success");
+        },
+      });
+    });
+  };
   // link.click();
 
   // tip(`${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`, true, "success", 5000);
@@ -45,7 +70,12 @@ async function saveSVG() {
   link.href = url;
   link.click();
 
-  tip(`${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`, true, "success", 5000);
+  tip(
+    `${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`,
+    true,
+    "success",
+    5000
+  );
   TIME && console.timeEnd("saveSVG");
 }
 
@@ -71,7 +101,12 @@ async function savePNG() {
       window.setTimeout(function () {
         canvas.remove();
         window.URL.revokeObjectURL(link.href);
-        tip(`${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`, true, "success", 5000);
+        tip(
+          `${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`,
+          true,
+          "success",
+          5000
+        );
       }, 1000);
     });
   };
@@ -98,7 +133,12 @@ async function saveJPEG() {
     link.download = getFileName() + ".jpeg";
     link.href = URL;
     link.click();
-    tip(`${link.download} is saved. Open "Downloads" screen (CTRL + J) to check`, true, "success", 7000);
+    tip(
+      `${link.download} is saved. Open "Downloads" screen (CTRL + J) to check`,
+      true,
+      "success",
+      7000
+    );
     window.setTimeout(() => window.URL.revokeObjectURL(URL), 5000);
   };
 
@@ -109,7 +149,7 @@ async function saveJPEG() {
 async function saveTiles() {
   return new Promise(async (resolve, reject) => {
     // download schema
-    const urlSchema = await getMapURL("tiles", {debug: true});
+    const urlSchema = await getMapURL("tiles", { debug: true });
     const zip = new JSZip();
 
     const canvas = document.createElement("canvas");
@@ -121,7 +161,7 @@ async function saveTiles() {
     imgSchema.src = urlSchema;
     imgSchema.onload = function () {
       ctx.drawImage(imgSchema, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(blob => zip.file(`fmg_tile_schema.png`, blob));
+      canvas.toBlob((blob) => zip.file(`fmg_tile_schema.png`, blob));
     };
 
     // download tiles
@@ -147,7 +187,7 @@ async function saveTiles() {
         for (let x = 0; x + tileW <= graphWidth; x += tileW, i++) {
           ctx.drawImage(img, x, y, tileW, tileH, 0, 0, width, height);
           const name = `fmg_tile_${i}.png`;
-          canvas.toBlob(blob => {
+          canvas.toBlob((blob) => {
             zip.file(name, blob);
             loaded += 1;
             if (loaded === tolesTotal) return downloadZip();
@@ -158,7 +198,7 @@ async function saveTiles() {
 
     function downloadZip() {
       const name = `${getFileName()}.zip`;
-      zip.generateAsync({type: "blob"}).then(blob => {
+      zip.generateAsync({ type: "blob" }).then((blob) => {
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = name;
@@ -179,7 +219,12 @@ async function getMapURL(type, options = {}) {
     type = "svg";
     toServer = true;
   }
-  const {debug = false, globe = false, noLabels = false, noWater = false} = options;
+  const {
+    debug = false,
+    globe = false,
+    noLabels = false,
+    noWater = false,
+  } = options;
   const cloneEl = document.getElementById("map").cloneNode(true); // clone svg
   cloneEl.id = "fantasyMap";
   document.body.appendChild(cloneEl);
@@ -201,11 +246,11 @@ async function getMapURL(type, options = {}) {
     clone.select("#oceanBase").attr("opacity", 0);
     clone.select("#oceanPattern").attr("opacity", 0);
   }
-  if (type !== "png") {
-    // reset transform to show the whole map
-    clone.attr("width", graphWidth).attr("height", graphHeight);
-    clone.select("#viewbox").attr("transform", null);
-  }
+  // if (type !== "png") {
+  // reset transform to show the whole map
+  clone.attr("width", graphWidth).attr("height", graphHeight);
+  clone.select("#viewbox").attr("transform", null);
+  // }
 
   if (type === "svg") removeUnusedElements(clone);
   if (customization && type === "mesh") updateMeshCells(clone);
@@ -241,7 +286,7 @@ async function getMapURL(type, options = {}) {
     cloneEl
       .getElementById("emblems")
       ?.querySelectorAll("use")
-      .forEach(el => {
+      .forEach((el) => {
         const href = el.getAttribute("href") || el.getAttribute("xlink:href");
         if (!href) return;
         const emblem = document.getElementById(href.slice(1));
@@ -255,8 +300,8 @@ async function getMapURL(type, options = {}) {
   if (location.hostname && cloneEl.getElementById("oceanicPattern")) {
     const el = cloneEl.getElementById("oceanicPattern");
     const url = el.getAttribute("href");
-    await new Promise(resolve => {
-      getBase64(url, base64 => {
+    await new Promise((resolve) => {
+      getBase64(url, (base64) => {
         el.setAttribute("href", base64);
         resolve();
       });
@@ -268,7 +313,9 @@ async function getMapURL(type, options = {}) {
     const uniqueElements = new Set();
     const terrainNodes = cloneEl.getElementById("terrain").childNodes;
     for (let i = 0; i < terrainNodes.length; i++) {
-      const href = terrainNodes[i].getAttribute("href") || terrainNodes[i].getAttribute("xlink:href");
+      const href =
+        terrainNodes[i].getAttribute("href") ||
+        terrainNodes[i].getAttribute("xlink:href");
       uniqueElements.add(href);
     }
 
@@ -298,17 +345,25 @@ async function getMapURL(type, options = {}) {
     if (pattern) cloneDefs.appendChild(pattern.cloneNode(true));
   }
 
-  if (!cloneEl.getElementById("hatching").children.length) cloneEl.getElementById("hatching")?.remove(); // remove unused hatching group
-  if (!cloneEl.getElementById("fogging-cont")) cloneEl.getElementById("fog")?.remove(); // remove unused fog
-  if (!cloneEl.getElementById("regions")) cloneEl.getElementById("statePaths")?.remove(); // removed unused statePaths
-  if (!cloneEl.getElementById("labels")) cloneEl.getElementById("textPaths")?.remove(); // removed unused textPaths
+  if (!cloneEl.getElementById("hatching").children.length)
+    cloneEl.getElementById("hatching")?.remove(); // remove unused hatching group
+  if (!cloneEl.getElementById("fogging-cont"))
+    cloneEl.getElementById("fog")?.remove(); // remove unused fog
+  if (!cloneEl.getElementById("regions"))
+    cloneEl.getElementById("statePaths")?.remove(); // removed unused statePaths
+  if (!cloneEl.getElementById("labels"))
+    cloneEl.getElementById("textPaths")?.remove(); // removed unused textPaths
 
   // add armies style
-  if (cloneEl.getElementById("armies")) cloneEl.insertAdjacentHTML("afterbegin", "<style>#armies text {stroke: none; fill: #fff; text-shadow: 0 0 4px #000; dominant-baseline: central; text-anchor: middle; font-family: Helvetica; fill-opacity: 1;}#armies text.regimentIcon {font-size: .8em;}</style>");
+  if (cloneEl.getElementById("armies"))
+    cloneEl.insertAdjacentHTML(
+      "afterbegin",
+      "<style>#armies text {stroke: none; fill: #fff; text-shadow: 0 0 4px #000; dominant-baseline: central; text-anchor: middle; font-family: Helvetica; fill-opacity: 1;}#armies text.regimentIcon {font-size: .8em;}</style>"
+    );
 
   // add xlink: for href to support svg1.1
   if (type === "svg") {
-    cloneEl.querySelectorAll("[href]").forEach(el => {
+    cloneEl.querySelectorAll("[href]").forEach((el) => {
       const href = el.getAttribute("href");
       el.removeAttribute("href");
       el.setAttribute("xlink:href", href);
@@ -317,12 +372,12 @@ async function getMapURL(type, options = {}) {
 
   // TODO: add dataURL for all used fonts
   const usedFonts = getUsedFonts(cloneEl);
-  const fontsToLoad = usedFonts.filter(font => font.src);
+  const fontsToLoad = usedFonts.filter((font) => font.src);
   if (fontsToLoad.length) {
     const dataURLfonts = await loadFontsAsDataURI(fontsToLoad);
 
     const fontFaces = dataURLfonts
-      .map(({family, src, unicodeRange = "", variant = "normal"}) => {
+      .map(({ family, src, unicodeRange = "", variant = "normal" }) => {
         return `@font-face {font-family: "${family}"; src: ${src}; unicode-range: ${unicodeRange}; font-variant: ${variant};}`;
       })
       .join("\n");
@@ -335,9 +390,11 @@ async function getMapURL(type, options = {}) {
 
   clone.remove();
 
-  const serialized = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>` + new XMLSerializer().serializeToString(cloneEl);
-  if(toServer) return serialized;
-  const blob = new Blob([serialized], {type: "image/svg+xml;charset=utf-8"});
+  const serialized =
+    `<?xml version="1.0" encoding="UTF-8" standalone="no"?>` +
+    new XMLSerializer().serializeToString(cloneEl);
+  if (toServer) return serialized;
+  const blob = new Blob([serialized], { type: "image/svg+xml;charset=utf-8" });
   const url = window.URL.createObjectURL(blob);
   window.setTimeout(() => window.URL.revokeObjectURL(url), 5000);
   return url;
@@ -346,22 +403,30 @@ async function getMapURL(type, options = {}) {
 // remove hidden g elements and g elements without children to make downloaded svg smaller in size
 function removeUnusedElements(clone) {
   if (!terrain.selectAll("use").size()) clone.select("#defs-relief")?.remove();
-  if (markers.style("display") === "none") clone.select("#defs-markers")?.remove();
+  if (markers.style("display") === "none")
+    clone.select("#defs-markers")?.remove();
 
   for (let empty = 1; empty; ) {
     empty = 0;
     clone.selectAll("g").each(function () {
-      if (!this.hasChildNodes() || this.style.display === "none" || this.classList.contains("hidden")) {
+      if (
+        !this.hasChildNodes() ||
+        this.style.display === "none" ||
+        this.classList.contains("hidden")
+      ) {
         empty++;
         this.remove();
       }
-      if (this.hasAttribute("display") && this.style.display === "inline") this.removeAttribute("display");
+      if (this.hasAttribute("display") && this.style.display === "inline")
+        this.removeAttribute("display");
     });
   }
 }
 
 function updateMeshCells(clone) {
-  const data = renderOcean.checked ? grid.cells.i : grid.cells.i.filter(i => grid.cells.h[i] >= 20);
+  const data = renderOcean.checked
+    ? grid.cells.i
+    : grid.cells.i.filter((i) => grid.cells.h[i] >= 20);
   const scheme = getColorScheme();
   clone.select("#heights").attr("filter", "url(#blur1)");
   clone
@@ -369,9 +434,9 @@ function updateMeshCells(clone) {
     .selectAll("polygon")
     .data(data)
     .join("polygon")
-    .attr("points", d => getGridPolygon(d))
-    .attr("id", d => "cell" + d)
-    .attr("stroke", d => getColor(grid.cells.h[d], scheme));
+    .attr("points", (d) => getGridPolygon(d))
+    .attr("id", (d) => "cell" + d)
+    .attr("stroke", (d) => getColor(grid.cells.h[d], scheme));
 }
 
 // for each g element get inline style
@@ -388,7 +453,10 @@ function inlineStyle(clone) {
       const value = compStyle.getPropertyValue(key);
 
       // Firefox mask hack
-      if (key === "mask-image" && value !== defaultStyles.getPropertyValue(key)) {
+      if (
+        key === "mask-image" &&
+        value !== defaultStyles.getPropertyValue(key)
+      ) {
         style += "mask-image: url('#land');";
         continue;
       }
@@ -419,12 +487,51 @@ function getMapData() {
   TIME && console.time("createMapData");
 
   const date = new Date();
-  const dateString = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
-  const license = "File can be loaded in azgaar.github.io/Fantasy-Map-Generator";
-  const params = [version, license, dateString, seed, graphWidth, graphHeight, mapId].join("|");
-  const settings = [distanceUnitInput.value, distanceScaleInput.value, areaUnit.value, heightUnit.value, heightExponentInput.value, temperatureScale.value, barSizeInput.value, barLabel.value, barBackOpacity.value, barBackColor.value, barPosX.value, barPosY.value, populationRate, urbanization, mapSizeOutput.value, latitudeOutput.value, temperatureEquatorOutput.value, temperaturePoleOutput.value, precOutput.value, JSON.stringify(options), mapName.value, +hideLabels.checked, stylePreset.value, +rescaleLabels.checked].join("|");
+  const dateString =
+    date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+  const license =
+    "File can be loaded in azgaar.github.io/Fantasy-Map-Generator";
+  const params = [
+    version,
+    license,
+    dateString,
+    seed,
+    graphWidth,
+    graphHeight,
+    mapId,
+  ].join("|");
+  const settings = [
+    distanceUnitInput.value,
+    distanceScaleInput.value,
+    areaUnit.value,
+    heightUnit.value,
+    heightExponentInput.value,
+    temperatureScale.value,
+    barSizeInput.value,
+    barLabel.value,
+    barBackOpacity.value,
+    barBackColor.value,
+    barPosX.value,
+    barPosY.value,
+    populationRate,
+    urbanization,
+    mapSizeOutput.value,
+    latitudeOutput.value,
+    temperatureEquatorOutput.value,
+    temperaturePoleOutput.value,
+    precOutput.value,
+    JSON.stringify(options),
+    mapName.value,
+    +hideLabels.checked,
+    stylePreset.value,
+    +rescaleLabels.checked,
+  ].join("|");
   const coords = JSON.stringify(mapCoordinates);
-  const biomes = [biomesData.color, biomesData.habitability, biomesData.name].join("|");
+  const biomes = [
+    biomesData.color,
+    biomesData.habitability,
+    biomesData.name,
+  ].join("|");
   const notesData = JSON.stringify(notes);
   const rulersString = rulers.toString();
   const fonts = JSON.stringify(getUsedFonts(svg.node()));
@@ -441,8 +548,15 @@ function getMapData() {
 
   const serializedSVG = new XMLSerializer().serializeToString(cloneEl);
 
-  const {spacing, cellsX, cellsY, boundary, points, features} = grid;
-  const gridGeneral = JSON.stringify({spacing, cellsX, cellsY, boundary, points, features});
+  const { spacing, cellsX, cellsY, boundary, points, features } = grid;
+  const gridGeneral = JSON.stringify({
+    spacing,
+    cellsX,
+    cellsY,
+    boundary,
+    points,
+    features,
+  });
   const packFeatures = JSON.stringify(pack.features);
   const cultures = JSON.stringify(pack.cultures);
   const states = JSON.stringify(pack.states);
@@ -450,6 +564,7 @@ function getMapData() {
   const religions = JSON.stringify(pack.religions);
   const provinces = JSON.stringify(pack.provinces);
   const rivers = JSON.stringify(pack.rivers);
+  const markers = JSON.stringify(pack.markers);
 
   // store name array only if not the same as default
   const defaultNB = Names.getNameBases();
@@ -461,33 +576,87 @@ function getMapData() {
     .join("/");
 
   // round population to save space
-  const pop = Array.from(pack.cells.pop).map(p => rn(p, 4));
+  const pop = Array.from(pack.cells.pop).map((p) => rn(p, 4));
 
   // data format as below
-  const mapData = [params, settings, coords, biomes, notesData, serializedSVG, gridGeneral, grid.cells.h, grid.cells.prec, grid.cells.f, grid.cells.t, grid.cells.temp, packFeatures, cultures, states, burgs, pack.cells.biome, pack.cells.burg, pack.cells.conf, pack.cells.culture, pack.cells.fl, pop, pack.cells.r, pack.cells.road, pack.cells.s, pack.cells.state, pack.cells.religion, pack.cells.province, pack.cells.crossroad, religions, provinces, namesData, rivers, rulersString, fonts].join("\r\n");
+  const mapData = [
+    params,
+    settings,
+    coords,
+    biomes,
+    notesData,
+    serializedSVG,
+    gridGeneral,
+    grid.cells.h,
+    grid.cells.prec,
+    grid.cells.f,
+    grid.cells.t,
+    grid.cells.temp,
+    packFeatures,
+    cultures,
+    states,
+    burgs,
+    pack.cells.biome,
+    pack.cells.burg,
+    pack.cells.conf,
+    pack.cells.culture,
+    pack.cells.fl,
+    pop,
+    pack.cells.r,
+    pack.cells.road,
+    pack.cells.s,
+    pack.cells.state,
+    pack.cells.religion,
+    pack.cells.province,
+    pack.cells.crossroad,
+    religions,
+    provinces,
+    namesData,
+    rivers,
+    rulersString,
+    fonts,
+    markers,
+  ].join("\r\n");
   TIME && console.timeEnd("createMapData");
   return mapData;
 }
 
 // Download .map file
 function dowloadMap() {
-  if (customization) return tip("Map cannot be saved when edit mode is active, please exit the mode and retry", false, "error");
+  if (customization)
+    return tip(
+      "Map cannot be saved when edit mode is active, please exit the mode and retry",
+      false,
+      "error"
+    );
   closeDialogs("#alert");
 
   const mapData = getMapData();
-  const blob = new Blob([mapData], {type: "text/plain"});
+  const blob = new Blob([mapData], { type: "text/plain" });
   const URL = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.download = getFileName() + ".map";
   link.href = URL;
   link.click();
-  tip(`${link.download} is saved. Open "Downloads" screen (CTRL + J) to check`, true, "success", 7000);
+  tip(
+    `${link.download} is saved. Open "Downloads" screen (CTRL + J) to check`,
+    true,
+    "success",
+    7000
+  );
   window.URL.revokeObjectURL(URL);
 }
 
 async function saveToDropbox() {
-  const sharableLinkContainer = document.getElementById("sharableLinkContainer");
-  if (customization) return tip("Map cannot be saved when edit mode is active, please exit the mode and retry", false, "error");
+  const sharableLinkContainer = document.getElementById(
+    "sharableLinkContainer"
+  );
+  if (customization)
+    return tip(
+      "Map cannot be saved when edit mode is active, please exit the mode and retry",
+      false,
+      "error"
+    );
   closeDialogs("#alert");
   const mapData = getMapData();
   const filename = getFileName() + ".map";
@@ -501,15 +670,16 @@ async function saveToDropbox() {
 }
 
 function saveGeoJSON_Cells() {
-  const json = {type: "FeatureCollection", features: []};
+  const json = { type: "FeatureCollection", features: [] };
   const cells = pack.cells;
-  const getPopulation = i => {
+  const getPopulation = (i) => {
     const [r, u] = getCellPopulation(i);
     return rn(r + u);
   };
-  const getHeight = i => parseInt(getFriendlyHeight([cells.p[i][0], cells.p[i][1]]));
+  const getHeight = (i) =>
+    parseInt(getFriendlyHeight([cells.p[i][0], cells.p[i][1]]));
 
-  cells.i.forEach(i => {
+  cells.i.forEach((i) => {
     const coordinates = getCellCoordinates(cells.v[i]);
     const height = getHeight(i);
     const biome = cells.biome[i];
@@ -521,8 +691,23 @@ function saveGeoJSON_Cells() {
     const religion = cells.religion[i];
     const neighbors = cells.c[i];
 
-    const properties = {id: i, height, biome, type, population, state, province, culture, religion, neighbors};
-    const feature = {type: "Feature", geometry: {type: "Polygon", coordinates}, properties};
+    const properties = {
+      id: i,
+      height,
+      biome,
+      type,
+      population,
+      state,
+      province,
+      culture,
+      religion,
+      neighbors,
+    };
+    const feature = {
+      type: "Feature",
+      geometry: { type: "Polygon", coordinates },
+      properties,
+    };
     json.features.push(feature);
   });
 
@@ -531,14 +716,18 @@ function saveGeoJSON_Cells() {
 }
 
 function saveGeoJSON_Routes() {
-  const json = {type: "FeatureCollection", features: []};
+  const json = { type: "FeatureCollection", features: [] };
 
   routes.selectAll("g > path").each(function () {
     const coordinates = getRoutePoints(this);
     const id = this.id;
     const type = this.parentElement.id;
 
-    const feature = {type: "Feature", geometry: {type: "LineString", coordinates}, properties: {id, type}};
+    const feature = {
+      type: "Feature",
+      geometry: { type: "LineString", coordinates },
+      properties: { id, type },
+    };
     json.features.push(feature);
   });
 
@@ -547,20 +736,24 @@ function saveGeoJSON_Routes() {
 }
 
 function saveGeoJSON_Rivers() {
-  const json = {type: "FeatureCollection", features: []};
+  const json = { type: "FeatureCollection", features: [] };
 
   rivers.selectAll("path").each(function () {
     const coordinates = getRiverPoints(this);
     const id = this.id;
     const width = +this.dataset.increment;
     const increment = +this.dataset.increment;
-    const river = pack.rivers.find(r => r.i === +id.slice(5));
+    const river = pack.rivers.find((r) => r.i === +id.slice(5));
     const name = river ? river.name : "";
     const type = river ? river.type : "";
     const i = river ? river.i : "";
     const basin = river ? river.basin : "";
 
-    const feature = {type: "Feature", geometry: {type: "LineString", coordinates}, properties: {id, i, basin, name, type, width, increment}};
+    const feature = {
+      type: "Feature",
+      geometry: { type: "LineString", coordinates },
+      properties: { id, i, basin, name, type, width, increment },
+    };
     json.features.push(feature);
   });
 
@@ -569,18 +762,24 @@ function saveGeoJSON_Rivers() {
 }
 
 function saveGeoJSON_Markers() {
-  const json = {type: "FeatureCollection", features: []};
+  const json = { type: "FeatureCollection", features: [] };
 
   markers.selectAll("use").each(function () {
     const coordinates = getQGIScoordinates(this.dataset.x, this.dataset.y);
     const id = this.id;
     const type = this.dataset.id.substring(1);
     const icon = document.getElementById(type).textContent;
-    const note = notes.length ? notes.find(note => note.id === this.id) : null;
+    const note = notes.length
+      ? notes.find((note) => note.id === this.id)
+      : null;
     const name = note ? note.name : "";
     const legend = note ? note.legend : "";
 
-    const feature = {type: "Feature", geometry: {type: "Point", coordinates}, properties: {id, type, icon, name, legend}};
+    const feature = {
+      type: "Feature",
+      geometry: { type: "Point", coordinates },
+      properties: { id, type, icon, name, legend },
+    };
     json.features.push(feature);
   });
 
@@ -590,7 +789,7 @@ function saveGeoJSON_Markers() {
 
 function getCellCoordinates(vertices) {
   const p = pack.vertices.p;
-  const coordinates = vertices.map(n => getQGIScoordinates(p[n][0], p[n][1]));
+  const coordinates = vertices.map((n) => getQGIScoordinates(p[n][0], p[n][1]));
   return [coordinates.concat([coordinates[0]])];
 }
 
@@ -619,17 +818,36 @@ function getRiverPoints(node) {
 }
 
 function quickSave() {
-  if (customization) return tip("Map cannot be saved when edit mode is active, please exit the mode and retry", false, "error");
+  if (customization)
+    return tip(
+      "Map cannot be saved when edit mode is active, please exit the mode and retry",
+      false,
+      "error"
+    );
 
   const mapData = getMapData();
-  const blob = new Blob([mapData], {type: "text/plain"});
+  const blob = new Blob([mapData], { type: "text/plain" });
   if (blob) ldb.set("lastMap", blob); // auto-save map
-  tip("Map is saved to browser memory. Please also save as .map file to secure progress", true, "success", 2000);
+  tip(
+    "Map is saved to browser memory. Please also save as .map file to secure progress",
+    true,
+    "success",
+    2000
+  );
 }
 
 const saveReminder = function () {
   if (localStorage.getItem("noReminder")) return;
-  const message = ["Please don't forget to save your work as a .map file", "Please remember to save work as a .map file", "Saving in .map format will ensure your data won't be lost in case of issues", "Safety is number one priority. Please save the map", "Don't forget to save your map on a regular basis!", "Just a gentle reminder for you to save the map", "Please don't forget to save your progress (saving as .map is the best option)", "Don't want to be reminded about need to save? Press CTRL+Q"];
+  const message = [
+    "Please don't forget to save your work as a .map file",
+    "Please remember to save work as a .map file",
+    "Saving in .map format will ensure your data won't be lost in case of issues",
+    "Safety is number one priority. Please save the map",
+    "Don't forget to save your map on a regular basis!",
+    "Just a gentle reminder for you to save the map",
+    "Please don't forget to save your progress (saving as .map is the best option)",
+    "Don't want to be reminded about need to save? Press CTRL+Q",
+  ];
 
   saveReminder.reminder = setInterval(() => {
     if (customization) return;
@@ -642,12 +860,22 @@ saveReminder();
 
 function toggleSaveReminder() {
   if (saveReminder.status) {
-    tip("Save reminder is turned off. Press CTRL+Q again to re-initiate", true, "warn", 2000);
+    tip(
+      "Save reminder is turned off. Press CTRL+Q again to re-initiate",
+      true,
+      "warn",
+      2000
+    );
     clearInterval(saveReminder.reminder);
     localStorage.setItem("noReminder", true);
     saveReminder.status = 0;
   } else {
-    tip("Save reminder is turned on. Press CTRL+Q to turn off", true, "warn", 2000);
+    tip(
+      "Save reminder is turned on. Press CTRL+Q to turn off",
+      true,
+      "warn",
+      2000
+    );
     localStorage.removeItem("noReminder");
     saveReminder();
   }

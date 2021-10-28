@@ -36,32 +36,58 @@ export class StoryComponent implements OnInit, AfterViewInit {
   public editPop = false;
   currentX = 0;
   currentY = 0;
-  selectedBurg: any = {};
+  selectedMapMarker: any = {};
   set population(population) {
-    this._population = population / (this.selectedBurg.populationRate * this.selectedBurg.urbanization);
+    this._population =
+      population /
+      (this.selectedMapMarker.populationRate *
+        this.selectedMapMarker.urbanization);
   }
   get population() {
-    return this._population * this.selectedBurg.populationRate * this.selectedBurg.urbanization
+    return (
+      this._population *
+      this.selectedMapMarker.populationRate *
+      this.selectedMapMarker.urbanization
+    );
   }
-    constructor() {
+  constructor() {}
 
-}
+  ngOnInit(): void {}
 
-  ngOnInit(): void {
+  ngAfterViewInit(): void {}
 
-  }
-
-
-
-ngAfterViewInit(): void {
-
-  }
-
-  mapClicked = (data) => {
-    if (data.type == 'burg') {
-      this.selectedBurg = data.burg;
-      this.mapBox = true;
-      this._population = this.selectedBurg.population;
+  mapClicked = (marker) => {
+    console.log(marker);
+    this.selectedMapMarker = { type: marker.type, ...marker.data };
+    this.mapBox = true;
+    if (marker.type == "burg") {
+      this._population = this.selectedMapMarker.population;
     }
-  }
+    if (marker.type == "dungeons") {
+    }
+    if (marker.type == "ruins") {
+    }
+    if (marker.type == "statues") {
+    }
+    if (marker.type == "brigands") {
+    }
+    if (marker.type == "volcanoes") {
+    }
+    if (marker.type == "mines") {
+    }
+    if (marker.type == "inns") {
+    }
+    if (marker.type == "pirates") {
+    }
+    if (marker.type == "lake-monsters") {
+    }
+    if (marker.type == "sea-monsters") {
+    }
+    if (marker.type == "hill-monsters") {
+    }
+    if (marker.type == "waterfalls") {
+    }
+    if (marker.type == "lighthouses") {
+    }
+  };
 }

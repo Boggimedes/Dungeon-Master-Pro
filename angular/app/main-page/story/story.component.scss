@@ -1,5 +1,3 @@
-
-
 #bodyContent em {
   margin: 0px 25px;
   display: block;
@@ -32,7 +30,7 @@ body {
 }
 
 .burgFeature {
-  padding: .2rem;
+  padding: 0.2rem;
   font-size: 1.8rem;
   cursor: pointer;
 }
@@ -366,13 +364,14 @@ mwlResizable {
   text-align: center;
   right: -7rem;
 }
-.no-border{
+.no-border {
   border: 0px;
   padding-left: 0px;
 }
 .map-buttons {
   position: absolute;
-  top: 20px;
+  top: 35%;
+  left: 2rem;
   z-index: 2000;
 }
 .story-box {
@@ -406,6 +405,3 @@ mwlResizable {
   text-align: center;
   position: absolute;
 }
-
-
-
