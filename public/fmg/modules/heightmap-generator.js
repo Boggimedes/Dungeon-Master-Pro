@@ -13,17 +13,11 @@ window.HeightmapGenerator = (function () {
     const templateString = HeightmapTemplates[template];
     const steps = templateString.split("\n");
 
-    if (!steps.length)
-      throw new Error(
-        `Heightmap template: no steps. Template: ${template}. Steps: ${steps}`
-      );
+    if (!steps.length) throw new Error(`Heightmap template: no steps. Template: ${template}. Steps: ${steps}`);
 
     for (const step of steps) {
       const elements = step.trim().split(" ");
-      if (elements.length < 2)
-        throw new Error(
-          `Heightmap template: steps < 2. Template: ${template}. Step: ${elements}`
-        );
+      if (elements.length < 2) throw new Error(`Heightmap template: steps < 2. Template: ${template}. Step: ${elements}`);
       addStep(...elements);
     }
 
@@ -175,10 +169,7 @@ window.HeightmapGenerator = (function () {
         limit++;
       } while ((dist < graphWidth / 8 || dist > graphWidth / 3) && limit < 50);
 
-      let range = getRange(
-        findGridCell(startX, startY),
-        findGridCell(endX, endY)
-      );
+      let range = getRange(findGridCell(startX, startY), findGridCell(endX, endY));
 
       // get main ridge
       function getRange(cur, end) {
@@ -210,13 +201,13 @@ window.HeightmapGenerator = (function () {
       while (queue.length) {
         const frontier = queue.slice();
         (queue = []), i++;
-        frontier.forEach((i) => {
+        frontier.forEach(i => {
           cells.h[i] = lim(cells.h[i] + h * (Math.random() * 0.3 + 0.85));
         });
         h = h ** power - 1;
         if (h < 2) break;
-        frontier.forEach((f) => {
-          cells.c[f].forEach((i) => {
+        frontier.forEach(f => {
+          cells.c[f].forEach(i => {
             if (!used[i]) {
               queue.push(i);
               used[i] = 1;
@@ -229,10 +220,7 @@ window.HeightmapGenerator = (function () {
       range.forEach((cur, d) => {
         if (d % 6 !== 0) return;
         for (const l of d3.range(i)) {
-          const min =
-            cells.c[cur][
-              d3.scan(cells.c[cur], (a, b) => cells.h[a] - cells.h[b])
-            ]; // downhill cell
+          const min = cells.c[cur][d3.scan(cells.c[cur], (a, b) => cells.h[a] - cells.h[b])]; // downhill cell
           cells.h[min] = (cells.h[cur] * 2 + cells.h[min]) / 3;
           cur = min;
         }
@@ -307,13 +295,13 @@ window.HeightmapGenerator = (function () {
       while (queue.length) {
         const frontier = queue.slice();
         (queue = []), i++;
-        frontier.forEach((i) => {
+        frontier.forEach(i => {
           cells.h[i] = lim(cells.h[i] - h * (Math.random() * 0.3 + 0.85));
         });
         h = h ** power - 1;
         if (h < 2) break;
-        frontier.forEach((f) => {
-          cells.c[f].forEach((i) => {
+        frontier.forEach(f => {
+          cells.c[f].forEach(i => {
             if (!used[i]) {
               queue.push(i);
               used[i] = 1;
@@ -326,10 +314,7 @@ window.HeightmapGenerator = (function () {
       range.forEach((cur, d) => {
         if (d % 6 !== 0) return;
         for (const l of d3.range(i)) {
-          const min =
-            cells.c[cur][
-              d3.scan(cells.c[cur], (a, b) => cells.h[a] - cells.h[b])
-            ]; // downhill cell
+          const min = cells.c[cur][d3.scan(cells.c[cur], (a, b) => cells.h[a] - cells.h[b])]; // downhill cell
           //debug.append("circle").attr("cx", p[min][0]).attr("cy", p[min][1]).attr("r", 1);
           cells.h[min] = (cells.h[cur] * 2 + cells.h[min]) / 3;
           cur = min;
@@ -343,28 +328,10 @@ window.HeightmapGenerator = (function () {
     if (width < 1 && P(width)) return;
     const used = new Uint8Array(cells.h.length);
     const vert = direction === "vertical";
-    const startX = vert
-      ? Math.floor(Math.random() * graphWidth * 0.4 + graphWidth * 0.3)
-      : 5;
-    const startY = vert
-      ? 5
-      : Math.floor(Math.random() * graphHeight * 0.4 + graphHeight * 0.3);
-    const endX = vert
-      ? Math.floor(
-          graphWidth -
-            startX -
-            graphWidth * 0.1 +
-            Math.random() * graphWidth * 0.2
-        )
-      : graphWidth - 5;
-    const endY = vert
-      ? graphHeight - 5
-      : Math.floor(
-          graphHeight -
-            startY -
-            graphHeight * 0.1 +
-            Math.random() * graphHeight * 0.2
-        );
+    const startX = vert ? Math.floor(Math.random() * graphWidth * 0.4 + graphWidth * 0.3) : 5;
+    const startY = vert ? 5 : Math.floor(Math.random() * graphHeight * 0.4 + graphHeight * 0.3);
+    const endX = vert ? Math.floor(graphWidth - startX - graphWidth * 0.1 + Math.random() * graphWidth * 0.2) : graphWidth - 5;
+    const endY = vert ? graphHeight - 5 : Math.floor(graphHeight - startY - graphHeight * 0.1 + Math.random() * graphHeight * 0.2);
 
     const start = findGridCell(startX, startY),
       end = findGridCell(endX, endY);
@@ -410,13 +377,11 @@ window.HeightmapGenerator = (function () {
   };
 
   const modify = function (range, add, mult, power) {
-    const min =
-      range === "land" ? 20 : range === "all" ? 0 : +range.split("-")[0];
-    const max =
-      range === "land" || range === "all" ? 100 : +range.split("-")[1];
+    const min = range === "land" ? 20 : range === "all" ? 0 : +range.split("-")[0];
+    const max = range === "land" || range === "all" ? 100 : +range.split("-")[1];
     const isLand = min === 20;
 
-    grid.cells.h = grid.cells.h.map((h) => {
+    grid.cells.h = grid.cells.h.map(h => {
       if (h < min || h > max) return h;
 
       if (add) h = isLand ? Math.max(h + add, 20) : h + add;
@@ -429,7 +394,7 @@ window.HeightmapGenerator = (function () {
   const smooth = function (fr = 2, add = 0) {
     cells.h = cells.h.map((h, i) => {
       const a = [h];
-      cells.c[i].forEach((c) => a.push(cells.h[c]));
+      cells.c[i].forEach(c => a.push(cells.h[c]));
       return lim((h * (fr - 1) + d3.mean(a) + add) / fr);
     });
   };
@@ -445,14 +410,5 @@ window.HeightmapGenerator = (function () {
     return rand(min * length, max * length);
   }
 
-  return {
-    generate,
-    addHill,
-    addRange,
-    addTrough,
-    addStrait,
-    addPit,
-    smooth,
-    modify,
-  };
+  return {generate, addHill, addRange, addTrough, addStrait, addPit, smooth, modify};
 })();

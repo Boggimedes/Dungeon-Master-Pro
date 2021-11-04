@@ -4,14 +4,21 @@ export class Rulers {
     this.data = [];
   }
 
-  create(Type, points) {
-    const ruler = new Type(points, this.data);
+  create(Type, points, scale, pack) {
+    console.log(scale);
+    const ruler = new Type(points, this.data, scale, pack);
     this.data.push(ruler);
+    console.log(ruler);
     return ruler;
   }
 
+  rn = (v, d = 0) => {
+    const m = Math.pow(10, d);
+    return Math.round(v * m) / m;
+  };
+
   toString() {
-    return this.data.map(ruler => ruler.toString()).join("; ");
+    return this.data.map((ruler) => ruler.toString()).join("; ");
   }
 
   fromString(string) {
@@ -20,24 +27,35 @@ export class Rulers {
     const rulers = string.split("; ");
     for (const rulerString of rulers) {
       const [type, pointsString] = rulerString.split(": ");
-      const points = pointsString.split(" ").map(el => el.split(",").map(n => +n));
-      const Type = type === "Ruler" ? Ruler : type === "Opisometer" ? Opisometer : type === "RouteOpisometer" ? RouteOpisometer : type === "Planimeter" ? Planimeter : null;
+      const points = pointsString
+        .split(" ")
+        .map((el) => el.split(",").map((n) => +n));
+      const Type =
+        type === "Ruler"
+          ? Ruler
+          : type === "Opisometer"
+          ? Opisometer
+          : type === "RouteOpisometer"
+          ? RouteOpisometer
+          : type === "Planimeter"
+          ? Planimeter
+          : null;
       this.create(Type, points);
     }
   }
 
   draw() {
-    this.data.forEach(ruler => ruler.draw());
+    this.data.forEach((ruler) => ruler.draw());
   }
 
   undraw() {
-    this.data.forEach(ruler => ruler.undraw());
+    this.data.forEach((ruler) => ruler.undraw());
   }
 
   remove(id) {
     if (id === undefined) return;
 
-    const ruler = this.data.find(ruler => ruler.id === id);
+    const ruler = this.data.find((ruler) => ruler.id === id);
     ruler.undraw();
     const rulerIndex = this.data.indexOf(ruler);
     rulers.data.splice(rulerIndex, 1);
@@ -45,24 +63,37 @@ export class Rulers {
 }
 
 export class Measurer {
-  constructor(points, data) {
+  scale = 1;
+  constructor(points, data, scale) {
+    console.log(scale);
+    this.scale = scale;
     this.points = points;
     this.id = data.length;
   }
-
+  last = (array) => {
+    return array[array.length - 1];
+  };
   toString() {
     return this.constructor.name + ": " + this.points.join(" ");
   }
 
+  rn = (v, d = 0) => {
+    const m = Math.pow(10, d);
+    return Math.round(v * m) / m;
+  };
+
   getSize() {
-    return rn((1 / scale ** 0.3) * 2, 2);
+    console.log(this.scale);
+    return this.rn((1 / this.scale ** 0.3) * 2, 2);
   }
 
   getDash() {
-    return rn(30 / distanceScaleInput.value, 2);
+    return this.rn(30 / 3, 2);
+    // return this.rn(30 / distanceScaleInput.value, 2);
   }
 
   drag() {
+    console.log(this);
     const tr = parseTransform(this.getAttribute("transform"));
     const x = +tr[0] - d3.event.x,
       y = +tr[1] - d3.event.y;
@@ -75,7 +106,9 @@ export class Measurer {
 
   addPoint(point) {
     const MIN_DIST = d3.event.sourceEvent.shiftKey ? 9 : 100;
-    const prev = last(this.points);
+    const prev = this.last(this.points);
+    console.log(point);
+    console.log(this.points);
     point = [point[0] | 0, point[1] | 0];
     const dist2 = (prev[0] - point[0]) ** 2 + (prev[1] - point[1]) ** 2;
     if (dist2 < MIN_DIST) return;
@@ -90,7 +123,10 @@ export class Measurer {
 
     for (let i = 0, p1 = this.points[0]; i < this.points.length; i++) {
       const p2 = this.points[i];
-      const dist2 = !i || i === this.points.length - 1 ? Infinity : (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2;
+      const dist2 =
+        !i || i === this.points.length - 1
+          ? Infinity
+          : (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2;
       if (dist2 < MIN_DIST2) continue;
       optimized.push(p2);
       p1 = p2;
@@ -102,13 +138,15 @@ export class Measurer {
   }
 
   undraw() {
+    console.log(this.el);
     this.el?.remove();
   }
 }
 
 export class Ruler extends Measurer {
-  constructor(points, data) {
-    super(points, data);
+  constructor(points, data, scale) {
+    super(points, data, scale);
+    console.log(scale);
   }
 
   getPointsString() {
@@ -120,7 +158,7 @@ export class Ruler extends Measurer {
   }
 
   getPointId(x, y) {
-    return this.points.findIndex(el => el[0] == x && el[1] == y);
+    return this.points.findIndex((el) => el[0] == x && el[1] == y);
   }
 
   pushPoint(i) {
@@ -134,7 +172,8 @@ export class Ruler extends Measurer {
     const size = this.getSize();
     const dash = this.getDash();
 
-    const el = (this.el = ruler
+    const el = (this.el = d3
+      .select("#ruler")
       .append("g")
       .attr("class", "ruler")
       .call(d3.drag().on("start", this.drag))
@@ -147,18 +186,21 @@ export class Ruler extends Measurer {
     el.append("polyline")
       .attr("points", points)
       .attr("class", "gray")
-      .attr("stroke-width", rn(size * 1.2, 2))
+      .attr("stroke-width", this.rn(size * 1.2, 2))
       .attr("stroke-dasharray", dash);
     el.append("g")
       .attr("class", "rulerPoints")
       .attr("stroke-width", 0.5 * size)
       .attr("font-size", 2 * size);
+    el.append("text").attr("dx", ".35em").attr("dy", "-.45em");
     el.append("text")
       .attr("dx", ".35em")
-      .attr("dy", "-.45em")
-      .on("click", () => rulers.remove(this.id));
+      .attr("dy", "2em")
+      .attr("font-size", 5 * size);
+
     this.drawPoints(el);
     this.updateLabel();
+    console.log(this);
     return this;
   }
 
@@ -197,10 +239,20 @@ export class Ruler extends Measurer {
   }
 
   updateLabel() {
+    let speed = 60;
+    let pace = 1;
     const length = this.getLength();
-    const text = rn(length * distanceScaleInput.value) + " " + distanceUnitInput.value;
-    const [x, y] = last(this.points);
-    this.el.select("text").attr("x", x).attr("y", y).text(text);
+    const text =
+      this.rn(length * distanceScaleInput.value) +
+      " " +
+      distanceUnitInput.value;
+    const subText =
+      this.rn((length * distanceScaleInput.value) / (speed * pace)) + " days";
+    const [x, y] = this.last(this.points);
+    let nodes = this.el.selectAll("text").nodes();
+    console.log(nodes);
+    nodes[0].attr("x", x).attr("y", y).text(text);
+    nodes[1].attr("x", x).attr("y", y).text(subText);
   }
 
   getLength() {
@@ -218,8 +270,8 @@ export class Ruler extends Measurer {
     let circle = context.el.select(`circle:nth-child(${pointId + 1})`);
     const line = context.el.selectAll("polyline");
 
-    let x0 = rn(d3.event.x, 1);
-    let y0 = rn(d3.event.y, 1);
+    let x0 = this.rn(d3.event.x, 1);
+    let y0 = this.rn(d3.event.y, 1);
     let axis;
 
     d3.event.on("drag", function () {
@@ -233,10 +285,11 @@ export class Ruler extends Measurer {
       }
 
       const shiftPressed = d3.event.sourceEvent.shiftKey;
-      if (shiftPressed && !axis) axis = Math.abs(d3.event.dx) > Math.abs(d3.event.dy) ? "x" : "y";
+      if (shiftPressed && !axis)
+        axis = Math.abs(d3.event.dx) > Math.abs(d3.event.dy) ? "x" : "y";
 
-      const x = axis === "y" ? x0 : rn(d3.event.x, 1);
-      const y = axis === "x" ? y0 : rn(d3.event.y, 1);
+      const x = axis === "y" ? x0 : this.rn(d3.event.x, 1);
+      const y = axis === "x" ? y0 : this.rn(d3.event.y, 1);
 
       if (!shiftPressed) {
         axis = null;
@@ -252,8 +305,8 @@ export class Ruler extends Measurer {
   }
 
   addControl(context) {
-    const x = rn(d3.event.x, 1);
-    const y = rn(d3.event.y, 1);
+    const x = this.rn(d3.event.x, 1);
+    const y = this.rn(d3.event.y, 1);
     const pointId = getSegmentId(context.points, [x, y]);
 
     context.points.splice(pointId, 0, [x, y]);
@@ -269,23 +322,38 @@ export class Ruler extends Measurer {
 }
 
 export class Opisometer extends Measurer {
-  constructor(points, data) {
-    super(points, data);
+  // scale = 1;
+  constructor(points, data, scale) {
+    super(points, data, scale);
+    console.log(scale);
+    // this.scale = scale;
   }
+  lineGen = d3.line().curve(d3.curveBasis);
 
+  // round string to d decimals
+  round = (s, d = 1) => {
+    let rn = this.rn;
+    return s.replace(/[\d\.-][\d\.e-]*/g, function (n) {
+      return rn(n, d);
+    });
+  };
   draw() {
     if (this.el) this.el.selectAll("*").remove();
     const size = this.getSize();
     const dash = this.getDash();
     const context = this;
 
-    const el = (this.el = ruler
+    const el = (this.el = d3
+      .select("#ruler")
       .append("g")
       .attr("class", "opisometer")
       .call(d3.drag().on("start", this.drag))
       .attr("font-size", 10 * size));
     el.append("path").attr("class", "white").attr("stroke-width", size);
-    el.append("path").attr("class", "gray").attr("stroke-width", size).attr("stroke-dasharray", dash);
+    el.append("path")
+      .attr("class", "gray")
+      .attr("stroke-width", size)
+      .attr("stroke-dasharray", dash);
     const rulerPoints = el
       .append("g")
       .attr("class", "rulerPoints")
@@ -318,26 +386,43 @@ export class Opisometer extends Measurer {
   }
 
   updateCurve() {
-    lineGen.curve(d3.curveCatmullRom.alpha(0.5));
-    const path = round(lineGen(this.points));
+    this.lineGen.curve(d3.curveCatmullRom.alpha(0.5));
+    const path = this.round(this.lineGen(this.points));
     this.el.selectAll("path").attr("d", path);
 
     const left = this.points[0];
-    const right = last(this.points);
-    this.el.select(".rulerPoints > circle:first-child").attr("cx", left[0]).attr("cy", left[1]);
-    this.el.select(".rulerPoints > circle:last-child").attr("cx", right[0]).attr("cy", right[1]);
+    const right = this.last(this.points);
+    this.el
+      .select(".rulerPoints > circle:first-child")
+      .attr("cx", left[0])
+      .attr("cy", left[1]);
+    this.el
+      .select(".rulerPoints > circle:last-child")
+      .attr("cx", right[0])
+      .attr("cy", right[1]);
   }
 
   updateLabel() {
+    let speed = 60;
+    let pace = 1;
     const length = this.el.select("path").node().getTotalLength();
-    const text = rn(length * distanceScaleInput.value) + " " + distanceUnitInput.value;
-    const [x, y] = last(this.points);
-    this.el.select("text").attr("x", x).attr("y", y).text(text);
+    const text =
+      this.rn(length * distanceScaleInput.value) +
+      " " +
+      distanceUnitInput.value;
+    const subText =
+      this.rn((length * distanceScaleInput.value) / (speed * pace)) + " days";
+    const [x, y] = this.last(this.points);
+
+    let nodes = this.el.select("text").nodes();
+    console.log(nodes);
+    d3.select(nodes[0]).attr("x", x).attr("y", y).text(text);
+    d3.select(nodes[1]).attr("x", x).attr("y", y).text(subText);
   }
 
   dragControl(context, rigth) {
     const MIN_DIST = d3.event.sourceEvent.shiftKey ? 9 : 100;
-    let prev = rigth ? last(context.points) : context.points[0];
+    let prev = rigth ? this.last(context.points) : context.points[0];
 
     d3.event.on("drag", function () {
       const point = [d3.event.x | 0, d3.event.y | 0];
@@ -359,18 +444,39 @@ export class Opisometer extends Measurer {
 }
 
 export class RouteOpisometer extends Measurer {
-  constructor(points, data) {
-    super(points, data);
-    if (pack.cells) {
-      this.cellStops = points.map(p => findCell(p[0], p[1]));
+  pack = [];
+  constructor(points, data, scale, pack) {
+    super(points, data, scale);
+    console.log(scale);
+    // this.scale = scale;
+    this.pack = pack;
+    if (this.pack.cells) {
+      this.cellStops = points.map((p) => this.findCell(p[0], p[1]));
     } else {
       this.cellStops = null;
     }
   }
+  // return closest pack points quadtree datum
+  find = (x, y, radius = Infinity) => {
+    return this.pack.cells.q.find(x, y, radius);
+  };
+  lineGen = d3.line().curve(d3.curveBasis);
 
+  // round string to d decimals
+  round = (s, d = 1) => {
+    let rn = this.rn;
+    return s.replace(/[\d\.-][\d\.e-]*/g, function (n) {
+      return rn(n, d);
+    });
+  };
+  // return closest cell index
+  findCell = (x, y, radius = Infinity) => {
+    const found = this.pack.cells.q.find(x, y, radius);
+    return found ? found[2] : undefined;
+  };
   checkCellStops() {
     if (!this.cellStops) {
-      this.cellStops = this.points.map(p => findCell(p[0], p[1]));
+      this.cellStops = this.points.map((p) => this.findCell(p[0], p[1]));
     }
   }
 
@@ -379,7 +485,7 @@ export class RouteOpisometer extends Measurer {
     const cellStops = this.cellStops;
     const foundIndex = cellStops.indexOf(cell);
     if (rigth) {
-      if (last(cellStops) === cell) {
+      if (this.last(cellStops) === cell) {
         return;
       } else if (cellStops.length > 1 && foundIndex != -1) {
         cellStops.splice(foundIndex + 1);
@@ -404,8 +510,8 @@ export class RouteOpisometer extends Measurer {
   }
 
   getCellRouteCoord(c) {
-    const cells = pack.cells;
-    const burgs = pack.burgs;
+    const cells = this.pack.cells;
+    const burgs = this.pack.burgs;
     const b = cells.burg[c];
     const x = b ? burgs[b].x : cells.p[c][0];
     const y = b ? burgs[b].y : cells.p[c][1];
@@ -418,12 +524,16 @@ export class RouteOpisometer extends Measurer {
     const dash = this.getDash();
     const context = this;
 
-    const el = (this.el = ruler
+    const el = (this.el = d3
+      .select("#ruler")
       .append("g")
       .attr("class", "opisometer")
       .attr("font-size", 10 * size));
     el.append("path").attr("class", "white").attr("stroke-width", size);
-    el.append("path").attr("class", "gray").attr("stroke-width", size).attr("stroke-dasharray", dash);
+    el.append("path")
+      .attr("class", "gray")
+      .attr("stroke-width", size)
+      .attr("stroke-dasharray", dash);
     const rulerPoints = el
       .append("g")
       .attr("class", "rulerPoints")
@@ -445,10 +555,11 @@ export class RouteOpisometer extends Measurer {
           context.dragControl(context, 1);
         })
       );
+    el.append("text").attr("dx", ".35em").attr("dy", "-.45em");
     el.append("text")
       .attr("dx", ".35em")
-      .attr("dy", "-.45em")
-      .on("click", () => rulers.remove(this.id));
+      .attr("dy", "2em")
+      .attr("font-size", 5 * size);
 
     this.updateCurve();
     this.updateLabel();
@@ -456,24 +567,39 @@ export class RouteOpisometer extends Measurer {
   }
 
   updateCurve() {
-    lineGen.curve(d3.curveCatmullRom.alpha(0.5));
-    const path = round(lineGen(this.points));
+    this.lineGen.curve(d3.curveCatmullRom.alpha(0.5));
+    const path = this.round(this.lineGen(this.points));
     this.el.selectAll("path").attr("d", path);
 
     const left = this.points[0];
-    const right = last(this.points);
-    this.el.select(".rulerPoints > circle:first-child").attr("cx", left[0]).attr("cy", left[1]);
-    this.el.select(".rulerPoints > circle:last-child").attr("cx", right[0]).attr("cy", right[1]);
+    const right = this.last(this.points);
+    this.el
+      .select(".rulerPoints > circle:first-child")
+      .attr("cx", left[0])
+      .attr("cy", left[1]);
+    this.el
+      .select(".rulerPoints > circle:last-child")
+      .attr("cx", right[0])
+      .attr("cy", right[1]);
   }
 
   updateLabel() {
     const length = this.el.select("path").node().getTotalLength();
-    const text = rn(length * distanceScaleInput.value) + " " + distanceUnitInput.value;
-    const [x, y] = last(this.points);
-    this.el.select("text").attr("x", x).attr("y", y).text(text);
+    const text =
+      this.rn(length * distanceScaleInput.value) +
+      " " +
+      distanceUnitInput.value;
+    const subText = this.rn((length * distanceScaleInput.value) / 60) + " days";
+    const [x, y] = this.last(this.points);
+    let nodes = this.el.selectAll("text").nodes();
+    console.log(nodes);
+    d3.select(nodes[0]).attr("x", x).attr("y", y).text(text);
+    d3.select(nodes[1]).attr("x", x).attr("y", y).text(subText);
   }
 
   dragControl(context, rigth) {
+    let pack = this.pack;
+    let findCell = this.findCell;
     d3.event.on("drag", function () {
       const mousePoint = [d3.event.x | 0, d3.event.y | 0];
       const cells = pack.cells;
@@ -489,15 +615,18 @@ export class RouteOpisometer extends Measurer {
 }
 
 export class Planimeter extends Measurer {
-  constructor(points, data) {
-    super(points, data);
+  pack = [];
+  constructor(points, data, pack) {
+    super(points, data, pack);
+    this.pack = pack;
   }
-
+  lineGen = d3.line().curve(d3.curveBasis);
   draw() {
     if (this.el) this.el.selectAll("*").remove();
     const size = this.getSize();
 
-    const el = (this.el = ruler
+    const el = (this.el = d3
+      .select("#ruler")
       .append("g")
       .attr("class", "planimeter")
       .call(d3.drag().on("start", this.drag))
@@ -511,116 +640,21 @@ export class Planimeter extends Measurer {
   }
 
   updateCurve() {
-    lineGen.curve(d3.curveCatmullRomClosed.alpha(0.5));
-    const path = round(lineGen(this.points));
+    this.lineGen.curve(d3.curveCatmullRomClosed.alpha(0.5));
+    const path = this.round(this.lineGen(this.points));
     this.el.selectAll("path").attr("d", path);
   }
 
   updateLabel() {
     if (this.points.length < 3) return;
 
-    const polygonArea = rn(Math.abs(d3.polygonArea(this.points)));
-    const unit = areaUnit.value === "square" ? " " + distanceUnitInput.value + "²" : " " + areaUnit.value;
+    const polygonArea = this.rn(Math.abs(d3.polygonArea(this.points)));
+    const unit =
+      areaUnit.value === "square"
+        ? " " + distanceUnitInput.value + "²"
+        : " " + areaUnit.value;
     const area = si(polygonArea * distanceScaleInput.value ** 2) + " " + unit;
     const c = polylabel([this.points], 1.0);
     this.el.select("text").attr("x", c[0]).attr("y", c[1]).text(area);
   }
-}
-
-// Scale bar
-function drawScaleBar() {
-  if (scaleBar.style("display") === "none") return; // no need to re-draw hidden element
-  scaleBar.selectAll("*").remove(); // fully redraw every time
-
-  const dScale = distanceScaleInput.value;
-  const unit = distanceUnitInput.value;
-
-  // calculate size
-  const init = 100; // actual length in pixels if scale, dScale and size = 1;
-  const size = +barSizeInput.value;
-  let val = (init * size * dScale) / scale; // bar length in distance unit
-  if (val > 900) val = rn(val, -3);
-  // round to 1000
-  else if (val > 90) val = rn(val, -2);
-  // round to 100
-  else if (val > 9) val = rn(val, -1);
-  // round to 10
-  else val = rn(val); // round to 1
-  const l = (val * scale) / dScale; // actual length in pixels on this scale
-
-  scaleBar
-    .append("line")
-    .attr("x1", 0.5)
-    .attr("y1", 0)
-    .attr("x2", l + size - 0.5)
-    .attr("y2", 0)
-    .attr("stroke-width", size)
-    .attr("stroke", "white");
-  scaleBar
-    .append("line")
-    .attr("x1", 0)
-    .attr("y1", size)
-    .attr("x2", l + size)
-    .attr("y2", size)
-    .attr("stroke-width", size)
-    .attr("stroke", "#3d3d3d");
-  const dash = size + " " + rn(l / 5 - size, 2);
-  scaleBar
-    .append("line")
-    .attr("x1", 0)
-    .attr("y1", 0)
-    .attr("x2", l + size)
-    .attr("y2", 0)
-    .attr("stroke-width", rn(size * 3, 2))
-    .attr("stroke-dasharray", dash)
-    .attr("stroke", "#3d3d3d");
-
-  const fontSize = rn(5 * size, 1);
-  scaleBar
-    .selectAll("text")
-    .data(d3.range(0, 6))
-    .enter()
-    .append("text")
-    .attr("x", d => rn((d * l) / 5, 2))
-    .attr("y", 0)
-    .attr("dy", "-.5em")
-    .attr("font-size", fontSize)
-    .text(d => rn((((d * l) / 5) * dScale) / scale) + (d < 5 ? "" : " " + unit));
-
-  if (barLabel.value !== "") {
-    scaleBar
-      .append("text")
-      .attr("x", (l + 1) / 2)
-      .attr("y", 2 * size)
-      .attr("dominant-baseline", "text-before-edge")
-      .attr("font-size", fontSize)
-      .text(barLabel.value);
-  }
-
-  const bbox = scaleBar.node().getBBox();
-  // append backbround rectangle
-  scaleBar
-    .insert("rect", ":first-child")
-    .attr("x", -10)
-    .attr("y", -20)
-    .attr("width", bbox.width + 10)
-    .attr("height", bbox.height + 15)
-    .attr("stroke-width", size)
-    .attr("stroke", "none")
-    .attr("filter", "url(#blur5)")
-    .attr("fill", barBackColor.value)
-    .attr("opacity", +barBackOpacity.value);
-
-  fitScaleBar();
-}
-
-// fit ScaleBar to canvas size
-function fitScaleBar() {
-  if (!scaleBar.select("rect").size() || scaleBar.style("display") === "none") return;
-  const px = isNaN(+barPosX.value) ? 0.99 : barPosX.value / 100;
-  const py = isNaN(+barPosY.value) ? 0.99 : barPosY.value / 100;
-  const bbox = scaleBar.select("rect").node().getBBox();
-  const x = rn(svgWidth * px - bbox.width + 10),
-    y = rn(svgHeight * py - bbox.height + 20);
-  scaleBar.attr("transform", `translate(${x},${y})`);
 }

@@ -49,7 +49,6 @@ import {
   subjects,
   icons,
 } from "./const";
-import { faFacebook } from "@fortawesome/free-brands-svg-icons";
 declare var $: any;
 declare var d3: any;
 declare const PriorityQueue: any;
@@ -186,9 +185,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   public zoomThrottled;
   public powerInput;
   public lineGen = d3.line().curve(d3.curveBasis); // d3 line generator with default curve interpolation
+  public moved;
   public viewbox;
   public activeLegend;
-  public moved;
+  public selectedParty: any = {};
   distanceScaleInput;
   heightExponentInput;
   barSizeInput;
@@ -271,7 +271,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       (r.onsuccess = function (e) {
         n = this.result;
       }),
-        (r.onerror = function (e) {}),
+        (r.onerror = function (e) {
+          console.error("indexedDB request error"), console.log(e);
+        }),
         (r.onupgradeneeded = function (e) {
           n = null;
           var t = (<any>e.target).result.createObjectStore("s", {
@@ -291,147 +293,139 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         });
     })();
     // append svg layers (in default order)
-    // this.svg = d3.querySelector("#map");
-    // this.defs = this.svg.select("#deftemp");
-    // this.viewbox = this.svg.select("#viewbox");
-    // this.scaleBar = this.svg.select("#scaleBar");
-    // this.legend = this.svg.append("g").setAttribute("id", "legend");
-    // this.ocean = this.viewbox.append("g").setAttribute("id", "ocean");
-    // this.oceanLayers = this.ocean.append("g").setAttribute("id", "oceanLayers");
-    // this.oceanPattern = this.ocean
-    //   .append("g")
-    //   .setAttribute("id", "oceanPattern");
-    // this.lakes = this.viewbox.append("g").setAttribute("id", "lakes");
-    // this.landmass = this.viewbox.append("g").setAttribute("id", "landmass");
-    // this.texture = this.viewbox.append("g").setAttribute("id", "texture");
-    // this.terrs = this.viewbox.append("g").setAttribute("id", "terrs");
-    // this.biomes = this.viewbox.append("g").setAttribute("id", "biomes");
-    // this.cells = this.viewbox.append("g").setAttribute("id", "cells");
-    // this.gridOverlay = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "gridOverlay");
-    // this.coordinates = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "coordinates");
-    // this.compass = this.viewbox.append("g").setAttribute("id", "compass");
-    // this.rivers = this.viewbox.append("g").setAttribute("id", "rivers");
-    // this.terrain = this.viewbox.append("g").setAttribute("id", "terrain");
-    // this.relig = this.viewbox.append("g").setAttribute("id", "relig");
-    // this.cults = this.viewbox.append("g").setAttribute("id", "cults");
-    // this.regions = this.viewbox.append("g").setAttribute("id", "regions");
-    // this.statesBody = this.regions.append("g").setAttribute("id", "statesBody");
-    // this.statesHalo = this.regions.append("g").setAttribute("id", "statesHalo");
-    // this.provs = this.viewbox.append("g").setAttribute("id", "provs");
-    // this.zones = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "zones")
-    //   .style.display", "none");
-    // this.borders = this.viewbox.append("g").setAttribute("id", "borders");
-    // this.stateBorders = this.borders
-    //   .append("g")
-    //   .setAttribute("id", "stateBorders")
-    //   .setAttribute("fill", "none");
-    // this.provinceBorders = this.borders
-    //   .append("g")
-    //   .setAttribute("id", "provinceBorders")
-    //   .setAttribute("fill", "none");
-    // this.routes = this.viewbox.append("g").setAttribute("id", "routes");
-    // this.roads = this.routes.append("g").setAttribute("id", "roads");
-    // this.roads.setAttribute("fill", "none");
-    // this.trails = this.routes.append("g").setAttribute("id", "trails");
-    // this.trails.setAttribute("fill", "none");
-    // this.searoutes = this.routes.append("g").setAttribute("id", "searoutes");
-    // this.searoutes.setAttribute("fill", "none");
-    // this.temperature = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "temperature");
-    // this.coastline = this.viewbox.append("g").setAttribute("id", "coastline");
-    // this.ice = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "ice")
-    //   .style.display", "none");
-    // this.prec = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "prec")
-    //   .style.display", "none");
-    // this.population = this.viewbox.append("g").setAttribute("id", "population");
-    // this.emblems = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "emblems")
-    //   .style.display", "none");
-    // this.labels = this.viewbox.append("g").setAttribute("id", "labels");
-    // this.icons = this.viewbox.append("g").setAttribute("id", "icons");
-    // this.burgIcons = this.icons.append("g").setAttribute("id", "burgIcons");
-    // this.anchors = this.icons.append("g").setAttribute("id", "anchors");
-    // this.armies = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "armies")
-    //   .style.display", "none");
-    // this.markers = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "markers")
-    //   .style.display", "none");
-    // this.fogging = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "fogging-cont")
-    //   .setAttribute("mask", "url(#fog)")
-    //   .append("g")
-    //   .setAttribute("id", "fogging")
-    //   .style.display", "none");
-    // this.ruler = this.viewbox
-    //   .append("g")
-    //   .setAttribute("id", "ruler")
-    //   .style.display", "none");
-    // this.debug = this.viewbox.append("g").setAttribute("id", "debug");
+    this.svg = d3.select("#map");
+    this.defs = this.svg.select("#deftemp");
+    this.viewbox = this.svg.select("#viewbox");
+    this.scaleBar = this.svg.select("#scaleBar");
+    this.legend = this.svg.append("g").attr("id", "legend");
+    this.ocean = this.viewbox.append("g").attr("id", "ocean");
+    this.oceanLayers = this.ocean.append("g").attr("id", "oceanLayers");
+    this.oceanPattern = this.ocean.append("g").attr("id", "oceanPattern");
+    this.lakes = this.viewbox.append("g").attr("id", "lakes");
+    this.landmass = this.viewbox.append("g").attr("id", "landmass");
+    this.texture = this.viewbox.append("g").attr("id", "texture");
+    this.terrs = this.viewbox.append("g").attr("id", "terrs");
+    this.biomes = this.viewbox.append("g").attr("id", "biomes");
+    this.cells = this.viewbox.append("g").attr("id", "cells");
+    this.gridOverlay = this.viewbox.append("g").attr("id", "gridOverlay");
+    this.coordinates = this.viewbox.append("g").attr("id", "coordinates");
+    this.compass = this.viewbox.append("g").attr("id", "compass");
+    this.rivers = this.viewbox.append("g").attr("id", "rivers");
+    this.terrain = this.viewbox.append("g").attr("id", "terrain");
+    this.relig = this.viewbox.append("g").attr("id", "relig");
+    this.cults = this.viewbox.append("g").attr("id", "cults");
+    this.regions = this.viewbox.append("g").attr("id", "regions");
+    this.statesBody = this.regions.append("g").attr("id", "statesBody");
+    this.statesHalo = this.regions.append("g").attr("id", "statesHalo");
+    this.provs = this.viewbox.append("g").attr("id", "provs");
+    this.zones = this.viewbox
+      .append("g")
+      .attr("id", "zones")
+      .style("display", "none");
+    this.borders = this.viewbox.append("g").attr("id", "borders");
+    this.stateBorders = this.borders
+      .append("g")
+      .attr("id", "stateBorders")
+      .attr("fill", "none");
+    this.provinceBorders = this.borders
+      .append("g")
+      .attr("id", "provinceBorders")
+      .attr("fill", "none");
+    this.routes = this.viewbox.append("g").attr("id", "routes");
+    this.roads = this.routes.append("g").attr("id", "roads");
+    this.roads.attr("fill", "none");
+    this.trails = this.routes.append("g").attr("id", "trails");
+    this.trails.attr("fill", "none");
+    this.searoutes = this.routes.append("g").attr("id", "searoutes");
+    this.searoutes.attr("fill", "none");
+    this.temperature = this.viewbox.append("g").attr("id", "temperature");
+    this.coastline = this.viewbox.append("g").attr("id", "coastline");
+    this.ice = this.viewbox
+      .append("g")
+      .attr("id", "ice")
+      .style("display", "none");
+    this.prec = this.viewbox
+      .append("g")
+      .attr("id", "prec")
+      .style("display", "none");
+    this.population = this.viewbox.append("g").attr("id", "population");
+    this.emblems = this.viewbox
+      .append("g")
+      .attr("id", "emblems")
+      .style("display", "none");
+    this.labels = this.viewbox.append("g").attr("id", "labels");
+    this.icons = this.viewbox.append("g").attr("id", "icons");
+    this.burgIcons = this.icons.append("g").attr("id", "burgIcons");
+    this.anchors = this.icons.append("g").attr("id", "anchors");
+    this.armies = this.viewbox
+      .append("g")
+      .attr("id", "armies")
+      .style("display", "none");
+    this.markers = this.viewbox
+      .append("g")
+      .attr("id", "markers")
+      .style("display", "none");
+    this.fogging = this.viewbox
+      .append("g")
+      .attr("id", "fogging-cont")
+      .attr("mask", "url(#fog)")
+      .append("g")
+      .attr("id", "fogging")
+      .style("display", "none");
+    this.ruler = this.viewbox
+      .append("g")
+      .attr("id", "ruler")
+      .style("display", "none");
+    this.debug = this.viewbox.append("g").attr("id", "debug");
     this.presets = {}; // global object
     this.restoreCustomPresets(); // run on-load
 
     // lake and coast groups
-    // this.lakes.append("g").setAttribute("id", "freshwater");
-    // this.lakes.append("g").setAttribute("id", "salt");
-    // this.lakes.append("g").setAttribute("id", "sinkhole");
-    // this.lakes.append("g").setAttribute("id", "frozen");
-    // this.lakes.append("g").setAttribute("id", "lava");
-    // this.lakes.append("g").setAttribute("id", "dry");
-    // this.coastline.append("g").setAttribute("id", "sea_island");
-    // this.coastline.append("g").setAttribute("id", "lake_island");
-    // this.moved = this.debounce(this.mouseMove, 100);
-    // this.labels.append("g").setAttribute("id", "states");
-    // this.labels.append("g").setAttribute("id", "addedLabels");
+    this.lakes.append("g").attr("id", "freshwater");
+    this.lakes.append("g").attr("id", "salt");
+    this.lakes.append("g").attr("id", "sinkhole");
+    this.lakes.append("g").attr("id", "frozen");
+    this.lakes.append("g").attr("id", "lava");
+    this.lakes.append("g").attr("id", "dry");
+    this.coastline.append("g").attr("id", "sea_island");
+    this.coastline.append("g").attr("id", "lake_island");
+    this.moved = this.debounce(this.mouseMove, 100);
+    this.labels.append("g").attr("id", "states");
+    this.labels.append("g").attr("id", "addedLabels");
 
-    // this.burgLabels = this.labels.append("g").setAttribute("id", "burgLabels");
-    // this.burgIcons.append("g").setAttribute("id", "cities");
-    // this.burgLabels.append("g").setAttribute("id", "cities");
-    // this.anchors.append("g").setAttribute("id", "cities");
+    this.burgLabels = this.labels.append("g").attr("id", "burgLabels");
+    this.burgIcons.append("g").attr("id", "cities");
+    this.burgLabels.append("g").attr("id", "cities");
+    this.anchors.append("g").attr("id", "cities");
 
-    // this.burgIcons.append("g").setAttribute("id", "towns");
-    // this.burgLabels.append("g").setAttribute("id", "towns");
-    // this.anchors.append("g").setAttribute("id", "towns");
+    this.burgIcons.append("g").attr("id", "towns");
+    this.burgLabels.append("g").attr("id", "towns");
+    this.anchors.append("g").attr("id", "towns");
 
-    // // population groups
-    // this.population.append("g").setAttribute("id", "rural");
-    // this.population.append("g").setAttribute("id", "urban");
+    // population groups
+    this.population.append("g").attr("id", "rural");
+    this.population.append("g").attr("id", "urban");
 
-    // // emblem groups
-    // this.emblems.append("g").setAttribute("id", "burgEmblems");
-    // this.emblems.append("g").setAttribute("id", "provinceEmblems");
-    // this.emblems.append("g").setAttribute("id", "stateEmblems");
+    // emblem groups
+    this.emblems.append("g").attr("id", "burgEmblems");
+    this.emblems.append("g").attr("id", "provinceEmblems");
+    this.emblems.append("g").attr("id", "stateEmblems");
 
-    // // fogging
-    // this.fogging
-    //   .append("rect")
-    //   .setAttribute("x", 0)
-    //   .setAttribute("y", 0)
-    //   .setAttribute("width", "100%")
-    //   .setAttribute("height", "100%");
-    // this.fogging
-    //   .append("rect")
-    //   .setAttribute("x", 0)
-    //   .setAttribute("y", 0)
-    //   .setAttribute("width", "100%")
-    //   .setAttribute("height", "100%")
-    //   .setAttribute("fill", "#e8f0f6")
-    //   .setAttribute("filter", "url(#splotch)");
+    // fogging
+    this.fogging
+      .append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", "100%")
+      .attr("height", "100%");
+    this.fogging
+      .append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", "100%")
+      .attr("height", "100%")
+      .attr("fill", "#e8f0f6")
+      .attr("filter", "url(#splotch)");
 
     // assign events separately as not a viewbox child
     // this.scaleBar.on("mousemove", () => tip("Click to open Units Editor")).on("click", () => editUnits());
@@ -461,19 +455,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     this.mapCoordinates = {}; // map coordinates on globe
     this.options.winds = [225, 45, 225, 315, 135, 315]; // default wind directions
   }
-
-  getMethods = (obj) => {
-    let properties = new Set();
-    let currentObj = obj;
-    do {
-      Object.getOwnPropertyNames(currentObj).map((item) =>
-        properties.add(item)
-      );
-    } while ((currentObj = Object.getPrototypeOf(currentObj)));
-    return [...properties.keys()].filter(
-      (item: any) => typeof obj[item] === "function"
-    );
-  };
 
   // Re-mark features (ocean, lakes, islands)
   reMarkFeatures() {
@@ -662,10 +643,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   zoomed = () => {
     const { k, x, y } = d3.event.transform;
-
     const isScaleChanged = Boolean(this.scale - k);
     const isPositionChanged = Boolean(this.viewX - x || this.viewY - y);
-
     this.scale = k;
     this.viewX = x;
     this.viewY = y;
@@ -775,6 +754,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   getBoundaryPoints = (width, height, spacing) => {
+    console.log("getBoundaryPoints");
     const offset = this.rn(-1 * spacing);
     const bSpacing = spacing * 2;
     const w = width - offset * 2;
@@ -1018,8 +998,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       features.map((f) => (f.land ? f.cells : 0)),
       (a, b) => b - a
     );
-    const landMask = this.defs.querySelector("#land");
-    const waterMask = this.defs.querySelector("#water");
+    const landMask = this.defs.select("#land");
+    const waterMask = this.defs.select("#water");
     this.lineGen.curve(d3.curveBasisClosed);
 
     for (const i of cells.i) {
@@ -1052,35 +1032,35 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       if (features[f].type === "lake") {
         landMask
           .append("path")
-          .setAttribute("d", path)
-          .setAttribute("fill", "black")
-          .setAttribute("id", "land_" + f);
-        // waterMask.append("path").setAttribute("d", path).setAttribute("fill", "white").setAttribute("id", "water_"+id); // uncomment to show over lakes
+          .attr("d", path)
+          .attr("fill", "black")
+          .attr("id", "land_" + f);
+        // waterMask.append("path").attr("d", path).attr("fill", "white").attr("id", "water_"+id); // uncomment to show over lakes
         this.lakes
-          .querySelector("#freshwater")
+          .select("#freshwater")
           .append("path")
-          .setAttribute("d", path)
-          .setAttribute("id", "lake_" + f)
-          .setAttribute("data-f", f); // draw the lake
+          .attr("d", path)
+          .attr("id", "lake_" + f)
+          .attr("data-f", f); // draw the lake
       } else {
         landMask
           .append("path")
-          .setAttribute("d", path)
-          .setAttribute("fill", "white")
-          .setAttribute("id", "land_" + f);
+          .attr("d", path)
+          .attr("fill", "white")
+          .attr("id", "land_" + f);
         waterMask
           .append("path")
-          .setAttribute("d", path)
-          .setAttribute("fill", "black")
-          .setAttribute("id", "water_" + f);
+          .attr("d", path)
+          .attr("fill", "black")
+          .attr("id", "water_" + f);
         const g =
           features[f].group === "lake_island" ? "lake_island" : "sea_island";
         this.coastline
-          .querySelector("#" + g)
+          .select("#" + g)
           .append("path")
-          .setAttribute("d", path)
-          .setAttribute("id", "island_" + f)
-          .setAttribute("data-f", f); // draw the coastline
+          .attr("d", path)
+          .attr("id", "island_" + f)
+          .attr("data-f", f); // draw the coastline
       }
 
       // draw ruler to cover the biggest land piece
@@ -1175,14 +1155,15 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   };
 
   // random number in a range
-  rand = (min = 1, max) => {
-    if (min === undefined && max === undefined) return Math.random();
-    if (max === undefined) {
-      max = min;
-      min = 0;
-    }
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  };
+  // random number in a range
+  rand(x = 1, y) {
+    return x + (crypto.getRandomValues(new Uint32Array(1))[0] % (y - x + 1));
+  }
+
+  // return random value from the array
+  ra(array) {
+    return array[this.rand(0, array.length - 1)];
+  }
 
   // probability shorthand
   P = (probability) => {
@@ -1414,11 +1395,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     return array[array.length - 1];
   };
 
-  // return random value from the array
-  ra = (array) => {
-    return array[Math.floor(Math.random() * array.length)];
-  };
-
   // return random value from weighted array {"key1":weight1, "key2":weight2}
   rw = (object) => {
     const array = [];
@@ -1427,7 +1403,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         array.push(key);
       }
     }
-    return array[Math.floor(Math.random() * array.length)];
+    return array[this.rand(0, array.length - 1)];
   };
 
   // return value in range [0, 100] (height range)
@@ -1481,8 +1457,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   //   .data(data)
   //   .enter()
   //   .append("text")
-  //   .setAttribute("x", (d, i) => pack.cells.p[i][0])
-  //   .setAttribute("y", (d, i) => pack.cells.p[i][1])
+  //   .attr("x", (d, i) => pack.cells.p[i][0])
+  //   .attr("y", (d, i) => pack.cells.p[i][1])
   //   .text(d => d);
   // }
 
@@ -1499,9 +1475,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     //   .data(data)
     //   .enter()
     //   .append("polygon")
-    //   .setAttribute("points", (d, i) => getPackPolygon(i))
-    //   .setAttribute("fill", d => scheme(d))
-    //   .setAttribute("stroke", d => scheme(d));
+    //   .attr("points", (d, i) => getPackPolygon(i))
+    //   .attr("fill", d => scheme(d))
+    //   .attr("stroke", d => scheme(d));
   };
 
   // polyfill for composedPath
@@ -1539,6 +1515,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       setTimeout(() => (isCooldown = false), ms);
     };
   };
+
   throttle = (func, ms) => {
     let isThrottled = false;
     let savedArgs;
@@ -1652,11 +1629,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   ReliefIcons = (() => {
     const ReliefIcons = () => {
-      this.terrain.innerHTML = "";
+      this.terrain.selectAll("*").remove();
 
       const cells = this.pack.cells;
-      const density = this.terrain.getAttribute("density") || 0.4;
-      const size = 2 * (this.terrain.getAttribute("size") || 1);
+      const density = this.terrain.attr("density") || 0.4;
+      const size = 2 * (this.terrain.attr("size") || 1);
       const mod = 0.2 * size; // size modifier
       const relief = [];
 
@@ -1788,7 +1765,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     }
 
     const getIcon = (type) => {
-      const set = this.terrain.getAttribute("set") || "simple";
+      const set = this.terrain.attr("set") || "simple";
       if (set === "simple") return "#relief-" + getOldIcon(type) + "-1";
       if (set === "colored") return "#relief-" + type + "-" + getVariant(type);
       if (set === "gray")
@@ -2181,7 +2158,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         return this.showUploadMessage("invalid", mapData, mapVersion);
       return this.parseLoadedData(mapData);
     };
-
+    console.log("fileReader");
     fileReader.readAsText(file, "UTF-8");
   };
 
@@ -2248,8 +2225,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       if (settings[7] !== undefined) this.barLabel = settings[7];
       if (settings[8] !== undefined) this.barBackOpacity = settings[8];
       if (settings[9]) this.barBackColor = settings[9];
-      if (settings[10]) this.barPosX = settings[10];
-      if (settings[11]) this.barPosY = settings[11];
+      // if (settings[10]) this.barPosX = settings[10];
+      // if (settings[11]) this.barPosY = settings[11];
       if (settings[12]) this.populationRate = settings[12];
       if (settings[13]) this.urbanization = settings[13];
       // if (settings[14]) this.mapSizeInput.value = this.mapSizeOutput.value = Math.max(Math.min(settings[14], 100), 1);
@@ -2267,11 +2244,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       if (data[4]) this.notes = JSON.parse(data[4]);
 
       // v 1.61 changed rulers data
-      // this.ruler.display = null;
+      this.ruler.style("display", null);
       this.rulers = new Rulers();
       let rulers = this.rulers;
 
-      if (data[33]) this.rulers.fromString(data[33]);
+      // if (data[33]) this.rulers.fromString(data[33]);
       if (data[34]) {
         const usedFonts = JSON.parse(data[34]);
         usedFonts.forEach((usedFont) => {
@@ -2309,74 +2286,77 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         this.biomesData.cost.push(50);
       }
 
-      // this.svg.remove();
       let mapWrapper = document.getElementById("map-wrapper");
 
       mapWrapper.insertAdjacentHTML("afterbegin", data[5]);
-      let tempMap = document.getElementById("map");
+      // let tempMap = document.getElementById("map");
 
-      this.map.nativeElement.children[0].innerHTML =
-        tempMap.children[0].innerHTML;
-      this.map.nativeElement.children.viewbox.innerHTML =
-        tempMap.children[1].innerHTML;
-      this.map.nativeElement.children.scaleBar.innerHTML =
-        tempMap.children[2].innerHTML;
-      this.map.nativeElement.children.legend.innerHTML =
-        tempMap.children[3].innerHTML;
+      // this.map.nativeElement.children[0].innerHTML =
+      //   tempMap.children[0].innerHTML;
+      // this.map.nativeElement.children.viewbox.innerHTML =
+      //   tempMap.children[1].innerHTML;
+      // this.map.nativeElement.children.scaleBar.innerHTML =
+      //   tempMap.children[2].innerHTML;
+      // this.map.nativeElement.children.legend.innerHTML =
+      //   tempMap.children[3].innerHTML;
 
-      tempMap.remove();
-      this.svg = this.map.nativeElement; //d3.select("#map");
+      // tempMap.remove();
+      //   this.svg = this.map.nativeElement; //d3.select("#map");
 
-      this.defs = this.svg.children[0].querySelector("#deftemp");
-      this.viewbox = this.svg.children.viewbox;
+      // this.svg.remove();
+
+      // this.map.nativeElement.innerHTML = tempMap.innerHTML;
+      this.svg = d3.select("#map");
+
+      this.defs = this.svg.select("#deftemp");
+      this.viewbox = this.svg.select("#viewbox");
       this.restoreDefaultEvents(); // apply default viewbox events on load
-      this.scaleBar = d3.select("#scaleBar");
-      this.legend = this.svg.children.legend;
-      this.ocean = this.viewbox.children.ocean;
-      this.oceanLayers = this.ocean.children.oceanLayers;
-      this.oceanPattern = this.ocean.children.oceanPattern;
-      this.lakes = this.viewbox.children.lakes;
-      this.landmass = this.viewbox.children.landmass;
-      this.texture = this.viewbox.children.texture;
-      this.terrs = this.viewbox.children.terrs;
-      this.biomes = this.viewbox.children.biomes;
-      this.ice = this.viewbox.children.ice;
-      this.cells = this.viewbox.children.cells;
-      this.gridOverlay = this.viewbox.children.gridOverlay;
-      this.coordinates = this.viewbox.children.coordinates;
-      this.compass = this.viewbox.children.compass;
-      this.rivers = this.viewbox.children.rivers;
-      this.terrain = this.viewbox.children.terrain;
-      this.relig = this.viewbox.children.relig;
-      this.cults = this.viewbox.children.cults;
-      this.regions = this.viewbox.children.regions;
-      this.statesBody = this.regions.children.statesBody;
-      this.statesHalo = this.regions.children.statesHalo;
-      this.provs = this.viewbox.children.provs;
-      this.zones = this.viewbox.children.zones;
-      this.borders = this.viewbox.children.borders;
-      this.stateBorders = this.borders.children.stateBorders;
-      this.provinceBorders = this.borders.children.provinceBorders;
-      this.routes = this.viewbox.children.routes;
-      this.roads = this.routes.children.roads;
-      this.trails = this.routes.children.trails;
-      this.searoutes = this.routes.children.searoutes;
-      this.temperature = this.viewbox.children.temperature;
-      this.coastline = this.viewbox.children.coastline;
-      this.prec = this.viewbox.children.prec;
-      this.population = this.viewbox.children.population;
-      this.emblems = this.viewbox.children.emblems;
-      this.labels = this.viewbox.children.labels;
-      this.icons = this.viewbox.children.icons;
-      this.burgIcons = this.icons.children.burgIcons;
-      this.anchors = this.icons.children.anchors;
-      this.armies = this.viewbox.children.armies;
-      this.markers = this.viewbox.children.markers;
-      this.ruler = this.viewbox.children.ruler;
-
-      this.fogging = this.viewbox.children["fogging-cont"].children.fogging;
-      this.debug = this.viewbox.children.debug;
-      this.burgLabels = this.labels.children.burgLabels;
+      this.scaleBar = this.svg.select("#scaleBar");
+      this.legend = this.svg.select("#legend");
+      this.ocean = this.viewbox.select("#ocean");
+      this.oceanLayers = this.ocean.select("#oceanLayers");
+      this.oceanPattern = this.ocean.select("#oceanPattern");
+      this.lakes = this.viewbox.select("#lakes");
+      this.landmass = this.viewbox.select("#landmass");
+      this.texture = this.viewbox.select("#texture");
+      this.terrs = this.viewbox.select("#terrs");
+      this.biomes = this.viewbox.select("#biomes");
+      this.ice = this.viewbox.select("#ice");
+      this.cells = this.viewbox.select("#cells");
+      this.gridOverlay = this.viewbox.select("#gridOverlay");
+      this.coordinates = this.viewbox.select("#coordinates");
+      this.compass = this.viewbox.select("#compass");
+      this.rivers = this.viewbox.select("#rivers");
+      this.terrain = this.viewbox.select("#terrain");
+      this.relig = this.viewbox.select("#relig");
+      this.cults = this.viewbox.select("#cults");
+      this.regions = this.viewbox.select("#regions");
+      this.statesBody = this.regions.select("#statesBody");
+      this.statesHalo = this.regions.select("#statesHalo");
+      this.provs = this.viewbox.select("#provs");
+      this.zones = this.viewbox.select("#zones");
+      this.borders = this.viewbox.select("#borders");
+      this.stateBorders = this.borders.select("#stateBorders");
+      this.provinceBorders = this.borders.select("#provinceBorders");
+      this.routes = this.viewbox.select("#routes");
+      this.roads = this.routes.select("#roads");
+      this.trails = this.routes.select("#trails");
+      this.searoutes = this.routes.select("#searoutes");
+      this.temperature = this.viewbox.select("#temperature");
+      this.coastline = this.viewbox.select("#coastline");
+      this.prec = this.viewbox.select("#prec");
+      this.population = this.viewbox.select("#population");
+      this.emblems = this.viewbox.select("#emblems");
+      this.labels = this.viewbox.select("#labels");
+      this.icons = this.viewbox.select("#icons");
+      this.burgIcons = this.icons.select("#burgIcons");
+      this.anchors = this.icons.select("#anchors");
+      this.armies = this.viewbox.select("#armies");
+      this.markers = this.viewbox.select("#markers");
+      this.ruler = this.viewbox.select("#ruler");
+      this.fogging = this.viewbox.select("#fogging");
+      this.debug = this.viewbox.select("#debug");
+      this.burgLabels = this.labels.select("#burgLabels");
       document.getElementById("searoutes").setAttribute("fill", "none");
       document.getElementById("stateBorders").setAttribute("fill", "none");
       document.getElementById("provinceBorders").setAttribute("fill", "none");
@@ -2402,9 +2382,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.pack.religions = data[29]
         ? JSON.parse(data[29])
         : [{ i: 0, name: "No religion" }];
+      this.pack.markers = data[35] ? JSON.parse(data[35]) : [];
       this.pack.provinces = data[30] ? JSON.parse(data[30]) : [0];
       this.pack.rivers = data[32] ? JSON.parse(data[32]) : [];
-      this.pack.markers = data[35] ? JSON.parse(data[35]) : [];
 
       this.cells = this.pack.cells;
 
@@ -2449,15 +2429,14 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       }
 
       // helper functions
-      const notHidden = (selection) => {
-        return selection.style.display !== "none";
-      };
+      const notHidden = (selection) =>
+        selection.node() && selection.style("display") !== "none";
       const hasChildren = (selection): boolean => {
-        return selection.children.length;
+        return selection.node()?.hasChildNodes();
       };
-      const hasChild = (selection, selector) => {
-        return selection.querySelector(selector);
-      };
+      const hasChild = (selection, selector) =>
+        selection.node()?.querySelector(selector);
+
       // turn on active layers
       if (notHidden(this.texture) && hasChild(this.texture, "image"))
         this.toggleTexture(1);
@@ -2499,6 +2478,119 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       // this.legend.on("mousemove", () => tip("Drag to change the position. Click to hide the legend")).on("click", () => this.clearLegend());
 
       const version = parseFloat(data[0].split("|")[0]);
+      console.log(version);
+      // if (version < 1.64) {
+      // v.1.64 change states style
+      const opacity = this.regions.attr("opacity");
+      const filter = this.regions.attr("filter");
+      this.statesBody.attr("opacity", opacity).attr("filter", filter);
+      this.statesHalo.attr("opacity", opacity).attr("filter", "blur(5px)");
+      this.regions.attr("opacity", null).attr("filter", null);
+      // }
+
+      // if (version < 1.65) {
+      // v 1.65 changed rivers data
+      d3.select("#rivers").attr("style", null); // remove style to unhide layer
+      const { cells, rivers } = this.pack;
+
+      for (const river of rivers) {
+        const node = <any>document.getElementById("river" + river.i);
+        if (node && !river.cells) {
+          const riverCells = [];
+          const riverPoints = [];
+
+          const length = node.getTotalLength() / 2;
+          const segments = Math.ceil(length / 6);
+          const increment = length / segments;
+
+          for (let i = 0; i <= segments; i++) {
+            const shift = increment * i;
+            const { x: x1, y: y1 } = node.getPointAtLength(length + shift);
+            const { x: x2, y: y2 } = node.getPointAtLength(length - shift);
+            const x = this.rn((x1 + x2) / 2, 1);
+            const y = this.rn((y1 + y2) / 2, 1);
+
+            const cell = this.findCell(x, y);
+            riverPoints.push([x, y]);
+            riverCells.push(cell);
+          }
+
+          river.cells = riverCells;
+          river.points = riverPoints;
+        }
+
+        river.widthFactor = 1;
+
+        cells.i.forEach((i) => {
+          const riverInWater = cells.r[i] && cells.h[i] < 20;
+          if (riverInWater) cells.r[i] = 0;
+        });
+      }
+      // }
+
+      if (version < 1.652) {
+        // remove style to unhide layers
+        this.rivers.attr("style", null);
+        this.borders.attr("style", null);
+      }
+
+      if (version < 1.7) {
+        // v 1.7 changed markers data
+        const defs = document.getElementById("defs-markers");
+        const markersGroup = document.getElementById("markers");
+        const markerElements = markersGroup.querySelectorAll("use");
+        const rescale = +markersGroup.getAttribute("rescale");
+        this.pack.markers = Array.from(markerElements).map((el, i) => {
+          const id = el.getAttribute("id");
+          const note = this.notes.find((note) => note.id === id);
+          if (note) note.id = `marker${i}`;
+
+          let x = +el.dataset.x;
+          let y = +el.dataset.y;
+          const transform = el.getAttribute("transform");
+          if (transform) {
+            const [dx, dy] = this.parseTransform(transform);
+            if (dx) x += +dx;
+            if (dy) y += +dy;
+          }
+          const cell = this.findCell(x, y);
+          const size = this.rn(
+            rescale
+              ? parseInt(el.dataset.size, 10) * 30
+              : el.getAttribute("width"),
+            1
+          );
+
+          const href = el.href.baseVal;
+          const type = href.replace("#marker_", "");
+          const symbol = defs.querySelector(`symbol${href}`);
+          const text = symbol.querySelector("text");
+          const circle = symbol.querySelector("circle");
+
+          const icon = text.innerHTML;
+          const px = Number(text.getAttribute("font-size")?.replace("px", ""));
+          const dx = Number(text.getAttribute("x")?.replace("%", ""));
+          const dy = Number(text.getAttribute("y")?.replace("%", ""));
+          const fill = circle.getAttribute("fill");
+          const stroke = circle.getAttribute("stroke");
+
+          const marker: any = { i, icon, type, x, y, size, cell };
+          if (size && size !== 30) marker.size = size;
+          if (!isNaN(px) && px !== 12) marker.px = px;
+          if (!isNaN(dx) && dx !== 50) marker.dx = dx;
+          if (!isNaN(dy) && dy !== 50) marker.dy = dy;
+          if (fill && fill !== "#ffffff") marker.fill = fill;
+          if (stroke && stroke !== "#000000") marker.stroke = stroke;
+          if (circle.getAttribute("opacity") === "0") marker.pin = "no";
+
+          return marker;
+        });
+
+        markersGroup.style.display = null;
+        defs.remove();
+        markerElements.forEach((el) => el.remove());
+        if (this.layerIsOn("markers")) this.drawMarkers();
+      }
 
       // const cells = this.pack.cells;
 
@@ -2613,7 +2705,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
           (i: number) => this.cells.r[i] === r
         );
         invalidCells.forEach((i) => (this.cells.r[i] = 0));
-        this.rivers.querySelector("river" + r).remove();
+        this.rivers.select("river" + r).remove();
         console.error(
           "Data Integrity Check. Invalid river",
           r,
@@ -2671,20 +2763,18 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         );
         p.removed = true; // remove incorrect province
       });
-      this.fogging;
+
       this.changeMapSize();
 
       // remove href from emblems, to trigger rendering on load
-      this.emblems
-        .querySelectorAll("use")
-        .forEach((el) => el.setAttribute("href", null));
+      this.emblems.selectAll("use").attr("href", null);
 
       // draw data layers (no kept in svg)
 
       // set options
       // this.yearInput.value = 1000;
       // this.eraInput.value = "Era";
-      // this.shapeRendering.value = this.viewbox.getAttribute("shape-rendering") || "geometricPrecision";
+      // this.shapeRendering.value = this.viewbox.attr("shape-rendering") || "geometricPrecision";
 
       // if (window.restoreDefaultEvents) restoreDefaultEvents();
       this.focusOn(); // based on searchParams focus on point, cell or burg
@@ -2857,9 +2947,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     const defineGroup = function () {
       for (const feature of pack.features) {
         if (feature.type !== "lake") continue;
-        const lakeEl = this.lakes
-          .querySelector(`[data-f="${feature.i}"]`)
-          .node();
+        const lakeEl = this.lakes.select(`[data-f="${feature.i}"]`).node();
         if (!lakeEl) continue;
 
         feature.group = getGroup(feature);
@@ -2920,7 +3008,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     // const fontFace: any = new FontFace(family, src, {...rest, display: "block"});
     // document.fonts.add(fontFace);
-
+    console.log("document.fonts.add(fontFace)");
     this.addFontOption(family);
   };
 
@@ -2940,7 +3028,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       if (font) usedFontFamilies.add(font);
     }
 
-    const provinceFont = this.provs.getAttribute("font-family");
+    const provinceFont = this.provs.attr("font-family");
     if (provinceFont) usedFontFamilies.add(provinceFont);
 
     const legend = svg.querySelector("#legend");
@@ -3353,7 +3441,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       const id = type + "COA" + i;
       const g = document.getElementById(type + "Emblems");
 
-      if (this.emblems.querySelectorAll("use").length) {
+      if (this.emblems.selectAll("use").size()) {
         const size = +g.getAttribute("font-size") || 50;
         const use = `<use data-i="${i}" x="${x - size / 2}" y="${
           y - size / 2
@@ -3494,33 +3582,33 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
       // capitals
       const capitals = pack.burgs.filter((b) => b.capital);
-      const capitalIcons = burgIcons.querySelector("#cities");
-      const capitalLabels = burgLabels.querySelector("#cities");
-      const capitalSize = capitalIcons.getAttribute("size") || 1;
+      const capitalIcons = burgIcons.select("#cities");
+      const capitalLabels = burgLabels.select("#cities");
+      const capitalSize = capitalIcons.attr("size") || 1;
       const capitalAnchors = anchors.selectAll("#cities");
-      const caSize = capitalAnchors.getAttribute("size") || 2;
+      const caSize = capitalAnchors.attr("size") || 2;
 
       capitalIcons
         .selectAll("circle")
         .data(capitals)
         .enter()
         .append("circle")
-        .setAttribute("id", (d) => "burg" + d.i)
-        .setAttribute("data-id", (d) => d.i)
-        .setAttribute("cx", (d) => d.x)
-        .setAttribute("cy", (d) => d.y)
-        .setAttribute("r", capitalSize);
+        .attr("id", (d) => "burg" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("cx", (d) => d.x)
+        .attr("cy", (d) => d.y)
+        .attr("r", capitalSize);
 
       capitalLabels
         .selectAll("text")
         .data(capitals)
         .enter()
         .append("text")
-        .setAttribute("id", (d) => "burgLabel" + d.i)
-        .setAttribute("data-id", (d) => d.i)
-        .setAttribute("x", (d) => d.x)
-        .setAttribute("y", (d) => d.y)
-        .setAttribute("dy", `${capitalSize * -1.5}px`)
+        .attr("id", (d) => "burgLabel" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => d.x)
+        .attr("y", (d) => d.y)
+        .attr("dy", `${capitalSize * -1.5}px`)
         .text((d) => d.name);
 
       capitalAnchors
@@ -3528,42 +3616,42 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         .data(capitals.filter((c) => c.port))
         .enter()
         .append("use")
-        .setAttribute("xlink:href", "#icon-anchor")
-        .setAttribute("data-id", (d) => d.i)
-        .setAttribute("x", (d) => rn(d.x - caSize * 0.47, 2))
-        .setAttribute("y", (d) => rn(d.y - caSize * 0.47, 2))
-        .setAttribute("width", caSize)
-        .setAttribute("height", caSize);
+        .attr("xlink:href", "#icon-anchor")
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => rn(d.x - caSize * 0.47, 2))
+        .attr("y", (d) => rn(d.y - caSize * 0.47, 2))
+        .attr("width", caSize)
+        .attr("height", caSize);
 
       // towns
       const towns = pack.burgs.filter((b) => b.i && !b.capital);
-      const townIcons = burgIcons.querySelector("#towns");
-      const townLabels = burgLabels.querySelector("#towns");
-      const townSize = townIcons.getAttribute("size") || 0.5;
+      const townIcons = burgIcons.select("#towns");
+      const townLabels = burgLabels.select("#towns");
+      const townSize = townIcons.attr("size") || 0.5;
       const townsAnchors = anchors.selectAll("#towns");
-      const taSize = townsAnchors.getAttribute("size") || 1;
+      const taSize = townsAnchors.attr("size") || 1;
 
       townIcons
         .selectAll("circle")
         .data(towns)
         .enter()
         .append("circle")
-        .setAttribute("id", (d) => "burg" + d.i)
-        .setAttribute("data-id", (d) => d.i)
-        .setAttribute("cx", (d) => d.x)
-        .setAttribute("cy", (d) => d.y)
-        .setAttribute("r", townSize);
+        .attr("id", (d) => "burg" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("cx", (d) => d.x)
+        .attr("cy", (d) => d.y)
+        .attr("r", townSize);
 
       townLabels
         .selectAll("text")
         .data(towns)
         .enter()
         .append("text")
-        .setAttribute("id", (d) => "burgLabel" + d.i)
-        .setAttribute("data-id", (d) => d.i)
-        .setAttribute("x", (d) => d.x)
-        .setAttribute("y", (d) => d.y)
-        .setAttribute("dy", `${townSize * -1.5}px`)
+        .attr("id", (d) => "burgLabel" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => d.x)
+        .attr("y", (d) => d.y)
+        .attr("dy", `${townSize * -1.5}px`)
         .text((d) => d.name);
 
       townsAnchors
@@ -3571,12 +3659,12 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         .data(towns.filter((c) => c.port))
         .enter()
         .append("use")
-        .setAttribute("xlink:href", "#icon-anchor")
-        .setAttribute("data-id", (d) => d.i)
-        .setAttribute("x", (d) => rn(d.x - taSize * 0.47, 2))
-        .setAttribute("y", (d) => rn(d.y - taSize * 0.47, 2))
-        .setAttribute("width", taSize)
-        .setAttribute("height", taSize);
+        .attr("xlink:href", "#icon-anchor")
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => rn(d.x - taSize * 0.47, 2))
+        .attr("y", (d) => rn(d.y - taSize * 0.47, 2))
+        .attr("width", taSize)
+        .attr("height", taSize);
 
       console.timeEnd("drawBurgs");
     };
@@ -3872,8 +3960,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       }
 
       void (function drawLabels() {
-        const g = labels.querySelector("#states");
-        const t = defs.querySelector("#textPaths");
+        const g = labels.select("#states");
+        const t = defs.select("#textPaths");
 
         if (!list) {
           // remove all labels and textpaths
@@ -3883,8 +3971,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
         const example = g
           .append("text")
-          .setAttribute("x", 0)
-          .setAttribute("x", 0)
+          .attr("x", 0)
+          .attr("x", 0)
           .text("Average");
         const letterLength = example.node().getComputedTextLength() / 7; // average length of 1 letter
 
@@ -3893,8 +3981,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
           const s = states[p[0]];
 
           if (list) {
-            t.querySelector("#textPath_stateLabel" + id).remove();
-            g.querySelector("#stateLabel" + id).remove();
+            t.select("#textPath_stateLabel" + id).remove();
+            g.select("#stateLabel" + id).remove();
           }
 
           const path =
@@ -3903,8 +3991,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
               : `M${p[1][0][0] - 50},${p[1][0][1]}h${100}`;
           const textPath = t
             .append("path")
-            .setAttribute("d", path)
-            .setAttribute("id", "textPath_stateLabel" + id);
+            .attr("d", path)
+            .attr("id", "textPath_stateLabel" + id);
           const pathLength =
             p[1].length > 1
               ? textPath.node().getTotalLength() / letterLength
@@ -3948,10 +4036,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
               rn(l[0] + dx * mod),
               rn(l[1] + dy * mod),
             ];
-            textPath.setAttribute("d", round(lineGen(points)));
+            textPath.attr("d", round(lineGen(points)));
           }
 
-          example.setAttribute("font-size", ratio + "%");
+          example.attr("font-size", ratio + "%");
           const top = (lines.length - 1) / -2; // y offset
           const spans = lines.map((l, d) => {
             example.text(l);
@@ -3961,11 +4049,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
           const el = g
             .append("text")
-            .setAttribute("id", "stateLabel" + id)
+            .attr("id", "stateLabel" + id)
             .append("textPath")
-            .setAttribute("xlink:href", "#textPath_stateLabel" + id)
-            .setAttribute("startOffset", "50%")
-            .setAttribute("font-size", ratio + "%")
+            .attr("xlink:href", "#textPath_stateLabel" + id)
+            .attr("startOffset", "50%")
+            .attr("font-size", ratio + "%")
             .node();
 
           el.insertAdjacentHTML("afterbegin", spans.join(""));
@@ -4491,7 +4579,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   fitScaleBar = () => {
     if (
       !this.scaleBar.select("rect").size() ||
-      this.scaleBar.style.display === "none"
+      this.scaleBar.style("display") === "none"
     )
       return;
     const px = isNaN(+this.barPosX) ? 0.99 : this.barPosX / 100;
@@ -4622,16 +4710,16 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   toggleHeight = (bool) => {
-    if (!this.terrs.children.length && bool) {
+    if (!this.terrs.selectAll("*").size() && bool) {
       this.drawHeightmap();
     } else {
-      this.terrs.innerHTML = "";
+      this.terrs.selectAll("*").remove();
     }
   };
 
   drawHeightmap() {
     console.time("drawHeightmap");
-    this.terrs.innerHTML = "";
+    this.terrs.selectAll("*").remove();
     const cells = this.pack.cells,
       vertices = this.pack.vertices,
       n = cells.i.length;
@@ -4639,10 +4727,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     const paths = new Array(101).fill("");
 
     const scheme = this.getColorScheme();
-    const terracing = this.terrs.getAttribute("terracing") / 10; // add additional shifted darker layer for pseudo-3d effect
-    const skip = +this.terrs.getAttribute("skip") + 1;
-    const simplification = +this.terrs.getAttribute("relax");
-    switch (+this.terrs.getAttribute("curve")) {
+    const terracing = this.terrs.attr("terracing") / 10; // add additional shifted darker layer for pseudo-3d effect
+    const skip = +this.terrs.attr("skip") + 1;
+    const simplification = +this.terrs.attr("relax");
+    switch (+this.terrs.attr("curve")) {
       case 0:
         this.lineGen.curve(d3.curveBasisClosed);
         break;
@@ -4677,26 +4765,26 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     this.terrs
       .append("rect")
-      .setAttribute("x", 0)
-      .setAttribute("y", 0)
-      .setAttribute("width", this.graphWidth)
-      .setAttribute("height", this.graphHeight)
-      .setAttribute("fill", scheme(0.8)); // draw base layer
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", this.graphWidth)
+      .attr("height", this.graphHeight)
+      .attr("fill", scheme(0.8)); // draw base layer
     for (const i of d3.range(20, 101)) {
       if (paths[i].length < 10) continue;
       const color = this.getColor(i, scheme);
       if (terracing)
         this.terrs
           .append("path")
-          .setAttribute("d", paths[i])
-          .setAttribute("transform", "translate(.7,1.4)")
-          .setAttribute("fill", d3.color(color).darker(terracing))
-          .setAttribute("data-height", i);
+          .attr("d", paths[i])
+          .attr("transform", "translate(.7,1.4)")
+          .attr("fill", d3.color(color).darker(terracing))
+          .attr("data-height", i);
       this.terrs
         .append("path")
-        .setAttribute("d", paths[i])
-        .setAttribute("fill", color)
-        .setAttribute("data-height", i);
+        .attr("d", paths[i])
+        .attr("fill", color)
+        .attr("data-height", i);
     }
 
     // connect vertices to chain
@@ -4736,7 +4824,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   getColorScheme() {
-    const scheme = this.terrs.getAttribute("scheme");
+    const scheme = this.terrs.attr("scheme");
     if (scheme === "bright") return d3.scaleSequential(d3.interpolateSpectral);
     if (scheme === "light") return d3.scaleSequential(d3.interpolateRdYlGn);
     if (scheme === "green") return d3.scaleSequential(d3.interpolateGreens);
@@ -4749,16 +4837,16 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   toggleTemp(event) {
-    if (!this.temperature.children.length) {
+    if (!this.temperature.selectAll("*").size()) {
       this.drawTemp();
     } else {
-      this.temperature.innerHTML = "";
+      this.temperature.selectAll("*").remove();
     }
   }
 
   drawTemp() {
     console.time("drawTemp");
-    this.temperature.innerHTML = "";
+    this.temperature.selectAll("*").remove();
     this.lineGen.curve(d3.curveBasisClosed);
     const scheme = d3.scaleSequential(d3.interpolateSpectral);
     const tMax = +this.temperatureEquatorOutput.max,
@@ -4783,7 +4871,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       const start = findStart(i, t);
       if (!start) continue;
       used[i] = 1;
-      //debug.append("circle").setAttribute("r", 3).setAttribute("cx", vertices.p[start][0]).setAttribute("cy", vertices.p[start][1]).setAttribute("fill", "red").setAttribute("stroke", "black").setAttribute("stroke-width", .3);
+      //debug.append("circle").attr("r", 3).attr("cx", vertices.p[start][0]).attr("cy", vertices.p[start][1]).attr("fill", "red").attr("stroke", "black").attr("stroke-width", .3);
 
       const chain = connectVertices(start, t); // vertices chain to form a path
       const relaxed = chain.filter(
@@ -4798,12 +4886,12 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     // min temp isoline covers all graph
     this.temperature
       .append("path")
-      .setAttribute(
+      .attr(
         "d",
         `M0,0 h${this.graphWidth} v${this.graphHeight} h${-this.graphWidth} Z`
       )
-      .setAttribute("fill", scheme(1 - (min - tMin) / delta))
-      .setAttribute("stroke", "none");
+      .attr("fill", scheme(1 - (min - tMin) / delta))
+      .attr("stroke", "none");
 
     for (const t of isolines) {
       const path = chains
@@ -4815,22 +4903,22 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         stroke = d3.color(fill).darker(0.2);
       this.temperature
         .append("path")
-        .setAttribute("d", path)
-        .setAttribute("fill", fill)
-        .setAttribute("stroke", stroke);
+        .attr("d", path)
+        .attr("fill", fill)
+        .attr("stroke", stroke);
     }
 
     const tempLabels = this.temperature
       .append("g")
-      .setAttribute("id", "tempLabels")
-      .setAttribute("fill-opacity", 1);
+      .attr("id", "tempLabels")
+      .attr("fill-opacity", 1);
     tempLabels
       .selectAll("text")
       .data(labels)
       .enter()
       .append("text")
-      .setAttribute("x", (d) => d[0])
-      .setAttribute("y", (d) => d[1])
+      .attr("x", (d) => d[0])
+      .attr("y", (d) => d[1])
       .text((d) => this.convertTemperature(d[2]));
 
     // find cell with temp < isotherm and find vertex to start path detection
@@ -4907,15 +4995,15 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   toggleBiomes(bool) {
-    if (!this.biomes.querySelectorAll("path").length && bool) {
+    if (!this.biomes.selectAll("path").size() && bool) {
       this.drawBiomes();
     } else {
-      this.biomes.querySelectorAll("path").each((el) => el.remove());
+      this.biomes.selectAll("path").remove();
     }
   }
 
   drawBiomes() {
-    this.biomes.querySelectorAll("path").each((el) => el.remove());
+    this.biomes.selectAll("path").remove();
     const cells = this.pack.cells,
       vertices = this.pack.vertices,
       n = cells.i.length;
@@ -4944,10 +5032,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       if (d.length < 10) return;
       this.biomes
         .append("path")
-        .setAttribute("d", d)
-        .setAttribute("fill", this.biomesData.color[i])
-        .setAttribute("stroke", this.biomesData.color[i])
-        .setAttribute("id", "biome" + i);
+        .attr("d", d)
+        .attr("fill", this.biomesData.color[i])
+        .attr("stroke", this.biomesData.color[i])
+        .attr("id", "biome" + i);
     });
 
     // connect vertices to chain
@@ -4979,21 +5067,17 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   togglePrec(bool) {
-    if (!this.prec.querySelectorAll("circle").length && bool) {
+    if (!this.prec.selectAll("circle").size() && bool) {
       this.drawPrec();
     } else {
       const hide = d3.transition().duration(1000).ease(d3.easeSinIn);
       this.prec
         .selectAll("text")
-        .setAttribute("opacity", 1)
+        .attr("opacity", 1)
         .transition(hide)
-        .setAttribute("opacity", 0);
-      this.prec
-        .selectAll("circle")
-        .transition(hide)
-        .setAttribute("r", 0)
-        .remove();
-      this.prec.transition().delay(1000).style.display = "none";
+        .attr("opacity", 0);
+      this.prec.selectAll("circle").transition(hide).attr("r", 0).remove();
+      this.prec.transition().delay(1000).style("display", "none");
     }
   }
 
@@ -5001,13 +5085,13 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     this.prec.selectAll("circle").remove();
     const cells = this.grid.cells,
       p = this.grid.points;
-    this.prec.style.display = "block";
+    this.prec.style("display", "block");
     const show = d3.transition().duration(800).ease(d3.easeSinIn);
     this.prec
       .selectAll("text")
-      .setAttribute("opacity", 0)
+      .attr("opacity", 0)
       .transition(show)
-      .setAttribute("opacity", 1);
+      .attr("opacity", 1);
 
     const data = cells.i.filter(
       (i: number) => cells.h[i] >= 20 && cells.prec[i]
@@ -5017,11 +5101,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .data(data)
       .enter()
       .append("circle")
-      .setAttribute("cx", (d) => p[d][0])
-      .setAttribute("cy", (d) => p[d][1])
-      .setAttribute("r", 0)
+      .attr("cx", (d) => p[d][0])
+      .attr("cy", (d) => p[d][1])
+      .attr("r", 0)
       .transition(show)
-      .setAttribute("r", (d) =>
+      .attr("r", (d) =>
         this.rn(Math.max(Math.sqrt(cells.prec[d] * 0.5), 0.8), 2)
       );
   }
@@ -5029,28 +5113,28 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   editStyle = (style) => console.log(style);
 
   toggleCells(bool) {
-    if (!this.cells.querySelectorAll("path").length && bool) {
+    if (!this.cells.selectAll("path").size() && bool) {
       this.drawCells();
     } else {
-      this.cells.querySelectorAll("path").each((el) => el.remove());
+      this.cells.selectAll("path").remove();
     }
   }
 
   drawCells() {
-    this.cells.querySelectorAll("path").each((el) => el.remove());
+    this.cells.selectAll("path").remove();
     const data =
       this.customization === 1 ? this.grid.cells.i : this.pack.cells.i;
     const polygon =
       this.customization === 1 ? this.getGridPolygon : this.getPackPolygon;
     let path = "";
     data.forEach((i) => (path += "M" + polygon(i)));
-    this.cells.append("path").setAttribute("d", path);
+    this.cells.append("path").attr("d", path);
   }
 
   toggleIce(bool) {
     if (bool) {
       $("#ice").fadeIn();
-      if (!this.ice.children.length) this.drawIce();
+      if (!this.ice.selectAll("*").size()) this.drawIce();
     } else {
       $("#ice").fadeOut();
     }
@@ -5091,8 +5175,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         const points = this.clipPoly(chain.map((v) => vertices.p[v]));
         this.ice
           .append("polygon")
-          .setAttribute("points", points)
-          .setAttribute("type", "iceShield");
+          .attr("points", points)
+          .attr("type", "iceShield");
         continue;
       }
 
@@ -5113,9 +5197,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       ]);
       ice
         .append("polygon")
-        .setAttribute("points", points)
-        .setAttribute("cell", i)
-        .setAttribute("size", rn(1 - s, 2));
+        .attr("points", points)
+        .attr("cell", i)
+        .attr("size", rn(1 - s, 2));
     }
 
     // connect vertices to chain
@@ -5148,18 +5232,18 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   toggleCultures(bool) {
     const cultures = this.pack.cultures.filter((c) => c.i && !c.removed);
-    const empty = !this.cults.querySelectorAll("path").length;
+    const empty = !this.cults.selectAll("path").size();
     if (empty && cultures.length && bool) {
       this.drawCultures();
     } else {
-      this.cults.querySelectorAll("path").each((el) => el.remove());
+      this.cults.selectAll("path").remove();
     }
   }
 
   drawCultures() {
     console.time("drawCultures");
 
-    this.cults.querySelectorAll("path").each((el) => el.remove());
+    this.cults.selectAll("path").remove();
     const cells = this.pack.cells,
       vertices = this.pack.vertices,
       cultures = this.pack.cultures,
@@ -5189,9 +5273,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .data(data)
       .enter()
       .append("path")
-      .setAttribute("d", (d) => d[0])
-      .setAttribute("fill", (d) => cultures[d[1]].color)
-      .setAttribute("id", (d) => "culture" + d[1]);
+      .attr("d", (d) => d[0])
+      .attr("fill", (d) => cultures[d[1]].color)
+      .attr("id", (d) => "culture" + d[1]);
 
     // connect vertices to chain
     function connectVertices(start, t) {
@@ -5224,21 +5308,17 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   toggleReligions(bool) {
     const religions = this.pack.religions.filter((r) => r.i && !r.removed);
-    if (
-      !this.relig.querySelectorAll("path").length &&
-      religions.length &&
-      bool
-    ) {
+    if (!this.relig.selectAll("path").size() && religions.length && bool) {
       this.drawReligions();
     } else {
-      this.relig.querySelectorAll("path").each((el) => el.remove());
+      this.relig.selectAll("path").remove();
     }
   }
 
   drawReligions() {
     console.time("drawReligions");
 
-    this.relig.querySelectorAll("path").each((el) => el.remove());
+    this.relig.selectAll("path").remove();
     const cells = this.pack.cells,
       vertices = this.pack.vertices,
       religions = this.pack.religions,
@@ -5292,9 +5372,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .data(bodyData)
       .enter()
       .append("path")
-      .setAttribute("d", (d) => d[0])
-      .setAttribute("fill", (d) => d[2])
-      .setAttribute("id", (d) => "religion" + d[1]);
+      .attr("d", (d) => d[0])
+      .attr("fill", (d) => d[2])
+      .attr("id", (d) => "religion" + d[1]);
     const gapData = gap
       .map((p, i) => [p.length > 10 ? p : null, i, religions[i].color])
       .filter((d) => d[0]);
@@ -5303,11 +5383,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .data(gapData)
       .enter()
       .append("path")
-      .setAttribute("d", (d) => d[0])
-      .setAttribute("fill", "none")
-      .setAttribute("stroke", (d) => d[2])
-      .setAttribute("id", (d) => "religion-gap" + d[1])
-      .setAttribute("stroke-width", "10px");
+      .attr("d", (d) => d[0])
+      .attr("fill", "none")
+      .attr("stroke", (d) => d[2])
+      .attr("id", (d) => "religion-gap" + d[1])
+      .attr("stroke-width", "10px");
 
     // connect vertices to chain
     function connectVertices(start, t, religion) {
@@ -5355,18 +5435,16 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   toggleStates(bool) {
     if (bool) {
-      this.regions.display = null;
+      this.regions.style("display", null);
       this.drawStates();
     } else {
-      this.regions.style.display = "none";
-
-      this.regions.querySelectorAll("path").forEach((el) => el.remove());
+      this.regions.style("display", "none").selectAll("path").remove();
     }
   }
 
   drawStates() {
     console.time("drawStates");
-    this.regions.querySelectorAll("path").forEach((el) => el.remove());
+    this.regions.selectAll("path").remove();
 
     const { cells, vertices, features } = this.pack;
     const states = this.pack.states;
@@ -5490,7 +5568,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .join("");
 
     this.statesBody.html(bodyString + gapString);
-    this.defs.querySelector("#statePaths").html(clipString);
+    this.defs.select("#statePaths").html(clipString);
     this.statesHalo.html(haloString);
 
     // connect vertices to chain
@@ -5545,14 +5623,14 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     if (bool) {
       this.drawBorders();
     } else {
-      this.borders.querySelectorAll("path").each((el) => el.remove());
+      this.borders.selectAll("path").remove();
     }
   }
 
   // draw state and province borders
   drawBorders() {
     console.time("drawBorders");
-    this.borders.querySelectorAll("path").each((el) => el.remove());
+    this.borders.selectAll("path").remove();
 
     const { cells, vertices } = this.pack;
     const n = cells.i.length;
@@ -5615,8 +5693,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       }
     }
 
-    this.stateBorders.append("path").setAttribute("d", sPath.join(" "));
-    this.provinceBorders.append("path").setAttribute("d", pPath.join(" "));
+    this.stateBorders.append("path").attr("d", sPath.join(" "));
+    this.provinceBorders.append("path").attr("d", pPath.join(" "));
 
     // connect vertices to chain
     function connectVertices(current, f, array, t, used) {
@@ -5682,19 +5760,19 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     if (bool) {
       this.drawProvinces();
     } else {
-      this.provs.innerHTML = "";
+      this.provs.selectAll("*").remove();
     }
   }
 
   drawProvinces() {
     console.time("drawProvinces");
-    const labelsOn = this.provs.getAttribute("data-labels") == 1;
-    this.provs.innerHTML = "";
+    const labelsOn = this.provs.attr("data-labels") == 1;
+    this.provs.selectAll("*").remove();
 
     const provinces = this.pack.provinces;
     const { body, gap } = this.getProvincesVertices();
 
-    const g = this.provs.append("g").setAttribute("id", "provincesBody");
+    const g = this.provs.append("g").attr("id", "provincesBody");
     const bodyData = body
       .map((p, i) => [p.length > 10 ? p : null, i, provinces[i].color])
       .filter((d) => d[0]);
@@ -5702,10 +5780,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .data(bodyData)
       .enter()
       .append("path")
-      .setAttribute("d", (d) => d[0])
-      .setAttribute("fill", (d) => d[2])
-      .setAttribute("stroke", "none")
-      .setAttribute("id", (d) => "province" + d[1]);
+      .attr("d", (d) => d[0])
+      .attr("fill", (d) => d[2])
+      .attr("stroke", "none")
+      .attr("id", (d) => "province" + d[1]);
     const gapData = gap
       .map((p, i) => [p.length > 10 ? p : null, i, provinces[i].color])
       .filter((d) => d[0]);
@@ -5713,22 +5791,22 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .data(gapData)
       .enter()
       .append("path")
-      .setAttribute("d", (d) => d[0])
-      .setAttribute("fill", "none")
-      .setAttribute("stroke", (d) => d[2])
-      .setAttribute("id", (d) => "province-gap" + d[1]);
+      .attr("d", (d) => d[0])
+      .attr("fill", "none")
+      .attr("stroke", (d) => d[2])
+      .attr("id", (d) => "province-gap" + d[1]);
 
-    const labels = this.provs.append("g").setAttribute("id", "provinceLabels");
-    labels.style.display = `${labelsOn ? "block" : "none"}`;
+    const labels = this.provs.append("g").attr("id", "provinceLabels");
+    labels.style("display", `${labelsOn ? "block" : "none"}`);
     const labelData = provinces.filter((p) => p.i && !p.removed && p.pole);
     labels
       .selectAll(".path")
       .data(labelData)
       .enter()
       .append("text")
-      .setAttribute("x", (d) => d.pole[0])
-      .setAttribute("y", (d) => d.pole[1])
-      .setAttribute("id", (d) => "provinceLabel" + d.i)
+      .attr("x", (d) => d.pole[0])
+      .attr("y", (d) => d.pole[1])
+      .attr("id", (d) => "provinceLabel" + d.i)
       .text((d) => d.name);
 
     console.timeEnd("drawProvinces");
@@ -5835,58 +5913,58 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.drawGrid();
       // calculateFriendlyGridSize();
     } else {
-      this.gridOverlay.innerHTML = "";
+      this.gridOverlay.selectAll("*").remove();
     }
   }
 
   drawGrid() {
-    this.gridOverlay.innerHTML = "";
+    this.gridOverlay.selectAll("*").remove();
     const pattern =
-      "#pattern_" + (this.gridOverlay.getAttribute("type") || "pointyHex");
-    const stroke = this.gridOverlay.getAttribute("stroke") || "#808080";
-    const width = this.gridOverlay.getAttribute("stroke-width") || 0.5;
-    const dasharray = this.gridOverlay.getAttribute("stroke-dasharray") || null;
-    const linecap = this.gridOverlay.getAttribute("stroke-linecap") || null;
-    const scale = this.gridOverlay.getAttribute("scale") || 1;
-    const dx = this.gridOverlay.getAttribute("dx") || 0;
-    const dy = this.gridOverlay.getAttribute("dy") || 0;
+      "#pattern_" + (this.gridOverlay.attr("type") || "pointyHex");
+    const stroke = this.gridOverlay.attr("stroke") || "#808080";
+    const width = this.gridOverlay.attr("stroke-width") || 0.5;
+    const dasharray = this.gridOverlay.attr("stroke-dasharray") || null;
+    const linecap = this.gridOverlay.attr("stroke-linecap") || null;
+    const scale = this.gridOverlay.attr("scale") || 1;
+    const dx = this.gridOverlay.attr("dx") || 0;
+    const dy = this.gridOverlay.attr("dy") || 0;
     const tr = `scale(${scale}) translate(${dx} ${dy})`;
 
     const maxWidth = Math.max(+this.mapWidthInput.value, this.graphWidth);
     const maxHeight = Math.max(+this.mapHeightInput.value, this.graphHeight);
 
     d3.select(pattern)
-      .setAttribute("stroke", stroke)
-      .setAttribute("stroke-width", width)
-      .setAttribute("stroke-dasharray", dasharray)
-      .setAttribute("stroke-linecap", linecap)
-      .setAttribute("patternTransform", tr);
+      .attr("stroke", stroke)
+      .attr("stroke-width", width)
+      .attr("stroke-dasharray", dasharray)
+      .attr("stroke-linecap", linecap)
+      .attr("patternTransform", tr);
     this.gridOverlay
       .append("rect")
-      .setAttribute("width", maxWidth)
-      .setAttribute("height", maxHeight)
-      .setAttribute("fill", "url(" + pattern + ")")
-      .setAttribute("stroke", "none");
+      .attr("width", maxWidth)
+      .attr("height", maxHeight)
+      .attr("fill", "url(" + pattern + ")")
+      .attr("stroke", "none");
   }
 
   toggleCoordinates(bool) {
     if (bool) {
       this.drawCoordinates();
     } else {
-      this.coordinates.innerHTML = "";
+      this.coordinates.selectAll("*").remove();
     }
   }
 
   drawCoordinates() {
-    this.coordinates.innerHTML = ""; // remove every time
+    this.coordinates.selectAll("*").remove(); // remove every time
     const steps = [0.5, 1, 2, 5, 10, 15, 30]; // possible steps
     const goal = this.mapCoordinates.lonT / this.scale / 10;
     const step = steps.reduce((p, c) =>
       Math.abs(c - goal) < Math.abs(p - goal) ? c : p
     );
 
-    const desired = +this.coordinates.getAttribute("data-size"); // desired label size
-    this.coordinates.setAttribute(
+    const desired = +this.coordinates.attr("data-size"); // desired label size
+    this.coordinates.attr(
       "font-size",
       Math.max(this.rn(desired / this.scale ** 0.8, 2), 0.1)
     ); // actual label size
@@ -5902,12 +5980,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .geoEquirectangular()
       .fitSize([this.graphWidth, this.graphHeight], graticule());
 
-    const grid = this.coordinates
-      .append("g")
-      .setAttribute("id", "coordinateGrid");
-    const labels = this.coordinates
-      .append("g")
-      .setAttribute("id", "coordinateLabels");
+    const grid = this.coordinates.append("g").attr("id", "coordinateGrid");
+    const labels = this.coordinates.append("g").attr("id", "coordinateLabels");
 
     const p = this.getViewPoint(
       this.scale + desired + 2,
@@ -5937,15 +6011,15 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     const d = this.round(d3.geoPath(projection)(graticule()));
     grid
       .append("path")
-      .setAttribute("d", d)
-      .setAttribute("vector-effect", "non-scaling-stroke");
+      .attr("d", d)
+      .attr("vector-effect", "non-scaling-stroke");
     labels
       .selectAll("text")
       .data(data)
       .enter()
       .append("text")
-      .setAttribute("x", (d) => d.x)
-      .setAttribute("y", (d) => d.y)
+      .attr("x", (d) => d.x)
+      .attr("y", (d) => d.y)
       .text((d) => d.text);
   }
 
@@ -5961,8 +6035,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   toggleCompass(bool) {
     if (bool) {
       $("#compass").fadeIn();
-      if (!this.compass.children.length) {
-        this.compass.append("use").setAttribute("xlink:href", "#rose");
+      if (!this.compass.selectAll("*").size()) {
+        this.compass.append("use").attr("xlink:href", "#rose");
         // shiftCompass();
       }
     } else {
@@ -5972,7 +6046,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   toggleRelief(bool) {
     if (bool) {
-      if (!this.terrain.children.length) this.ReliefIcons();
+      if (!this.terrain.selectAll("*").size()) this.ReliefIcons();
       $("#terrain").fadeIn();
     } else {
       $("#terrain").fadeOut();
@@ -5982,21 +6056,21 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   toggleTexture(bool) {
     if (bool) {
       // append default texture image selected by default. Don't append on load to not harm performance
-      if (!this.texture.children.length) {
+      if (!this.texture.selectAll("*").size()) {
         const x = +this.styleTextureShiftX.value,
           y = +this.styleTextureShiftY.value;
-        const image = this.texture.append("image");
-
-        image.setAttribute("id", "textureImage");
-        image.setAttribute("x", x);
-        image.setAttribute("y", y);
-        image.setAttribute("width", this.graphWidth - x);
-        image.setAttribute("height", this.graphHeight - y);
-        image.setAttribute("xlink:href", this.getDefaultTexture());
-        image.setAttribute("preserveAspectRatio", "xMidYMid slice");
+        const image = this.texture
+          .append("image")
+          .attr("id", "textureImage")
+          .attr("x", x)
+          .attr("y", y)
+          .attr("width", this.graphWidth - x)
+          .attr("height", this.graphHeight - y)
+          .attr("xlink:href", this.getDefaultTexture())
+          .attr("preserveAspectRatio", "xMidYMid slice");
         if (this.styleTextureInput.value !== "default")
           this.getBase64(this.styleTextureInput.value, (base64) =>
-            image.setAttribute("xlink:href", base64)
+            image.attr("xlink:href", base64)
           );
       }
       $("#texture").fadeIn();
@@ -6010,13 +6084,13 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     if (bool) {
       this.drawRivers();
     } else {
-      this.rivers.innerHTML = "";
+      this.rivers.selectAll("*").remove();
     }
   }
 
   drawRivers() {
     console.time("drawRivers");
-    this.rivers.innerHTML = "";
+    this.rivers.selectAll("*").remove();
 
     const { addMeandering, getRiverPath } = this.Rivers;
     this.lineGen.curve(d3.curveCatmullRom.alpha(0.1));
@@ -6029,7 +6103,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         return `<path id="river${i}" d="${path}"/>`;
       }
     );
-    this.rivers.innerHTML = riverPaths.join("");
+    this.rivers.html(riverPaths.join(""));
 
     console.timeEnd("drawRivers");
   }
@@ -6060,10 +6134,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   toggleLabels(bool) {
     if (bool) {
-      this.labels.style.display = null;
+      this.labels.style("display", null);
       this.invokeActiveZooming();
     } else {
-      this.labels.style.display = "none";
+      this.labels.style("display", "none");
     }
   }
 
@@ -6078,10 +6152,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   toggleRulers(bool) {
     if (bool) {
       this.rulers.draw();
-      this.ruler.style.display = null;
+      this.ruler.style("display", null);
     } else {
-      this.ruler.innerHTML = "";
-      this.ruler.style.display = "none";
+      this.ruler.selectAll("*").remove();
+      this.ruler.style("display", "none");
     }
   }
 
@@ -6103,7 +6177,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   toggleEmblems(bool) {
     if (bool) {
-      if (!this.emblems.querySelectorAll("use").length) this.drawEmblems();
+      if (!this.emblems.selectAll("use").size()) this.drawEmblems();
       $("#emblems").fadeIn();
     } else {
       $("#emblems").fadeOut();
@@ -6218,8 +6292,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         )
         .join("");
       this.emblems
-        .querySelector("#burgEmblems")
-        .setAttribute("font-size", sizeBurgs)
+        .select("#burgEmblems")
+        .attr("font-size", sizeBurgs)
         .html(burgString);
 
       const provinceNodes = nodes.filter((node) => node.type === "province");
@@ -6232,8 +6306,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         )
         .join("");
       this.emblems
-        .querySelector("#provinceEmblems")
-        .setAttribute("font-size", sizeProvinces)
+        .select("#provinceEmblems")
+        .attr("font-size", sizeProvinces)
         .html(provinceString);
 
       const stateNodes = nodes.filter((node) => node.type === "state");
@@ -6246,8 +6320,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         )
         .join("");
       this.emblems
-        .querySelector("#stateEmblems")
-        .setAttribute("font-size", sizeStates)
+        .select("#stateEmblems")
+        .attr("font-size", sizeStates)
         .html(stateString);
 
       this.invokeActiveZooming();
@@ -6364,50 +6438,43 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     )}; Urban: ${this.si(urban)}`;
   }
 
-  mouseMove = (event: MouseEvent) => {
-    const point = [event.x, event.y];
-
+  mouseMove = () => {
+    const point = d3.mouse(d3.event.currentTarget);
     const i = this.findCell(point[0], point[1]); // pack cell id
     if (i === undefined) return;
     // showNotes(d3.event, i);
     const g = this.findGridCell(point[0], point[1]); // grid cell id
-
     if (this.tooltip.nativeElement.dataset.main) this.showMainTip();
-    else this.showMapTooltip(point, event, i, g);
+    else this.showMapTooltip(point, d3.event, i, g);
     // if (cellInfo.offsetParent) updateCellInfo(point, i, g);
   };
 
   // restore default viewbox events
-  restoreDefaultEvents() {
-    let svg = d3.select("#map");
-    svg.call(this.zoom);
-    // let dragLegendBox = this.dragLegendBox;
-
-    // this.viewbox._groups[0][0].addEventListener("drag", null);
-    this.viewbox.addEventListener("drag", null);
-    this.viewbox.addEventListener("click", this.clicked);
-    this.viewbox.addEventListener("touchmove", this.moved);
-    this.viewbox.addEventListener("mousemove", this.moved);
-    // this.viewbox.addEventListener("drag", null).addEventListener("click", this.clicked).addEventListener("touchmove mousemove", this.moved);
-    // this.legend.call(d3.drag().on("start", dragLegendBox));
-    // this.legend
-    //   .style.cursor", "default")
-    //   .on(".drag", null)
-    //   .on("click", this.clearLegend())
-    //   .on("touchmove mousemove", this.dragLegendBox);
-  }
+  restoreDefaultEvents = () => {
+    this.svg.call(this.zoom);
+    let dragLegendBox = this.dragLegendBox;
+    this.viewbox
+      .style("cursor", "default")
+      .on(".drag", null)
+      .on("click", this.clicked)
+      .on("touchmove mousemove", this.moved);
+    this.legend.call(d3.drag().on("start", dragLegendBox));
+    this.legend
+      .style("cursor", "default")
+      .on(".drag", null)
+      .on("click", this.clearLegend())
+      .on("touchmove mousemove", this.dragLegendBox);
+  };
 
   // clear elSelected variable
-  unselect() {
+  unselect = () => {
     this.restoreDefaultEvents();
     if (!this.elSelected) return;
-    this.elSelected
-      .call(d3.drag().on("drag", null))
-      .setAttribute("class", null);
-    this.debug.innerHTML = "";
-    this.viewbox.style.cursor = "default";
+    this.elSelected.call(d3.drag().on("drag", null)).attr("class", null);
+    this.debug.selectAll("*").remove();
+    this.viewbox.style("cursor", "default");
     this.elSelected = null;
-  }
+  };
 
   // close all dialogs except stated
   closeDialogs(except = "#except") {
@@ -6491,15 +6558,15 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     const g = b.capital ? "cities" : "towns";
     const group = this.anchors.select("g#" + g);
-    const size = +group.getAttribute("size");
+    const size = +group.attr("size");
     group
       .append("use")
-      .setAttribute("xlink:href", "#icon-anchor")
-      .setAttribute("data-id", burg)
-      .setAttribute("x", this.rn(b.x - size * 0.47, 2))
-      .setAttribute("y", this.rn(b.y - size * 0.47, 2))
-      .setAttribute("width", size)
-      .setAttribute("height", size);
+      .attr("xlink:href", "#icon-anchor")
+      .attr("data-id", burg)
+      .attr("x", this.rn(b.x - size * 0.47, 2))
+      .attr("y", this.rn(b.y - size * 0.47, 2))
+      .attr("width", size)
+      .attr("height", size);
   }
 
   drawStatesLegend() {
@@ -6522,19 +6589,16 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   // draw legend box
   drawLegend(name, data) {
-    if (this.legend.children.length && this.activeLegend == name) {
+    if (this.legend.selectAll("*").size() && this.activeLegend == name) {
       this.clearLegend();
       return;
     } // hide legend
     this.activeLegend = name;
-    this.legend.innerHTML = ""; // fully redraw every time
-    this.legend.setAttribute("data", data.join("|")); // store data
-
-    // this.legend._groups[0][0].addEventListener("click", this.dragLegendBox);
-    // this.legend._groups[0][0].addEventListener("touchmove mousemove", this.moved);
+    this.legend.selectAll("*").remove(); // fully redraw every time
+    this.legend.attr("data", data.join("|")); // store data
 
     const itemsInCol = +8;
-    const fontSize = +this.legend.getAttribute("font-size");
+    const fontSize = +this.legend.attr("font-size");
     const backClr = "#ffffff";
     const opacity = +0.8;
 
@@ -6546,13 +6610,13 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     // append items
     const boxes = this.legend
       .append("g")
-      .setAttribute("stroke-width", 0.5)
-      .setAttribute("stroke", "#111111")
-      .setAttribute("stroke-dasharray", "none");
+      .attr("stroke-width", 0.5)
+      .attr("stroke", "#111111")
+      .attr("stroke-dasharray", "none");
     const labels = this.legend
       .append("g")
-      .setAttribute("fill", "#000000")
-      .setAttribute("stroke", "none");
+      .attr("fill", "#000000")
+      .attr("stroke", "none");
 
     const columns = Math.ceil(data.length / itemsInCol);
     for (let column = 0, i = 0; column < columns; column++) {
@@ -6564,20 +6628,17 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       for (let l = 0; l < linesInColumn && data[i]; l++, i++) {
         boxes
           .append("rect")
-          .setAttribute("fill", data[i][1])
-          .setAttribute("x", offset)
-          .setAttribute("y", lineHeight + l * lineHeight + vOffset)
-          .setAttribute("width", colorBoxSize)
-          .setAttribute("height", colorBoxSize);
+          .attr("fill", data[i][1])
+          .attr("x", offset)
+          .attr("y", lineHeight + l * lineHeight + vOffset)
+          .attr("width", colorBoxSize)
+          .attr("height", colorBoxSize);
 
         labels
           .append("text")
           .text(data[i][2])
-          .setAttribute("x", offset + colorBoxSize * 1.6)
-          .setAttribute(
-            "y",
-            fontSize / 1.6 + lineHeight + l * lineHeight + vOffset
-          );
+          .attr("x", offset + colorBoxSize * 1.6)
+          .attr("y", fontSize / 1.6 + lineHeight + l * lineHeight + vOffset);
       }
     }
 
@@ -6585,13 +6646,13 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     const offset = colOffset + this.legend.node().getBBox().width / 2;
     labels
       .append("text")
-      .setAttribute("text-anchor", "middle")
-      .setAttribute("font-weight", "bold")
-      .setAttribute("font-size", "1.2em")
-      .setAttribute("id", "legendLabel")
+      .attr("text-anchor", "middle")
+      .attr("font-weight", "bold")
+      .attr("font-size", "1.2em")
+      .attr("id", "legendLabel")
       .text(name)
-      .setAttribute("x", offset)
-      .setAttribute("y", fontSize * 1.1 + vOffset / 2);
+      .attr("x", offset)
+      .attr("y", fontSize * 1.1 + vOffset / 2);
 
     // append box
     const bbox = this.legend.node().getBBox();
@@ -6600,45 +6661,49 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     this.legend
       .insert("rect", ":first-child")
-      .setAttribute("id", "legendBox")
-      .setAttribute("x", 0)
-      .setAttribute("y", 0)
-      .setAttribute("width", width)
-      .setAttribute("height", height)
-      .setAttribute("fill", backClr)
-      .setAttribute("fill-opacity", opacity);
+      .attr("id", "legendBox")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", width)
+      .attr("height", height)
+      .attr("fill", backClr)
+      .attr("fill-opacity", opacity);
 
     this.fitLegendBox();
   }
 
   // fit Legend box to canvas size
   fitLegendBox() {
-    if (!this.legend.children.length) return;
-    const px = isNaN(+this.legend.getAttribute("data-x"))
+    if (!this.legend.selectAll("*").size()) return;
+    const px = isNaN(+this.legend.attr("data-x"))
       ? 99
-      : this.legend.getAttribute("data-x") / 100;
-    const py = isNaN(+this.legend.getAttribute("data-y"))
+      : this.legend.attr("data-x") / 100;
+    const py = isNaN(+this.legend.attr("data-y"))
       ? 93
-      : this.legend.getAttribute("data-y") / 100;
+      : this.legend.attr("data-y") / 100;
     const bbox = this.legend.node().getBBox();
     const x = this.rn(this.svgWidth * px - bbox.width),
       y = this.rn(this.svgHeight * py - bbox.height);
-    // this.legend.setAttribute("transform", `translate(${x},${y})`);
-    this.legend.setAttribute("transform", `translate(50,50)`);
+    // this.legend.attr("transform", `translate(${x},${y})`);
+    this.legend.attr("transform", `translate(50,50)`);
   }
 
   // draw legend with the same data, but using different settings
   redrawLegend() {
-    if (!this.legend.querySelector("rect").children.length) return;
+    if (!this.legend.select("rect").size()) return;
     const name = this.legend.select("#legendLabel").text();
     const data = this.legend
-      .getAttribute("data")
+      .attr("data")
       .split("|")
       .map((l) => l.split(","));
     this.drawLegend(name, data);
   }
 
   dragLegendBox = (event) => {
+    console.log("dragLegendBox");
+    console.log(event.target);
+    console.log(d3);
+    console.log(d3.event);
     const tr = this.parseTransform(event.target.getAttribute("transform"));
     const x = +tr[0] - d3.event.x,
       y = +tr[1] - d3.event.y;
@@ -6654,55 +6719,54 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       );
       const transform = `translate(${x + d3.event.x},${y + d3.event.y})`;
       this.legend
-        .setAttribute("transform", transform)
-        .setAttribute("data-x", px)
-        .setAttribute("data-y", py);
+        .attr("transform", transform)
+        .attr("data-x", px)
+        .attr("data-y", py);
     });
   };
 
   clearLegend() {
-    this.legend.innerHTML = "";
-    this.legend.setAttribute("data", null);
+    this.legend.selectAll("*").remove();
+    this.legend.attr("data", null);
   }
 
   // add fogging
   fog(id, path) {
-    if (this.defs.querySelector("#fog #" + id).children.length) return;
+    if (this.defs.select("#fog #" + id).size()) return;
     const fadeIn = d3.transition().duration(2000).ease(d3.easeSinInOut);
-    if (this.defs.querySelector("#fog path").children.length) {
+    if (this.defs.select("#fog path").size()) {
       this.defs
         .select("#fog")
         .append("path")
-        .setAttribute("d", path)
-        .setAttribute("id", id)
-        .setAttribute("opacity", 0)
+        .attr("d", path)
+        .attr("id", id)
+        .attr("opacity", 0)
         .transition(fadeIn)
-        .setAttribute("opacity", 1);
+        .attr("opacity", 1);
     } else {
       this.defs
         .select("#fog")
         .append("path")
-        .setAttribute("d", path)
-        .setAttribute("id", id)
-        .setAttribute("opacity", 1);
-      const opacity = this.fogging.getAttribute("opacity");
-      this.fogging.style.display = "block";
+        .attr("d", path)
+        .attr("id", id)
+        .attr("opacity", 1);
+      const opacity = this.fogging.attr("opacity");
       this.fogging
-        .setAttribute("opacity", 0)
+        .style("display", "block")
+        .attr("opacity", 0)
         .transition(fadeIn)
-        .setAttribute("opacity", opacity);
+        .attr("opacity", opacity);
     }
   }
 
   // remove fogging
   unfog(id) {
     let el = this.defs.select("#fog #" + id);
-    if (!id || !el.children.length)
-      el = this.defs.children.fog.querySelectorAll("path");
+    if (!id || !el.size()) el = this.defs.select("#fog").selectAll("path");
 
     el.remove();
-    if (!this.defs.querySelectorAll("#fog path").length)
-      this.fogging.style.display = "none";
+    if (!this.defs.selectAll("#fog path").size())
+      this.fogging.style("display", "none");
   }
 
   loadMapPrompt(blob) {
@@ -6831,7 +6895,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   highlightElement(element) {
-    if (this.debug.querySelector(".highlighted").children.length) return; // allow only 1 highlight element simultaniosly
+    if (this.debug.select(".highlighted").size()) return; // allow only 1 highlight element simultaniosly
     const box = element.getBBox();
     const transform = element.getAttribute("transform") || null;
     const enter = d3.transition().duration(1000).ease(d3.easeBounceOut);
@@ -6839,17 +6903,20 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     const highlight = this.debug
       .append("rect")
-      .setAttribute("x", box.x)
-      .setAttribute("y", box.y)
-      .setAttribute("width", box.width)
-      .setAttribute("height", box.height)
-      .setAttribute("transform", transform);
+      .attr("x", box.x)
+      .attr("y", box.y)
+      .attr("width", box.width)
+      .attr("height", box.height)
+      .attr("transform", transform);
 
-    highlight.classed("highlighted", 1).transition(enter).style.outlineOffset =
-      "0px";
-    highlight.transition(exit).delay(1000).style.outlineColor = "transparent";
-    highlight.remove();
-    // .remove();
+    highlight
+      .classed("highlighted", 1)
+      .transition(enter)
+      .style("outline-offset", "0px")
+      .transition(exit)
+      .style("outline-color", "transparent")
+      .delay(1000)
+      .remove();
 
     const tr = this.parseTransform(transform);
     let x = box.x + box.width / 2;
@@ -6915,6 +6982,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         "🦑",
         "🍻",
         "🍺",
+        "🏇",
+        "🎎",
+        "👥",
         ...customIcons,
       ];
 
@@ -6940,9 +7010,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
   // active zooming feature
   invokeActiveZooming() {
+    console.log("Active Zooming");
     if (
-      this.coastline.querySelector("#sea_island").length &&
-      +this.coastline.querySelector("#sea_island").getAttribute("auto-filter")
+      this.coastline.select("#sea_island").size() &&
+      +this.coastline.select("#sea_island").attr("auto-filter")
     ) {
       // toggle shade/blur filter for coatline on zoom
       const filter =
@@ -6951,90 +7022,106 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
           : this.scale > 2.6
           ? "url(#blurFilter)"
           : "url(#dropShadow)";
-      this.coastline
-        .querySelector("#sea_island")
-        .getAttribute("auto-filter", filter);
+      this.coastline.select("#sea_island").attr("filter", filter);
     }
     let rescaleLabels = this.rescaleLabels;
     let hideLabels = this.hideLabels;
     let rn = this.rn;
     let scale = this.scale;
     // rescale lables on zoom
-    if (this.labels.style.display !== "none") {
-      this.labels.querySelectorAll("g").forEach(function (el) {
-        if (el.id === "burgLabels") return;
-        const desired = +el.dataset.size;
+    if (this.labels.style("display") !== "none") {
+      this.labels.selectAll("g").each(function () {
+        if (this.id === "burgLabels") return;
+        const desired = +this.dataset.size;
         const relative = Math.max(rn((desired + desired / scale) / 2, 2), 1);
-        el.setAttribute("font-size", relative);
+        this.setAttribute("font-size", relative);
 
         const hidden = relative * scale < 6 || relative * scale > 60;
-        if (hidden) el.classList.add("hidden");
-        else el.classList.remove("hidden");
+        if (hidden) this.classList.add("hidden");
+        else this.classList.remove("hidden");
       });
     }
     let COArenderer = this.COArenderer;
     let hideEmblems = this.hideEmblems;
     let renderGroupCOAs = this.renderGroupCOAs;
     // rescale emblems on zoom
-    if (this.emblems.style.display !== "none") {
-      this.emblems.querySelectorAll("g").forEach(function (el) {
-        const size = el.getAttribute("font-size") * scale;
+    if (this.emblems.style("display") !== "none") {
+      this.emblems.selectAll("g").each(function () {
+        const size = this.getAttribute("font-size") * scale;
         const hidden = hideEmblems.checked && (size < 25 || size > 300);
-        if (hidden) el.classList.add("hidden");
-        else el.classList.remove("hidden");
+        if (hidden) this.classList.add("hidden");
+        else this.classList.remove("hidden");
         if (
           !hidden &&
           COArenderer &&
-          el.children.length &&
-          !el.children[0].getAttribute("href")
+          this.children.length &&
+          !this.children[0].getAttribute("href")
         )
-          renderGroupCOAs(el);
+          renderGroupCOAs(this);
       });
     }
 
     // turn off ocean pattern if scale is big (improves performance)
     this.oceanPattern
-      .querySelector("rect")
-      .setAttribute("fill", this.scale > 10 ? "#fff" : "url(#oceanic)");
-    this.oceanPattern
-      .querySelector("rect")
-      .setAttribute("opacity", this.scale > 10 ? 0.2 : null);
+      .select("rect")
+      .attr("fill", this.scale > 10 ? "#fff" : "url(#oceanic)")
+      .attr("opacity", this.scale > 10 ? 0.2 : null);
 
     // change states halo width
     if (!this.customization) {
-      const desired = +this.statesHalo.getAttribute("data-width");
+      const desired = +this.statesHalo.attr("data-width");
       const haloSize = this.rn(desired / this.scale ** 0.8, 2);
-      this.statesHalo.setAttribute("stroke-width", haloSize);
-      this.statesHalo.style.display = haloSize > 0.1 ? "block" : "none";
+      this.statesHalo
+        .attr("stroke-width", haloSize)
+        .style("display", haloSize > 0.1 ? "block" : "none");
     }
 
     // rescale map markers
     if (
-      // +this.markers.getAttribute("rescale") &&
-      this.markers.style.display !== "none"
+      +this.markers.attr("rescale") &&
+      this.markers.style("display") !== "none"
     ) {
-      this.markers.querySelectorAll("use").forEach(function (el) {
-        const x = +el.dataset.x,
-          y = +el.dataset.y,
-          desired = +el.dataset.size;
-        const size = Math.max(desired * 5 + 25 / scale, 1);
-        d3.select(el)
-          .setAttribute("x", x - size / 2)
-          .setAttribute("y", y - size)
-          .setAttribute("width", size)
-          .setAttribute("height", size);
+      // this.markers.selectAll("use").each(function () {
+      //   console.log(this);
+      //   console.log(this.parentElement);
+      //   const x = +this.dataset.x
+      //       ? this.dataset.x
+      //       : this.parentElement.dataset.x,
+      //     y = +this.dataset.y ? this.dataset.x : this.parentElement.dataset.x,
+      //     desired = +this.dataset.size ? this.dataset.size : 40;
+      //   const size = Math.max(desired * 5 + 25 / scale, 1);
+      //   console.log(x, y, desired, scale, size);
+      //   d3.select(this)
+      //     .attr("x", x - size / 2)
+      //     .attr("y", y - size)
+      //     .attr("width", size)
+      //     .attr("height", size);
+      // });
+
+      this.pack.markers?.forEach((marker) => {
+        const { i, x, y, size = 40, hidden } = marker;
+        console.log(marker);
+        const el = !hidden && document.getElementById(`marker${i}`);
+        console.log(el);
+        if (!el) return;
+
+        const zoomedSize = Math.max(rn(size / 5 + 24 / this.scale, 2), 1);
+        el.setAttribute("width", zoomedSize.toString());
+        el.setAttribute("height", zoomedSize.toString());
+        el.setAttribute("x", rn(x - zoomedSize / 2, 1).toString());
+        el.setAttribute("y", rn(y - zoomedSize, 1).toString());
       });
     }
 
     // rescale rulers to have always the same size
-    if (this.ruler.style.display !== "none") {
+    if (this.ruler.style("display") !== "none") {
       const size = this.rn((10 / this.scale ** 0.3) * 2, 2);
-      this.ruler.querySelectorAll("text").setAttribute("font-size", size);
+      this.ruler.selectAll("text").attr("font-size", size);
     }
   }
 
   doWorkOnZoom(isScaleChanged, isPositionChanged) {
-    this.viewbox.setAttribute(
+    this.viewbox.attr(
       "transform",
       `translate(${this.viewX} ${this.viewY}) scale(${this.scale})`
     );
@@ -7204,11 +7291,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   // change svg size on manual size change or window resize, do not change graph size
   changeMapSize() {
+    console.log("Change Map Size");
     let mapWrapper = document.getElementById("map-wrapper");
     this.svgWidth = mapWrapper.clientWidth; //Math.min(+this.mapWidthInput.value, window.innerWidth);
     this.svgHeight = mapWrapper.clientHeight; //Math.min(+this.mapHeightInput.value, window.innerHeight);
-    this.svg.setAttribute("width", this.svgWidth);
-    this.svg.setAttribute("height", this.svgHeight);
+    this.svg.attr("width", this.svgWidth).attr("height", this.svgHeight);
 
     const maxWidth = 2000; //Math.max(+this.mapWidthInput.value, this.graphWidth);
     const maxHeight = 2000; //Math.max(+this.mapHeightInput.value, this.graphHeight);
@@ -7216,35 +7303,38 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       [0, 0],
       [maxWidth, maxHeight],
     ]);
-    let landmassRect = this.landmass.querySelector("rect");
-    landmassRect.setAttribute("x", 0);
-    landmassRect.setAttribute("y", 0);
-    landmassRect.setAttribute("width", maxWidth);
-    landmassRect.setAttribute("height", maxHeight);
-    let oceanPatternRect = this.oceanPattern.querySelector("rect");
-    oceanPatternRect;
-    oceanPatternRect.setAttribute("x", 0);
-    oceanPatternRect.setAttribute("y", 0);
-    oceanPatternRect.setAttribute("width", maxWidth);
-    oceanPatternRect.setAttribute("height", maxHeight);
-    let oceanLayersRect = this.oceanLayers.querySelector("rect");
-    oceanLayersRect.setAttribute("x", 0);
-    oceanLayersRect.setAttribute("y", 0);
-    oceanLayersRect.setAttribute("width", maxWidth);
-    oceanLayersRect.setAttribute("height", maxHeight);
-    let foggingRect = this.fogging.querySelectorAll("rect");
-    foggingRect.forEach((f) => {
-      f.setAttribute("x", 0);
-      f.setAttribute("y", 0);
-      f.setAttribute("width", maxWidth);
-      f.setAttribute("height", maxHeight);
-    });
-    let defsRect = this.defs.querySelector("mask#fog > rect");
-    defsRect.setAttribute("width", maxWidth);
-    defsRect.setAttribute("height", maxHeight);
-    let textureRect = this.texture.querySelector("image");
-    if (textureRect) textureRect.setAttribute("width", maxWidth);
-    if (textureRect) textureRect.setAttribute("height", maxHeight);
+    this.landmass
+      .select("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", maxWidth)
+      .attr("height", maxHeight);
+    this.oceanPattern
+      .select("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", maxWidth)
+      .attr("height", maxHeight);
+    this.oceanLayers
+      .select("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", maxWidth)
+      .attr("height", maxHeight);
+    this.fogging
+      .selectAll("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", maxWidth)
+      .attr("height", maxHeight);
+    this.defs
+      .select("mask#fog > rect")
+      .attr("width", maxWidth)
+      .attr("height", maxHeight);
+    this.texture
+      .select("image")
+      .attr("width", maxWidth)
+      .attr("height", maxHeight);
 
     this.fitScaleBar();
     this.fitLegendBox();
@@ -7264,7 +7354,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       } else {
         // select burg for MFCG
         // findBurgForMFCG(params);
-
+        console.log("findBurgForMFCG");
         return;
       }
     }
@@ -7309,8 +7399,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   changeFont() {
+    console.log("ChangeFont");
     // const family = styleSelectFont.value;
-    // this.getEl().setAttribute("font-family", family);
+    // this.getEl().attr("font-family", family);
+
     // if (styleElementSelect.value === "legend") this.redrawLegend();
   }
 
@@ -7534,41 +7626,73 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   // on viewbox click event - run function based on target
   clicked = (event) => {
-    const el = event.target;
+    console.log(event);
+    console.log(d3.event);
+    const el = event ? event.target : d3.event.target;
     if (!el || !el.parentElement || !el.parentElement.parentElement) return;
     const parent = el.parentElement;
     const grand = parent.parentElement;
     const great = grand.parentElement;
-
+    console.log(el);
+    console.log(parent);
+    console.log(grand);
+    console.log(grand.class);
+    console.log(grand.className);
+    console.log(grand.className.baseVal);
     console.log(grand.id);
 
     // else if (el.tagName === "tspan" && grand.parentNode.parentNode.id === "labels") editLabel();
     if (grand.id === "burgLabels" || grand.id === "burgIcons") {
+      this.removeAllRulers();
       this.selectedBurg = this.pack.burgs[el.dataset.id];
       this.selectedBurg.elevation = this.getHeight(
         this.pack.cells.h[this.selectedBurg.cell]
       );
       console.log(this.selectedBurg);
       this.selectedBurg.populationRate = this.populationRate;
-      this.selectedBurg.culture = this.pack.cultures[this.selectedBurg.c];
+      this.selectedBurg.cObject = this.pack.cultures[this.selectedBurg.culture];
       this.selectedBurg.urbanization = this.urbanization;
       const temperature =
         this.grid.cells.temp[this.pack.cells.g[this.selectedBurg.cell]];
       this.selectedBurg.temperature = this.convertTemperature(temperature);
-      this.clickedEmitter.emit({ type: "burg", data: this.selectedBurg });
+      this.selectedBurg;
+      this.clickedEmitter.emit(this.selectedBurg);
     } else if (grand.id === "markers" || great.id === "markers") {
+      this.removeAllRulers();
       const note = this.notes.find((note) => note.id === parent.id);
       this.selectedMarker = this.pack.markers[parent.id.replace("marker", "")];
-      this.clickedEmitter.emit({
-        type: this.selectedMarker.type,
-        data: { ...this.selectedMarker, ...note },
-      });
+      console.log(this.selectedMarker);
+      if (this.selectedBurg?.npcs)
+        this.selectedMarker.npcs = this.selectedBurg.npcs;
+      this.clickedEmitter.emit({ ...this.selectedMarker, ...note });
+      this.editMarker(this.selectedMarker.i);
+    } else if (grand.className.baseVal == "opisometer" && this.selectedMarker) {
+      console.log(this.selectedMarker);
+      let partyEl = document.getElementById(
+        "marker" + this.selectedParty.marker.i
+      );
+      partyEl.setAttribute(
+        "x",
+        (
+          el.getAttribute("cx") -
+          parseInt(partyEl.getAttribute("width"), 10) / 2
+        ).toString()
+      );
+      partyEl.setAttribute(
+        "y",
+        (
+          el.getAttribute("cy") -
+          parseInt(partyEl.getAttribute("height"), 10) / 2
+        ).toString()
+      );
+      this.removeAllRulers();
+      this.restoreDefaultEvents();
     }
   };
 
   editBurg(id) {
     const burg = id || d3.event.target.dataset.id;
-    this.elSelected = this.burgLabels.querySelector("[data-id='" + burg + "']");
+    this.elSelected = this.burgLabels.select("[data-id='" + burg + "']");
     // this.burgLabels.selectAll("text").call(d3.drag().on("start", dragBurgLabel)).classed("draggable", true);
     // updateBurgValues();
 
@@ -7577,7 +7701,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     // const of = id ? "svg" : d3.event.target;
 
     const updateBurgValues = () => {
-      const id = +this.elSelected.getAttribute("data-id");
+      const id = +this.elSelected.attr("data-id");
       const b = this.pack.burgs[id];
       const province = this.pack.cells.province[b.cell];
       const provinceName = province
@@ -7638,7 +7762,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       const select = document.getElementById("burgSelectGroup");
       // select.options.length = 0; // remove all options
 
-      this.burgLabels.querySelectorAll("g").forEach(function (el) {
+      this.burgLabels.selectAll("g").each(function () {
         // select.options.add(new Option(this.id, this.id, false, this.id === group));
       });
 
@@ -7694,28 +7818,28 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     }
 
     const changeName = () => {
-      const id = +this.elSelected.getAttribute("data-id");
+      const id = +this.elSelected.attr("data-id");
       // this.pack.burgs[id].name = burgName.value;
       // this.elSelected.text(burgName.value);
     };
 
     function changeType() {
-      // const id = +elSelected.getAttribute("data-id");
+      // const id = +elSelected.attr("data-id");
       // pack.burgs[id].type = this.value;
     }
 
     function changeCulture() {
-      // const id = +elSelected.getAttribute("data-id");
+      // const id = +elSelected.attr("data-id");
       // pack.burgs[id].culture = +this.value;
     }
 
     function changePopulation() {
-      // const id = +elSelected.getAttribute("data-id");
+      // const id = +elSelected.attr("data-id");
       // pack.burgs[id].population = rn(burgPopulation.value / populationRate / urbanization, 4);
     }
 
     const toggleFeature = () => {
-      const id = +this.elSelected.getAttribute("data-id");
+      const id = +this.elSelected.attr("data-id");
       const b = this.pack.burgs[id];
       const feature = this.dataset.feature;
       // const turnOn = this.classList.contains("inactive");
@@ -7733,7 +7857,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     };
 
     function editBurgLegend() {
-      // const id = elSelected.getAttribute("data-id");
+      // const id = elSelected.attr("data-id");
       // const name = elSelected.text();
       // editNotes("burg" + id, name);
     }
@@ -7763,33 +7887,33 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   ngAfterViewInit(): void {
     this.populationRate = 1000;
     this.urbanization = 1;
-    this.moved = this.debounce(this.mouseMove, 100);
+    this.moved = this.debounce(this.mouseMove, 300);
 
     // applyStoredOptions();
     this.graphWidth = 2000;
     this.graphHeight = 2000; // voronoi graph extention, cannot be changed arter generation
-    this.svgWidth = this.graphWidth;
-    this.svgHeight = this.graphHeight; // svg canvas resolution, can be changed
-    // this.landmass
-    //   .append("rect")
-    //   .setAttribute("x", 0)
-    //   .setAttribute("y", 0)
-    //   .setAttribute("width", this.graphWidth)
-    //   .setAttribute("height", this.graphHeight);
-    // this.oceanPattern
-    //   .append("rect")
-    //   .setAttribute("fill", "url(#oceanic)")
-    //   .setAttribute("x", 0)
-    //   .setAttribute("y", 0)
-    //   .setAttribute("width", this.graphWidth)
-    //   .setAttribute("height", this.graphHeight);
-    // this.oceanLayers
-    //   .append("rect")
-    //   .setAttribute("id", "oceanBase")
-    //   .setAttribute("x", 0)
-    //   .setAttribute("y", 0)
-    //   .setAttribute("width", this.graphWidth)
-    //   .setAttribute("height", this.graphHeight);
+    // this.svgWidth = this.graphWidth;
+    // this.svgHeight = this.graphHeight; // svg canvas resolution, can be changed
+    this.landmass
+      .append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", this.graphWidth)
+      .attr("height", this.graphHeight);
+    this.oceanPattern
+      .append("rect")
+      .attr("fill", "url(#oceanic)")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", this.graphWidth)
+      .attr("height", this.graphHeight);
+    this.oceanLayers
+      .append("rect")
+      .attr("id", "oceanBase")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", this.graphWidth)
+      .attr("height", this.graphHeight);
     this.fonts = [
       { family: "Arial" },
       { family: "Times New Roman" },
@@ -7943,11 +8067,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     let config = [];
     let occupied = [];
 
-    function extractAnyElement(array) {
-      const index = Math.floor(Math.random() * array.length);
-      return array.splice(index, 1);
-    }
-
     const getMarkerCoordinates = (cell) => {
       const { cells, burgs } = this.pack;
       const burgId = cells.burg[cell];
@@ -7976,36 +8095,45 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   })();
 
   editMarker = (markerI) => {
+    let rn = this.rn;
+    let findCell = this.findCell;
+    let scale = this.scale;
+    let pack = this.pack;
+
     const [element, marker] = getElement(markerI, d3.event);
     if (!marker || !element) return;
-
+    console.log(marker.type);
     this.elSelected = d3
       .select(element)
       .raise()
       .call(d3.drag().on("start", dragMarker))
       .classed("draggable", true);
+    if (marker.type == "party") {
+      this.toggleRouteOpisometerMode(marker);
+      this.selectedParty.marker = marker;
+    }
 
     function getElement(markerI, event) {
       if (event) {
         const element = event.target?.closest("svg");
-        const marker = this.pack.markers.find(
+        const marker = pack.markers.find(
           ({ i }) => Number(element.id.slice(6)) === i
         );
         return [element, marker];
       }
 
       const element = document.getElementById(`marker${markerI}`);
-      const marker = this.pack.markers.find(({ i }) => i === markerI);
+      const marker = pack.markers.find(({ i }) => i === markerI);
       return [element, marker];
     }
 
     function getSameTypeMarkers() {
       const currentType = marker.type;
       if (!currentType) return [marker];
-      return this.pack.markers.filter(({ type }) => type === currentType);
+      return pack.markers.filter(({ type }) => type === currentType);
     }
-
     function dragMarker() {
+      if (this.getAttribute("data-type") == "party") return;
       const dx = +this.getAttribute("x") - d3.event.x;
       const dy = +this.getAttribute("y") - d3.event.y;
 
@@ -8017,15 +8145,15 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
       d3.event.on("end", function () {
         const { x, y } = d3.event;
-        this.setAttribute("x", this.rn(dx + x, 2));
-        this.setAttribute("y", this.rn(dy + y, 2));
+        this.setAttribute("x", rn(dx + x, 2));
+        this.setAttribute("y", rn(dy + y, 2));
 
         const size = marker.size || 30;
-        const zoomSize = Math.max(this.rn(size / 5 + 24 / this.scale, 2), 1);
+        const zoomSize = Math.max(rn(size / 5 + 24 / scale, 2), 1);
 
-        marker.x = this.rn(x + dx + zoomSize / 2, 1);
-        marker.y = this.rn(y + dy + zoomSize, 1);
-        marker.cell = this.findCell(marker.x, marker.y);
+        marker.x = rn(x + dx + zoomSize / 2, 1);
+        marker.y = rn(y + dy + zoomSize, 1);
+        marker.cell = findCell(marker.x, marker.y);
       });
     }
 
@@ -8130,7 +8258,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     );
     const input = document.getElementById("addIconInput");
     let customIcons = JSON.parse(localStorage.getItem("customIcons"));
-
     if (typeof customIcons != "object") customIcons = [];
     table.innerHTML = "";
 
@@ -8140,6 +8267,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       const cell = row.insertCell(i % 10);
       cell.innerHTML = icons[i];
     }
+    console.log(table);
 
     table.onclick = (e) => {
       if ((<HTMLElement>e.target).tagName === "TD") {
@@ -8148,6 +8276,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
             $(this)
               .find("td")
               .each(function () {
+                console.log(this.className);
                 this.className = "";
               });
           });
@@ -8160,8 +8289,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   };
 
   toggleAddMarkerCustom = () => {
-    this.viewbox.style.cursor = "crosshair";
-    // .on("click", this.addMarkerOnClickCustom);
+    this.viewbox
+      .style("cursor", "crosshair")
+      .on("click", this.addMarkerOnClickCustom);
     this.tip(
       "Click on map to add a marker. Hold Shift to add multiple " +
         this.selectedMarker,
@@ -8181,19 +8311,24 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   drawMarker(marker, rescale = 1) {
+    console.log(marker.size);
     const {
       i,
       icon,
+      type,
       x,
       y,
       dx = 50,
-      dy = 100,
-      px = 12,
-      size = 30,
+      dy = 60,
+      px = 16,
+      size = 80,
       pin,
       fill,
       stroke,
     } = marker;
+    console.log(marker);
+    console.log(size);
+    console.log(marker.size);
     const id = `marker${i}`;
     const zoomSize = rescale
       ? Math.max(this.rn(size / 5 + 24 / this.scale, 2), 1)
@@ -8201,12 +8336,13 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     const viewX = this.rn(x - zoomSize / 2, 1);
     const viewY = this.rn(y - zoomSize, 1);
     const pinHTML = ""; //getPin(pin, fill, stroke);
+    if (icon[0] == "#")
+      return `<svg id="${id}" data-type="${type}" viewbox="0 0 ${marker.intrinsicSize} ${marker.intrinsicSize}" width="${zoomSize}" height="${zoomSize}" x="${viewX}" y="${viewY}"><use href="${icon}" data-size="${size}"></use></svg>`;
 
-    return `<svg id="${id}" viewbox="0 0 30 30" width="${zoomSize}" height="${zoomSize}" x="${viewX}" y="${viewY}"><g>${pinHTML}</g><text x="${dx}%" y="${dy}%" font-size="${px}px" >${icon}</text></svg>`;
+    return `<svg id="${id}" data-type="${type}" viewbox="0 0 30 30" width="${zoomSize}" height="${zoomSize}" x="${viewX}" y="${viewY}"><g>${pinHTML}</g><text x="${dx}%" y="${dy}%" font-size="${px}px" >${icon}</text></svg>`;
   }
   addMarkerOnClickCustom = () => {
     const { markers } = this.pack;
-
     const point = d3.mouse(this);
     const cell = this.findCell(point[0], point[1]);
     const x = this.rn(point[0], 2);
@@ -8217,12 +8353,15 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       i,
       x,
       y,
+      type: "",
+      name: "",
     };
 
-    markers.push(marker);
-    const markersElement = document.getElementById("markers");
-    markersElement.insertAdjacentHTML("beforeend", this.drawMarker(marker, 1));
-
+    if (["🏇", "🎎", "👥"].indexOf(this.selectedMarker) + 1) {
+      marker.type = "party";
+      marker.name = "Adventuring Party";
+      this.addParty("Adventuring Party");
+    }
     if (["🍻", "🍺"].indexOf(this.selectedMarker) + 1) {
       this.addInnHook(i, cell, "tavern");
     }
@@ -8254,6 +8393,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     if (["🏛️", "🕳️", "🏺", "🗝️"].indexOf(this.selectedMarker) + 1) {
       this.addDungeonHook(i, cell);
     }
+
+    markers.push(marker);
+    const markersElement = document.getElementById("markers");
+    markersElement.insertAdjacentHTML("beforeend", this.drawMarker(marker, 1));
+
     if (d3.event.shiftKey === false) {
       this.restoreDefaultEvents();
       this.clearMainTip();
@@ -8278,6 +8422,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       localStorage.setItem("customIcons", JSON.stringify(customIcons));
       this.drawIcons();
     }
+    console.log(customIcons);
   }
 
   addVolcanoeHook(id, cell) {
@@ -8386,11 +8531,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       monsterAdjectives
     )} ${monster} who inhabits ${toponym} hills and ${this.ra(modusOperandi)}`;
     this.notes.push({
-      id: "marker" + id,
-      name,
-      legend,
-    });
-    console.log({
       id: "marker" + id,
       name,
       legend,
@@ -8539,7 +8679,178 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       legend,
     });
   }
+  toggleOpisometerMode() {
+    // if (this.classList.contains("pressed")) {
+    //   restoreDefaultEvents();
+    //   clearMainTip();
+    //   this.classList.remove("pressed");
+    // } else {
+    //   if (!layerIsOn("toggleRulers")) toggleRulers();
+    this.tip(
+      "Draw a curve to measure length. Hold Shift to disallow path optimization",
+      true
+    );
+    // unitsBottom.querySelectorAll(".pressed").forEach(button => button.classList.remove("pressed"));
+    // this.classList.add("pressed");
+    let rulers = this.rulers;
+    let scale = this.scale;
+    let restoreDefaultEvents = this.restoreDefaultEvents;
+    let clearMainTip = this.clearMainTip;
+    this.toggleRulers(1);
+    this.viewbox.style("cursor", "crosshair").call(
+      d3.drag().on("start", function () {
+        const point = d3.mouse(this);
+        const opisometer = rulers.create(Opisometer, [point], scale).draw();
 
+        d3.event.on("drag", function () {
+          const point = d3.mouse(this);
+          opisometer.addPoint(point);
+        });
+
+        d3.event.on("end", () => {
+          restoreDefaultEvents();
+          clearMainTip();
+          // addOpisometer.classList.remove("pressed");
+          if (opisometer.points.length < 2) rulers.remove(opisometer.id);
+          if (!d3.event.sourceEvent.shiftKey) opisometer.optimize();
+        });
+      })
+    );
+    // }
+  }
+
+  toggleRouteOpisometerMode = (marker = null) => {
+    // if (this.classList.contains("pressed")) {
+    //   restoreDefaultEvents();
+    //   clearMainTip();
+    //   this.classList.remove("pressed");
+    // } else {
+    //   if (!layerIsOn("toggleRulers")) toggleRulers();
+    this.tip(
+      "Draw a curve along routes to measure length. Hold Shift to measure away from roads.",
+      true
+    );
+    // unitsBottom.querySelectorAll(".pressed").forEach(button => button.classList.remove("pressed"));
+    // this.classList.add("pressed");
+    let pack = this.pack;
+    let rulers = this.rulers;
+    let scale = this.scale;
+    let findCell = this.findCell;
+    this.toggleRulers(1);
+    let restoreDefaultEvents = this.restoreDefaultEvents;
+    let clearMainTip = this.clearMainTip;
+    let viewbox;
+    viewbox = document.getElementById("viewbox");
+    this.viewbox.style("cursor", "crosshair").call(
+      d3.drag().on("start", function () {
+        const cells = pack.cells;
+        const burgs = pack.burgs;
+        const point = d3.mouse(this);
+        viewbox = this;
+        const c = findCell(point[0], point[1]);
+        // if (cells.road[c] || d3.event.sourceEvent.shiftKey) {
+        const b = cells.burg[c];
+        const x = b ? burgs[b].x : cells.p[c][0];
+        const y = b ? burgs[b].y : cells.p[c][1];
+        const routeOpisometer = rulers
+          .create(RouteOpisometer, [[x, y]], scale, pack)
+          .draw();
+
+        d3.event.on("drag", function () {
+          const point = d3.mouse(this);
+          const c = findCell(point[0], point[1]);
+          if (cells.road[c] || d3.event.sourceEvent.shiftKey) {
+            routeOpisometer.trackCell(c, true);
+          }
+        });
+
+        d3.event.on("end", () => {
+          restoreDefaultEvents();
+          clearMainTip();
+          // addRouteOpisometer.classList.remove("pressed");
+          if (routeOpisometer.points.length < 2) {
+            rulers.remove(routeOpisometer.id);
+          }
+        });
+        // } else {
+        //   restoreDefaultEvents();
+        //   clearMainTip();
+        //   addRouteOpisometer.classList.remove("pressed");
+        //   tip("Must start in a cell with a route in it", false, "error");
+        // }
+      })
+    );
+    if (!marker) return;
+    d3.select("#marker" + marker.i).call(
+      d3.drag().on("start", () => {
+        console.log("Dragging Party");
+        const cells = pack.cells;
+        const burgs = pack.burgs;
+        const point = d3.mouse(viewbox);
+        // if (this.selectedMarker == null) {
+        //   const note = this.notes.find(
+        //     (note) => note.id === "marker" + marker.i
+        //   );
+        //   this.selectedMarker = this.pack.markers[marker.i];
+        //   console.log(this.selectedMarker);
+        //   if (this.selectedBurg?.npcs)
+        //     this.selectedMarker.npcs = this.selectedBurg.npcs;
+        //   this.clickedEmitter.emit({ ...this.selectedMarker, ...note });
+        //   this.editMarker(this.selectedMarker.i);
+        // }
+
+        const c = findCell(point[0], point[1]);
+        if (cells.road[c] || d3.event.sourceEvent.shiftKey) {
+          const b = cells.burg[c];
+          const x = b ? burgs[b].x : cells.p[c][0];
+          const y = b ? burgs[b].y : cells.p[c][1];
+          const routeOpisometer = rulers
+            .create(RouteOpisometer, [[x, y]], scale, pack)
+            .draw();
+
+          d3.event.on("drag", function () {
+            const point = d3.mouse(viewbox);
+            const c = findCell(point[0], point[1]);
+            if (cells.road[c] || d3.event.sourceEvent.shiftKey) {
+              routeOpisometer.trackCell(c, true);
+            }
+          });
+
+          d3.event.on("end", () => {
+            restoreDefaultEvents();
+            clearMainTip();
+            // addRouteOpisometer.classList.remove("pressed");
+            if (routeOpisometer.points.length < 2) {
+              rulers.remove(routeOpisometer.id);
+            }
+          });
+          // } else {
+          //   restoreDefaultEvents();
+          //   clearMainTip();
+          //   addRouteOpisometer.classList.remove("pressed");
+          //   tip("Must start in a cell with a route in it", false, "error");
+        }
+      })
+    );
+    // }
+  };
+
+  removeAllRulers() {
+    console.log(this.rulers.data);
+    if (!this.rulers.data.length) return;
+    this.rulers.undraw();
+    this.rulers.data = [];
+  }
+
+  addParty(id) {
+    const name = `Party`;
+    const legend = `Pirate ships have been spotted in these waters`;
+    this.notes.push({
+      id: "marker" + id,
+      name,
+      legend,
+    });
+  }
   // Tooltips
 
   // show tip for non-svg elemets with data-tip
@@ -8569,21 +8880,22 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     if (time) setTimeout(() => this.clearMainTip(), time);
   }
 
-  showMainTip() {
+  showMainTip = () => {
     this.tooltip.nativeElement.style.background =
       this.tooltip.nativeElement.dataset.color;
     this.tooltip.nativeElement.innerHTML =
       this.tooltip.nativeElement.dataset.main;
-  }
+  };
 
-  clearMainTip() {
+  clearMainTip = () => {
     this.tooltip.nativeElement.dataset.color = "";
     this.tooltip.nativeElement.dataset.main = "";
     this.tooltip.nativeElement.innerHTML = "";
-  }
+  };
 
   // show tip at the bottom of the screen, consider possible translation
-  showDataTip(e) {
+  showDataTip = (e) => {
+    console.log(e.target);
     if (!e.target) return;
     let dataTip = e.target.dataset.tip;
     if (!dataTip && e.target.parentNode.dataset.tip)
@@ -8591,9 +8903,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     if (!dataTip) return;
     //const tooltip = lang === "en" ? dataTip : translate(e.target.dataset.t || e.target.parentNode.dataset.t, dataTip);
     this.tip(dataTip);
-  }
+  };
 
-  showElementLockTip(event) {
+  showElementLockTip = (event) => {
     const locked = event?.target?.classList?.contains("icon-lock");
     if (locked) {
       this.tip(
@@ -8604,8 +8916,17 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         "Click to lock the element and prevent changes to it by regeneration tools"
       );
     }
-  }
+  };
 
+  drawMarkers = () => {
+    const rescale = +1;
+    const pinned = +this.markers.attr("pinned");
+    const markersData = pinned
+      ? this.pack.markers.filter(({ pinned }) => pinned)
+      : this.pack.markers;
+    const html = markersData.map((marker) => this.drawMarker(marker, rescale));
+    this.markers.html(html.join(""));
+  };
   // show viewbox tooltip if main tooltip is blank
   showMapTooltip = (point, e, i, g) => {
     this.tip(""); // clear tip
@@ -8616,7 +8937,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     const group = path[path.length - 19].id;
     const subgroup = path[path.length - 20].id;
     const land = this.pack.cells.h[i] >= 20;
-
     // specific elements
     // if (group === "armies")
     //   return this.tip(e.target.parentNode.dataset.name + ". Click to edit");
@@ -8670,11 +8990,12 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.tip(tipText);
       return;
     }
-    if (group === "labels") return this.tip("Click to edit the Label");
+    // if (group === "labels") return this.tip("Click to edit the Label");
 
     if (group === "markers") {
       let marker = path[path.length - 20];
-      return this.tip(this.notes.find((note) => note.id === marker.id).name);
+      let note = this.notes.find((note) => note.id === marker.id);
+      return note ? this.tip(note.name) : "";
     }
 
     if (group === "ruler") {
@@ -8703,7 +9024,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.tip(`${fullName} lake. Click to edit`);
       return;
     }
-    if (group === "coastline") return this.tip("Click to edit the coastline");
+    // if (group === "coastline") return this.tip("Click to edit the coastline");
 
     if (group === "zones") {
       const zone = path[path.length - 20];
@@ -8712,7 +9033,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    if (group === "ice") return this.tip("Click to edit the Ice");
+    // if (group === "ice") return this.tip("Click to edit the Ice");
 
     // covering elements
     if (this.layerIsOn("togglePrec") && land)
@@ -8759,4 +9080,5 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     } else if (this.layerIsOn("toggleHeight"))
       this.tip("Height: " + this.getFriendlyHeight(point));
   };
+  // Scale bar
 }

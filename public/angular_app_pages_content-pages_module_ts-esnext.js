@@ -254,7 +254,7 @@ class SigninComponent {
         }, () => {
             this.spinner.hide();
             this.loginForm.reset();
-            this.router.navigate(["app/world/1/edit"]);
+            this.router.navigate(["app/welcome"]);
         });
     }
     // Handle response

@@ -21,8 +21,7 @@ import { ConfigService } from "../services/config.service";
 import { DOCUMENT } from "@angular/common";
 import { CustomizerService } from "../services/customizer.service";
 import { FormControl } from "@angular/forms";
-import { LISTITEMS } from "../data/template-search";
-import { Router } from "@angular/router";
+import { Router, NavigationEnd } from "@angular/router";
 import { faDragon } from "@fortawesome/free-solid-svg-icons";
 import { faHatWizard } from "@fortawesome/free-solid-svg-icons";
 import { faUserFriends } from "@fortawesome/free-solid-svg-icons";
@@ -32,8 +31,11 @@ import { faGlobe } from "@fortawesome/free-solid-svg-icons";
 import { faMap } from "@fortawesome/free-solid-svg-icons";
 import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
 import { faCaretSquareDown } from "@fortawesome/free-regular-svg-icons";
-import { ActivatedRoute } from "@angular/router";
+import { WorldService } from "../../shared/services/world.service";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { AuthService } from "./../../shared/auth/auth.service";
 
+@UntilDestroy()
 @Component({
   selector: "app-navbar",
   templateUrl: "./navbar.component.html",
@@ -78,6 +80,8 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   public config: any = {};
   public worldId: number;
   public regionId: number;
+  public user;
+  public regions;
 
   constructor(
     public translate: TranslateService,
@@ -85,17 +89,9 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
     private router: Router,
     private configService: ConfigService,
     private cdr: ChangeDetectorRef,
-    private route: ActivatedRoute
+    private worldService: WorldService,
+    private authService: AuthService
   ) {
-    route.paramMap.subscribe((p) => {
-      console.log(p);
-      if (!!p.get("worldId")) {
-        this.worldId = parseInt(p.get("worldId"), 10);
-      }
-      if (!!p.get("regionId")) {
-        this.regionId = parseInt(p.get("regionId"), 10);
-      }
-    });
     const browserLang: string = translate.getBrowserLang();
     translate.use(browserLang.match(/en|es|pt|de/) ? browserLang : "en");
     this.config = this.configService.templateConf;
@@ -107,7 +103,33 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnInit() {
-    this.listItems = LISTITEMS;
+    // this.listItems = LISTITEMS;
+    this.worldService.selectedRegion$
+      .pipe(untilDestroyed(this))
+      .subscribe((region) => {
+        this.regionId = region.id;
+        if (this.worldId !== region.world_id) {
+          this.worldService.getWorldFromRegion(region.id);
+        }
+      });
+    this.worldService.selectedWorld$
+      .pipe(untilDestroyed(this))
+      .subscribe((world) => {
+        this.worldId = world.id;
+        if (!this.user)
+          this.regions = this.user.search_list.filter(
+            (w) => w.type == "region" && w.world_id == world.id
+          );
+      });
+
+    this.authService.user$.pipe(untilDestroyed(this)).subscribe((user) => {
+      this.user = user;
+      this.listItems = user.search_list;
+      if (!this.worldId)
+        this.regions = this.user.search_list.filter(
+          (w) => w.type == "region" && w.world_id == this.worldId
+        );
+    });
 
     if (this.innerWidth < 1200) {
       this.isSmallScreen = true;

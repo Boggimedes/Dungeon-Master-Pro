@@ -113,7 +113,7 @@ localStorage.setItem(
 );
 localStorage.setItem("preset", "GMP");
 // localStorage.setItem('onloadMap', 'saved');
-localStorage.setItem("reliefDensity", 0.3);
+localStorage.setItem("reliefDensity", 0.2);
 localStorage.setItem("mapWidth", 2000);
 localStorage.setItem("mapHeight", 2000);
 localStorage.setItem("manors", 100);
@@ -517,6 +517,7 @@ let scaleBar = svg.select("#scaleBar");
 let legend = svg.append("g").attr("id", "legend");
 let ocean = viewbox.append("g").attr("id", "ocean");
 let oceanLayers = ocean.append("g").attr("id", "oceanLayers");
+oceanLayers.attr("layers", "-6,-3,-1");
 let oceanPattern = ocean.append("g").attr("id", "oceanPattern");
 let lakes = viewbox.append("g").attr("id", "lakes");
 let landmass = viewbox.append("g").attr("id", "landmass");

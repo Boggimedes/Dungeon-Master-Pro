@@ -218,20 +218,15 @@ class CreateUsersTable extends Migration
             $table->timestamps();
             $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
         });
-        Schema::create('cities', function (Blueprint $table) {
-            $table->increments('id');
+        Schema::create('poi', function (Blueprint $table) {
+            $table->integer('id')->unsigned();
             $table->integer('region_id')->unsigned();
-            $table->integer('origin_id')->unsigned();
-            $table->string('name');
-            $table->text('population');
-            $table->text('prof_balance');
-            $table->text('feature_types');
-            $table->integer('epoch')->nullable();
-            $table->text('cultures');
-            $table->text('religions');
-            $table->text('map');
+            $table->string('type');
+            $table->longText('notes');
+            $table->longText('hooks');
             $table->timestamps();
             $table->foreign('region_id')->references('id')->on('regions')->onDelete('cascade');
+            $table->unique(['id', 'region_id', 'type']);
         });
         Schema::create('spells', function (Blueprint $table) {
             $table->increments('id');

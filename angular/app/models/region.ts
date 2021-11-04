@@ -1,5 +1,6 @@
 export class Region {
   public id: number;
+  public world_id: number;
   public name: string;
   public feature_types: any = {};
   public epoch: number;

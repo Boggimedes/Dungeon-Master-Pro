@@ -36,6 +36,7 @@
     "@fortawesome/free-solid-svg-icons": "^5.15.4",
     "@handsontable/angular": "^9.0.2",
     "@ng-bootstrap/ng-bootstrap": "8.0.0",
+    "@ngneat/until-destroy": "^8.1.4",
     "@ngrx/store": "10.1.0",
     "@ngx-translate/core": "13.0.0",
     "@ngx-translate/http-loader": "6.0.0",

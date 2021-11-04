@@ -15,8 +15,11 @@ export class WorldService {
   private selectedNpcSource = new BehaviorSubject<any>([]);
   public selectedNpc$ = this.selectedNpcSource.asObservable();
 
-  private worldDataSource = new BehaviorSubject<World>(new World());
-  public worldData$ = this.worldDataSource.asObservable();
+  private selectedWorldSource = new BehaviorSubject<World>(new World());
+  public selectedWorld$ = this.selectedWorldSource.asObservable();
+
+  private selectedRegionSource = new BehaviorSubject<Region>(new Region());
+  public selectedRegion$ = this.selectedRegionSource.asObservable();
 
   public showFile;
 
@@ -25,17 +28,21 @@ export class WorldService {
   getWorld = (id) => {
     this.http
       .get("/api/world/" + id)
-      .subscribe((data: World) => this.worldDataSource.next(data));
+      .subscribe((data: World) => this.selectedWorldSource.next(data));
   };
 
   getWorldFromRegion = (id) => {
     this.http
       .get("/api/world/fr/" + id)
-      .subscribe((data: World) => this.worldDataSource.next(data));
+      .subscribe((data: World) => this.selectedWorldSource.next(data));
   };
 
   getRegion = (id) => {
-    // this.http.get('/api/region/' + id).subscribe((data: {region: Region}) => this.worldDataSource.next(data.region));
+    this.http
+      .get("/api/region/" + id)
+      .subscribe((data: { region: Region }) =>
+        this.selectedRegionSource.next(data.region)
+      );
   };
 
   getNpc = (npcId) => {
@@ -98,7 +105,7 @@ export class WorldService {
   };
   // updateRegion = (params) => {
   //     const call = this.http.post('/api/npcs/region/update', params).pipe(share());
-  //     call.subscribe((data) => this.worldDataSource.next(data));
+  //     call.subscribe((data) => this.selectedWorldSource.next(data));
   //     return call;
   // }
   addRegion = (world, region = null) => {
@@ -113,7 +120,7 @@ export class WorldService {
   };
   // deleteWorld = (params) => {
   //     const call = this.http.post('/api/npcs/world/delete', params).pipe(share());
-  //     call.subscribe((data) => this.worldDataSource.next(data));
+  //     call.subscribe((data) => this.selectedWorldSource.next(data));
   //     return call;
   // }
   // getDescriptives = (params) => {
@@ -133,4 +140,25 @@ export class WorldService {
   // }
   // deleteDescriptives = (params) => {
   //     return this.http.post('/api/npcs/descriptives/delete', params);
+  updateBurg = (region, burg) => {
+    const call = this.http
+      .put("/api/region/" + region.id + "/burg", burg)
+      .pipe(share());
+    return call;
+  };
+  updatePOI = (region, poi) => {
+    console.log("wth?");
+    const call = this.http
+      .put("/api/region/" + region.id + "/poi", poi)
+      .pipe(share());
+    return call;
+  };
+  getPOI = (region, poi) => {
+    console.log(poi);
+    let type = typeof poi.capital == "undefined" ? poi.type : "burgs";
+    const call = this.http
+      .get("/api/region/" + region.id + "/" + type + "/" + poi.i)
+      .pipe(share());
+    return call;
+  };
 }

@@ -692,4 +692,75 @@ class Region extends Model
              && array_diff($a, $b) === array_diff($b, $a)
         );
     }
+
+    public function updateMapData($type, $data) 
+    {
+        $mapData = explode("\r\n", $this->map);
+        $index = $type == "burgs" ? 15 : 4;
+        $groupData = json_decode($mapData[$index]);
+        foreach($groupData as &$mapItem) {
+            if (!empty($mapItem->i) && $mapItem->i == $data['i']) 
+            {
+                $mapItem = $data;
+                break;
+            }
+            if (!empty($mapItem->id) && $mapItem->id == $data['id']) 
+            {
+                $mapItem = $data;
+                break;
+            }
+        }
+        $mapData[$index] = json_encode($groupData);
+        $this->map = implode("\r\n", $mapData);
+        $this->save();
+    }
+
+    public function getMapItem($type, $i) 
+    {
+        $mapData = explode("\r\n", $this->map);
+        $index = $type == "burgs" ? 15 : 4;
+        $mapData = json_decode($mapData[$index]);
+        foreach($mapData as $mapItem) {
+            if (!empty($mapItem->i) && $mapItem->i == $i) 
+            {
+                return $mapItem;
+            }
+            if (!empty($mapItem->id) && $mapItem->id == 'marker' . $i) 
+            {
+                return $mapItem;
+            }
+        }
+    }
+
+    public function getMarker($id) 
+    {
+        $mapData = explode("\r\n", $this->map);
+        $markerData = $mapData[4];
+        $markerArray = explode('},{', $markerData);
+        foreach($markerArray as $row) {
+            if(!json_decode('{' . $row . '}')) {
+                \Log::warning("Null Decode");
+                \Log::info($row);
+            }
+        }
+        return;
+        \Log::info(count($markerArray));
+        \Log::info(json_decode($this->removeInvalidChars($markerData)));
+        foreach($markerData as $marker) {
+            if (empty($marker->id)) continue;
+            $mid = 'marker' . $id;
+            if ($marker->id == $mid){
+                return $marker;
+            }
+        }
+    }
+function removeInvalidChars( $text) {
+    $regex = '/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x';
+    return preg_replace($regex, '$1', $text);
+}
+    public function updateMarker($marker) {
+        if ($marker->notes) {
+
+        }
+    }
 }

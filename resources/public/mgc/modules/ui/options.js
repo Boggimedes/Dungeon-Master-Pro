@@ -605,8 +605,8 @@ function applyStoredOptions() {
     changeStatesNumber(localStorage.getItem("regions"));
 
   uiSizeInput.max = uiSizeOutput.max = getUImaxSize();
-  if (localStorage.getItem("uiSize"))
-    changeUIsize(localStorage.getItem("uiSize"));
+  if (localStorage.getItem("uiSize")) changeUIsize(1.5);
+  //localStorage.getItem("uiSize"));
   else changeUIsize(minmax(rn(mapWidthInput.value / 1280, 1), 1, 2.5));
 
   // search params overwrite stored and default options
@@ -663,14 +663,14 @@ function randomizeOptions() {
   if (randomize || !locked("temperaturePole"))
     temperaturePoleOutput.value = temperaturePoleInput.value = rand(
       tMin,
-      tMin + 30
+      tMin + 10
     );
 
   // 'Units Editor' settings
   const US = navigator.language === "en-US";
   const UK = navigator.language === "en-GB";
   if (randomize || !locked("distanceScale"))
-    distanceScaleOutput.value = distanceScaleInput.value = gauss(3, 1, 1, 5);
+    distanceScaleOutput.value = distanceScaleInput.value = 1;
   if (!stored("distanceUnit")) distanceUnitInput.value = US || UK ? "mi" : "km";
   if (!stored("heightUnit")) heightUnit.value = US || UK ? "ft" : "m";
   if (!stored("temperatureScale")) temperatureScale.value = US ? "°F" : "°C";

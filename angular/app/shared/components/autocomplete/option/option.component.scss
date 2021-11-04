@@ -10,6 +10,7 @@
   padding: 0.8rem 1rem;
   cursor: pointer;
   display: block;
+  color: black;
 }
 
 :host:first-child .option {
@@ -23,11 +24,11 @@
 }
 
 .option:hover {
-  background-color: #F5F5F5;
+  background-color: #f5f5f5;
 }
 
 :host.first-active-item {
   .option {
-    background-color: #F5F5F5;
+    background-color: #f5f5f5;
   }
 }

@@ -6,13 +6,23 @@ import {
   AfterViewInit,
   ViewEncapsulation,
 } from "@angular/core";
+import { WorldService } from "../../shared/services/world.service";
+import { ActivatedRoute } from "@angular/router";
 
 import { faHeart } from "@fortawesome/free-regular-svg-icons";
 import { faUserFriends } from "@fortawesome/free-solid-svg-icons";
 import { faBookOpen } from "@fortawesome/free-solid-svg-icons";
 import { faCogs } from "@fortawesome/free-solid-svg-icons";
 import { faHourglassHalf } from "@fortawesome/free-solid-svg-icons";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
+import { Region } from "../../models/region";
+import { World } from "../../models/world";
+import {
+  PerfectScrollbarConfigInterface,
+  PerfectScrollbarComponent,
+} from "ngx-perfect-scrollbar";
 
+@UntilDestroy()
 @Component({
   selector: "app-story",
   templateUrl: "./story.component.html",
@@ -34,60 +44,101 @@ export class StoryComponent implements OnInit, AfterViewInit {
   public mapArray = [0.3, 0.6, 1, 2, 3, 5, 7.5, 10, 15, 20];
   private _population = 0;
   public editPop = false;
+  public selectedRegion: Region = new Region();
+  public selectedWorld: World = new World();
+  public selectedParty: any = {};
   currentX = 0;
   currentY = 0;
-  selectedMapMarker: any = {};
+  public saveBtn: string = "Saved";
+  selectedPOI: any = {};
   set population(population) {
     this._population =
       population /
-      (this.selectedMapMarker.populationRate *
-        this.selectedMapMarker.urbanization);
+      (this.selectedPOI.populationRate * this.selectedPOI.urbanization);
   }
   get population() {
     return (
       this._population *
-      this.selectedMapMarker.populationRate *
-      this.selectedMapMarker.urbanization
+      this.selectedPOI.populationRate *
+      this.selectedPOI.urbanization
     );
   }
-  constructor() {}
+  constructor(
+    private route: ActivatedRoute,
+    private worldService: WorldService
+  ) {
+    this.route.paramMap.subscribe((p) => {
+      console.log(JSON.stringify(p));
+      console.log(p.get("regionId"));
+      if (!!p.get("regionId")) {
+        this.worldService.getRegion(parseInt(p.get("regionId"), 10));
+      }
+    });
+  }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.worldService.selectedRegion$
+      .pipe(untilDestroyed(this))
+      .subscribe((region) => {
+        this.selectedRegion = region;
+        if (this.selectedWorld.id !== this.selectedRegion.world_id) {
+          this.worldService.getWorldFromRegion(region.id);
+        }
+      });
+    this.worldService.selectedWorld$
+      .pipe(untilDestroyed(this))
+      .subscribe((world) => {
+        this.selectedWorld = world;
+      });
+  }
 
   ngAfterViewInit(): void {}
 
-  mapClicked = (marker) => {
-    console.log(marker);
-    this.selectedMapMarker = { type: marker.type, ...marker.data };
+  savePOI = () => {
+    this.saveBtn = "...Saving";
+    this.worldService
+      .updatePOI(this.selectedRegion, this.selectedPOI)
+      .subscribe((response) => (this.saveBtn = "Saved"));
+  };
+
+  mapClicked = (poi) => {
+    console.log(poi);
+    this.selectedPOI = poi;
+    this.worldService.getPOI(this.selectedRegion, poi).subscribe((poi: any) => {
+      this.selectedPOI = { ...this.selectedPOI, ...poi };
+      if (poi.type == "party") {
+        this.selectedParty = this.selectedPOI;
+      }
+    });
     this.mapBox = true;
-    if (marker.type == "burg") {
-      this._population = this.selectedMapMarker.population;
+    if (typeof poi.capital != "undefined") {
+      this._population = this.selectedPOI.population;
     }
-    if (marker.type == "dungeons") {
+    if (poi.type == "dungeons") {
     }
-    if (marker.type == "ruins") {
+    if (poi.type == "ruins") {
     }
-    if (marker.type == "statues") {
+    if (poi.type == "statues") {
     }
-    if (marker.type == "brigands") {
+    if (poi.type == "brigands") {
     }
-    if (marker.type == "volcanoes") {
+    if (poi.type == "volcanoes") {
     }
-    if (marker.type == "mines") {
+    if (poi.type == "mines") {
     }
-    if (marker.type == "inns") {
+    if (poi.type == "inns") {
     }
-    if (marker.type == "pirates") {
+    if (poi.type == "pirates") {
     }
-    if (marker.type == "lake-monsters") {
+    if (poi.type == "lake-monsters") {
     }
-    if (marker.type == "sea-monsters") {
+    if (poi.type == "sea-monsters") {
     }
-    if (marker.type == "hill-monsters") {
+    if (poi.type == "hill-monsters") {
     }
-    if (marker.type == "waterfalls") {
+    if (poi.type == "waterfalls") {
     }
-    if (marker.type == "lighthouses") {
+    if (poi.type == "lighthouses") {
     }
   };
 }

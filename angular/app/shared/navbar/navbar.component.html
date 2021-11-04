@@ -39,10 +39,102 @@
           ></a>
         </li>
         <li>
-          <a class="nav-link" routerLink="/app/story">Story</a>
-        </li>
-        <li>
           <a class="nav-link" routerLink="/app/combat">Combat</a>
+        </li>
+        <li class="dropdown nav-item" ngbDropdown>
+          <a
+            class="nav-link dropdown-toggle"
+            href="javascript:;"
+            data-toggle="dropdown"
+            ngbDropdownToggle
+          >
+            Change Region
+          </a>
+          <div
+            class="dropdown-menu text-left dropdown-menu-right m-0 pb-0"
+            style="font-size: 1.5rem"
+            ngbDropdownMenu
+          >
+            <ng-container *ngFor="let region of regions">
+              <a
+                class="dropdown-item"
+                ngbDropdownItem
+                routerLink="/app/region/{{ regionId }}/story"
+              >
+                {{ region.name }}
+              </a>
+            </ng-container>
+          </div>
+        </li>
+        <li class="nav-item nav-search">
+          <a
+            class="nav-link nav-link-search"
+            id="navbar-search"
+            href="javascript:"
+            (click)="toggleSearchOpenClass(true)"
+            ><i class="ft-search font-medium-3"></i
+          ></a>
+          <div class="search-input {{ searchOpenClass }}">
+            <div class="search-input-icon">
+              <i class="ft-search font-medium-3"></i>
+            </div>
+            <input
+              [formControl]="control"
+              #search
+              class="input"
+              type="text"
+              placeholder="Search regions and worlds..."
+              tabindex="0"
+              autofocus
+              data-search="template-search"
+              [appAutocomplete]="autocomplete"
+              (keyup.enter)="onEnter()"
+              (keydown.esc)="onEscEvent()"
+              (keyup)="onSearchKey($event)"
+            />
+            <div
+              class="search-input-close"
+              (click)="toggleSearchOpenClass(false)"
+            >
+              <i class="ft-x font-medium-3"></i>
+            </div>
+
+            <app-autocomplete #autocomplete="appAutocomplete">
+              <ng-template appAutocompleteContent>
+                <ng-container
+                  *ngIf="listItems | filter: control.value as result"
+                >
+                  <app-option
+                    #searchResults
+                    *ngFor="let option of result"
+                    [url]="option.url"
+                    [value]="option.name"
+                    (click)="redirectTo(option.url)"
+                    (mouseenter)="removeActiveClass()"
+                  >
+                    <div
+                      class="
+                        d-flex
+                        align-items-center
+                        justify-content-between
+                        w-100
+                      "
+                    >
+                      <div
+                        class="d-flex align-items-center justify-content-start"
+                      >
+                        <i class="{{ option.icon }} mr-2"></i>
+                        <span>{{ option.name }}</span>
+                      </div>
+                    </div>
+                  </app-option>
+                  <app-option class="no-result" *ngIf="!result.length"
+                    >No results found.</app-option
+                  >
+                </ng-container>
+              </ng-template>
+            </app-autocomplete>
+          </div>
         </li>
       </ul>
     </div>

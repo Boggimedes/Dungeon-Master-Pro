@@ -7,8 +7,16 @@ use App\Models\Campaign;
 use App\Models\Map;
 use App\Models\User;
 
-class MapItem extends Model
+class POI extends Model
 {
+	protected $table = "poi";
+    protected $fillable = [
+        'id',
+        'type',
+        'region_id',
+        'hooks',
+        'notes'
+	];
     public function campaign()
 	{
 		return $this->belongsTo(Campaign::class);

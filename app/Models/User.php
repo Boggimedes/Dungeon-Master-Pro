@@ -126,5 +126,31 @@ class User extends Authenticatable implements JWTSubject {
 		return $this->hasMany(SceneCollection::class, 'user_id');
 	}
     
+	public function withSearchList()
+	{
+		$user = $this->toArray();
+		$regionList = $this->worlds()->leftJoin('regions','worlds.id','=','regions.world_id')->select('worlds.name as world_name', 'regions.name as region_name', 'worlds.id as world_id', 'regions.id as region_id')->get();
+		$i = 0;
+		$searchList = [];
+		foreach ($regionList as $region) {
+			if (!$i++) {
+				$searchList[] = [
+					'name' => $region['world_name'],
+					'type' => 'world',
+					'url' => '/app/world/' . $region['world_id'] . '/edit',
+					'icon' => "ft-globe"
+				];
+			}
 
+		$searchList[] = [
+					'name' => $region['region_name'],
+					'type' => 'region',
+					'url' => '/app/region/' . $region['world_id'] . '/story',
+					'icon' => "ft-map"
+		];
+
+		}
+		$user['search_list'] = $searchList;
+		return $user;
+	}
 }

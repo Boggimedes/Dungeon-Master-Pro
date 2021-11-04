@@ -25,12 +25,16 @@
   <div class="story-box card" appFreeDragging *ngIf="mapBox">
     <div class="card-content">
       <div class="card-body">
+        <div class="selected-party" *ngIf="selectedParty?.name">
+          <label>Selected Party:</label>
+          <h5>{{ selectedParty.name }}</h5>
+        </div>
         <div class="card-title">
           <h3>
             <input
               type="text"
               class="no-border bg-transparent text-primary"
-              [(ngModel)]="selectedMapMarker.name"
+              [(ngModel)]="selectedPOI.name"
             />
           </h3>
           <div appFreeDraggingHandle class="drag-handle">
@@ -42,28 +46,26 @@
             </svg>
           </div>
         </div>
-        <div *ngIf="selectedMapMarker.temperature">
+        <div *ngIf="selectedPOI.temperature">
           <div class="label">
             Temperature:
-            <span id="burgTemperature">{{
-              selectedMapMarker.temperature
-            }}</span>
+            <span id="burgTemperature">{{ selectedPOI.temperature }}</span>
           </div>
         </div>
 
         <div
-          *ngIf="selectedMapMarker.elevation"
+          *ngIf="selectedPOI.elevation"
           data-tip="Burg height above mean sea level"
         >
           <div class="label">
             Elevation:
-            <span id="burgElevation">{{ selectedMapMarker.elevation }}</span>
+            <span id="burgElevation">{{ selectedPOI.elevation }}</span>
           </div>
         </div>
 
-        <div *ngIf="selectedMapMarker.culture">
+        <div *ngIf="selectedPOI.cObject">
           <div class="label">
-            Dominant Culture: {{ selectedMapMarker.culture }}
+            Dominant Culture: {{ selectedPOI.cObject.name }}
           </div>
         </div>
 
@@ -87,64 +89,64 @@
           </div>
         </div>
 
-        <div *ngIf="selectedMapMarker.type == 'burgs'">
+        <div *ngIf="selectedPOI.type == 'burgs'">
           <div class="label">Features:</div>
           <span
             ngbTooltip="State Capital"
-            (click)="selectedMapMarker.capital = !selectedMapMarker.capital"
+            (click)="selectedPOI.capital = !selectedPOI.capital"
             id="burgCapital"
-            [class.text-light]="selectedMapMarker.capital"
-            [class.text-dark]="!selectedMapMarker.capital"
+            [class.text-light]="selectedPOI.capital"
+            [class.text-dark]="!selectedPOI.capital"
             style="font-size: 2rem"
             class="burgFeature icon-star"
           ></span>
           <span
             ngbTooltip="Port City"
-            (click)="selectedMapMarker.port = !selectedMapMarker.port"
+            (click)="selectedPOI.port = !selectedPOI.port"
             id="burgPort"
-            [class.text-light]="selectedMapMarker.port"
-            [class.text-dark]="!selectedMapMarker.port"
+            [class.text-light]="selectedPOI.port"
+            [class.text-dark]="!selectedPOI.port"
             style="font-size: 2rem"
             class="burgFeature icon-anchor"
           ></span>
           <span
             ngbTooltip="Has Citadel"
-            (click)="selectedMapMarker.citadel = !selectedMapMarker.citadel"
+            (click)="selectedPOI.citadel = !selectedPOI.citadel"
             id="burgCitadel"
-            [class.text-light]="selectedMapMarker.citadel"
-            [class.text-dark]="!selectedMapMarker.citadel"
+            [class.text-light]="selectedPOI.citadel"
+            [class.text-dark]="!selectedPOI.citadel"
             class="burgFeature icon-chess-rook"
           ></span>
           <span
             ngbTooltip="Has Walls"
-            (click)="selectedMapMarker.walls = !selectedMapMarker.walls"
+            (click)="selectedPOI.walls = !selectedPOI.walls"
             id="burgWalls"
-            [class.text-light]="selectedMapMarker.walls"
-            [class.text-dark]="!selectedMapMarker.walls"
+            [class.text-light]="selectedPOI.walls"
+            [class.text-dark]="!selectedPOI.walls"
             class="burgFeature icon-fort-awesome"
           ></span>
           <span
             ngbTooltip="Has Bazaar "
-            (click)="selectedMapMarker.plaza = !selectedMapMarker.plaza"
+            (click)="selectedPOI.plaza = !selectedPOI.plaza"
             id="burgPlaza"
-            [class.text-light]="selectedMapMarker.plaza"
-            [class.text-dark]="!selectedMapMarker.plaza"
+            [class.text-light]="selectedPOI.plaza"
+            [class.text-dark]="!selectedPOI.plaza"
             class="burgFeature icon-store"
           ></span>
           <span
             ngbTooltip="Has Temple"
-            (click)="selectedMapMarker.temple = !selectedMapMarker.temple"
+            (click)="selectedPOI.temple = !selectedPOI.temple"
             id="burgTemple"
-            [class.text-light]="selectedMapMarker.temple"
-            [class.text-dark]="!selectedMapMarker.temple"
+            [class.text-light]="selectedPOI.temple"
+            [class.text-dark]="!selectedPOI.temple"
             class="burgFeature icon-chess-bishop"
           ></span>
           <span
             ngbTooltip="Has Shanty"
-            (click)="selectedMapMarker.shanty = !selectedMapMarker.shanty"
+            (click)="selectedPOI.shanty = !selectedPOI.shanty"
             id="burgShanty"
-            [class.text-light]="selectedMapMarker.shanty"
-            [class.text-dark]="!selectedMapMarker.shanty"
+            [class.text-light]="selectedPOI.shanty"
+            [class.text-dark]="!selectedPOI.shanty"
             class="burgFeature icon-campground"
           ></span>
         </div>
@@ -152,19 +154,37 @@
         <textarea
           class="form-control mt-3 w-100"
           rows="3"
-          [(ngModel)]="selectedMapMarker.notes"
+          (change)="saveBtn = 'Save'"
+          [(ngModel)]="selectedPOI.notes"
         ></textarea>
-        <h4>Hooks</h4>
+        <h4 class="mt-3">Hooks</h4>
         <div>
-          <div *ngFor="let hook of selectedMapMarker.hooks">
-            {{ hook.name }}
-          </div>
+          <perfect-scrollbar
+            class="scroll-container"
+            [scrollXMarginOffset]="100"
+            style="position: relative; max-height: 30vh"
+            fxFlex="auto"
+            [config]="config"
+          >
+            <app-hooks
+              (hookEmitter)="selectedPOI.hook = $event"
+              [selectedHook]="selectedPOI?.hook"
+            ></app-hooks>
+          </perfect-scrollbar>
         </div>
-        <h4>Notable NPCs</h4>
+        <h4 class="mt-3" *ngIf="selectedPOI?.npcs">Notable NPCs</h4>
         <div>
-          <div *ngFor="let npc of selectedMapMarker.npcs">{{ npc.name }}</div>
+          <div *ngFor="let npc of selectedPOI.npcs">{{ npc.name }}</div>
         </div>
       </div>
+      <button
+        type="button"
+        class="btn btn-primary float-right"
+        (click)="savePOI()"
+        [disabled]="saveBtn == 'Saved'"
+      >
+        {{ saveBtn }}
+      </button>
     </div>
   </div>
 

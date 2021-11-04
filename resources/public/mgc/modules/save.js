@@ -2,35 +2,20 @@
 "use strict";
 // download map as SVG
 async function saveToServer() {
-  TIME && console.time("saveToServer");
-  const url = await getMapURL("svgToServer");
-  const cultures = JSON.stringify(pack.cultures);
-  const states = JSON.stringify(pack.states);
-  const burgs = JSON.stringify(pack.burgs);
-  const religions = JSON.stringify(pack.religions);
-  const provinces = JSON.stringify(pack.provinces);
-  const markers = JSON.stringify(pack.markers);
+  console.time("saveToServer");
   const pngurl = await getMapURL("png");
+  console.timeEnd("saveToServer1");
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   canvas.width = 260;
   canvas.height = 260;
 
-  let canvasData = canvas.toDataURL("image/png");
   let data = {
-    svgString: url,
-    cultures: cultures,
-    states: states,
-    burgs: burgs,
-    religions: religions,
-    provinces: provinces,
-    markers: markers,
     map: getMapData(),
-    canvas: canvasData,
     url: null,
-    blob: null,
   };
+
   const img = new Image();
 
   img.src = pngurl;
@@ -42,23 +27,20 @@ async function saveToServer() {
     window.setTimeout(function () {
       canvas.remove();
     }, 5000);
-    canvas.toBlob(function (blob) {
-      data.blob = window.URL.createObjectURL(blob);
 
-      $.ajax({
-        type: "POST",
-        url: "/api/region/" + regionId + "/upload-map",
-        data: data,
-        success: () => {
-          console.log("success");
-        },
-      });
+    $.ajax({
+      type: "POST",
+      url: "/api/region/" + regionId + "/upload-map",
+      data: data,
+      success: () => {
+        console.timeEnd("saveToServer");
+        console.log("success");
+      },
     });
   };
   // link.click();
 
   // tip(`${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`, true, "success", 5000);
-  TIME && console.timeEnd("saveToServer");
 }
 
 // download map as SVG
@@ -233,7 +215,6 @@ async function getMapURL(type, options = {}) {
 
   const cloneDefs = cloneEl.getElementsByTagName("defs")[0];
   const svgDefs = document.getElementById("defElements");
-
   const isFirefox = navigator.userAgent.toLowerCase().indexOf("firefox") > -1;
   if (isFirefox && type === "mesh") clone.select("#oceanPattern")?.remove();
   if (globe) clone.select("#scaleBar")?.remove();
@@ -251,10 +232,12 @@ async function getMapURL(type, options = {}) {
   clone.attr("width", graphWidth).attr("height", graphHeight);
   clone.select("#viewbox").attr("transform", null);
   // }
+  console.time("t11");
 
   if (type === "svg") removeUnusedElements(clone);
   if (customization && type === "mesh") updateMeshCells(clone);
   inlineStyle(clone);
+  console.timeEnd("t11");
 
   // remove unused filters
   const filters = cloneEl.querySelectorAll("filter");
@@ -295,6 +278,7 @@ async function getMapURL(type, options = {}) {
   } else {
     cloneDefs.querySelector("#defs-emblems")?.remove();
   }
+  console.time("t16");
 
   // replace ocean pattern href to base64
   if (location.hostname && cloneEl.getElementById("oceanicPattern")) {
@@ -307,6 +291,7 @@ async function getMapURL(type, options = {}) {
       });
     });
   }
+  console.timeEnd("t16");
 
   // add relief icons
   if (cloneEl.getElementById("terrain")) {
@@ -371,22 +356,25 @@ async function getMapURL(type, options = {}) {
   }
 
   // TODO: add dataURL for all used fonts
-  const usedFonts = getUsedFonts(cloneEl);
-  const fontsToLoad = usedFonts.filter((font) => font.src);
-  if (fontsToLoad.length) {
-    const dataURLfonts = await loadFontsAsDataURI(fontsToLoad);
+  // const usedFonts = getUsedFonts(cloneEl);
+  // const fontsToLoad = usedFonts.filter((font) => font.src);
 
-    const fontFaces = dataURLfonts
-      .map(({ family, src, unicodeRange = "", variant = "normal" }) => {
-        return `@font-face {font-family: "${family}"; src: ${src}; unicode-range: ${unicodeRange}; font-variant: ${variant};}`;
-      })
-      .join("\n");
+  // console.time("t26");
+  // if (!fontsToLoad.length) {
+  //   const dataURLfonts = await loadFontsAsDataURI(fontsToLoad);
+  //   console.timeEnd("t26");
 
-    const style = document.createElement("style");
-    style.setAttribute("type", "text/css");
-    style.innerHTML = fontFaces;
-    cloneEl.querySelector("defs").appendChild(style);
-  }
+  //   const fontFaces = dataURLfonts
+  //     .map(({ family, src, unicodeRange = "", variant = "normal" }) => {
+  //       return `@font-face {font-family: "${family}"; src: ${src}; unicode-range: ${unicodeRange}; font-variant: ${variant};}`;
+  //     })
+  //     .join("\n");
+
+  //   const style = document.createElement("style");
+  //   style.setAttribute("type", "text/css");
+  //   style.innerHTML = fontFaces;
+  //   cloneEl.querySelector("defs").appendChild(style);
+  // }
 
   clone.remove();
 

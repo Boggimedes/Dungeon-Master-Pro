@@ -489,7 +489,7 @@
 
               _this.loginForm.reset();
 
-              _this.router.navigate(["app/world/1/edit"]);
+              _this.router.navigate(["app/welcome"]);
             });
           } // Handle response
 

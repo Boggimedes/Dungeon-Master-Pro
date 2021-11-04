@@ -1,0 +1,715 @@
+<div class="hooks">
+  <div ngbDropdown container="body">
+    <button
+      class="btn btn-outline-primary"
+      ngbDropdownToggle
+      [ngClass]="{ 'btn-sm': selectedHook !== null }"
+    >
+      {{ selectedHook ? "" : "Select a Hook" }}
+    </button>
+    <div ngbDropdownMenu class="wide-dropdown">
+      <ng-container *ngFor="let hook of hooks">
+        <button
+          ngbDropdownItem
+          class="dropdown-item"
+          (click)="selectHook(hook)"
+        >
+          {{ hook }}
+        </button>
+      </ng-container>
+      <button ngbDropdownItem class="dropdown-item" (click)="selectHook()">
+        Random
+      </button>
+    </div>
+  </div>
+  <div *ngIf="selectedHook == 'Blood'">
+    <h3>Blood</h3>
+    <p>
+      Blood is always a good sign that something isn't right. Just the sound of
+      the word can make players sit up and shiver. It can set them on their
+      guard and worry them. Use that!
+    </p>
+    <ul>
+      <li>
+        The party finds a small pool of blood somewhere, preferably in one of
+        two places: someplace creepy (a dark alley; an abandoned warehouse), or
+        someplace very personal (their bedroom). There are smudges in the blood;
+        a partial hand-print? A partially-formed word? A dragged heel? The party
+        has to figure out who or what the blood belongs to, and how it was
+        spilled.
+      </li>
+      <li>
+        A PC's wound just won't heal quite right. Whenever he gets distracted or
+        stressed it opens up again, leaving a trail of blood down his hand,
+        staining his shirt, or pooling in his shoe. Why won't it heal? Was it a
+        combat injury, or did it come as mysteriously as it reopens?
+      </li>
+      <li>
+        If you want to go all out, let the party find a room doused in blood.
+        It's splattered all over the place: over the windows, along the walls,
+        up to the ceiling. It's used to mark ornate occult symbols along the
+        lintel. Where could the blood have come from, with no bodies to be seen?
+        Who would do such a thing? What kind of ritual was performed here? What
+        has it set in motion? How can the PCs set things to rights?
+      </li>
+      <li>
+        The party finds a trail of blood. They keep losing it and then finding
+        it again. No one else can see this trail. Where does it lead? How will
+        they follow it to its end if it keeps disappearing? Is it just a symptom
+        of something else, something stranger?
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Things Aren\'t Right'">
+    <h3>Things Aren't Quite Right</h3>
+    <p>
+      One of the creepiest things for anyone is to have the world be
+      not-quite-right at them, in either small or large ways. It leaves them
+      scared, confused, paranoid. If the discrepancy is subtle then the idea
+      that something's wrong might nag at them for a while before they even
+      figure out what it is, heightening the tension. Things being wrong could
+      be due to a perfectly logical explanation. Or someone could have messed
+      with reality. Maybe the party is hallucinating, dreaming or experiencing
+      virtual reality, or they somehow ended up in an alternate reality.
+    </p>
+    <ul>
+      <li>
+        Everyone vanished. This can reveal itself in large or small ways. Your
+        party is walking down a rural street, and it takes them a little while
+        to realize that there's anything strange about the fact that no one's
+        around. After all, there could be a perfectly reasonable explanation for
+        why Mrs. Mavent isn't sitting out on her porch today; she could have the
+        flu. And almost anything could account for the mail being late.
+      </li>
+      <li>
+        A PC's body isn't quite right. Her voice sounds wrong. She's pretty sure
+        her eyes were a darker shade of blue than that. It's the sort of thing
+        that friends can easily dismiss: "Your eyes look normal to me." "Maybe
+        you have a cold." What happened to her? This can range from an alien
+        abduction story to medical experimentation, spirit possession, insanity,
+        hallucinations, and so on.
+      </li>
+      <li>
+        Little details are wrong. The blue of the sky is a little too green. The
+        shape of the clouds is slightly off. There are plenty of details that we
+        note subconsciously every day. We probably don't consciously note what
+        color the sky is, but we might well note if it looked a little off. Why
+        are things wrong? Is the party hallucinating? Has the party slipped into
+        another world, or a shared dream or nightmare? What brought them here?
+        Why does it want them to think that everything is normal?
+      </li>
+      <li>
+        An NPC (non-player character) isn't acting right. A PC's little sister
+        is less recalcitrant than usual, and she forgot that she has basketball
+        practice every Thursday. The neighbor smiles a little too broadly, and
+        he doesn't seem to sleep any more. Has the NPC been replaced by
+        something else, or taken over by something? Why? What does that thing
+        want? Is it a clone, a demon or spirit, or an alien?
+      </li>
+      <li>
+        Allegiances are all mixed up. Your friends are your enemies, and maybe
+        vice-versa. The power structure of your city has entirely changed and
+        the party needs to figure it out before they screw everything up. Has
+        someone messed with everyone's heads? Is the party hallucinating? Have
+        they found their way into another reality?
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Body Changes'">
+    <h3>Body Changes</h3>
+    <p>
+      Weird and unexplained changes to the human body freak everyone out. What's
+      going on? What's causing it? If you can, start slow and draw the changes
+      out a bit; it'll really screw with the characters' heads. Remember to
+      figure out what's behind the changes, how they can be stopped and/or
+      reversed, and what happens if they aren't (if you're using these changes
+      as a last-minute "instant plot hook" at the end of the night, you can
+      figure all of that out during the week).
+    </p>
+    <p>
+      Causes of body changes can be many and varied: scientific experimentation.
+      Alien abduction. Mystical effects. Supernatural contamination (the
+      traditional contagious werewolf bite falls here). Spiritual contamination.
+      The party has to figure out what's happening and why, and how to reverse
+      the effects! If it's part of a wider plot, then they need to figure out
+      how to keep the same thing from happening to others.
+    </p>
+    <p>
+      <i>Caveat</i>: keep in mind that not all players are comfortable with
+      having their characters messed with. If your players get upset then back
+      off. Make sure you have some idea of how the characters can get back to
+      normal, unless you have the kind of players who really don't mind having
+      their characters messed with!
+    </p>
+    <ul>
+      <li>
+        One or more of the PCs are growing gills. Their skin itches; it's
+        becoming scaled in small patches, and it's spreading. Maybe
+        air-breathing is becoming a little difficult.
+      </li>
+      <li>
+        A PC was bitten by an animal and now she's starting to take on some
+        characteristics of that animal. She's feeling a bit territorial, her
+        fingernails are growing long and sharp, and her thinking isn't so clear
+        any more.
+      </li>
+      <li>
+        A PC (or the entire party) is starting to disappear! Slowly, bit by bit,
+        he is becoming incorporeal. He's losing substance. It becomes harder and
+        harder for him to affect the world around him, to move things, to be
+        seen or heard.
+      </li>
+      <li>
+        If the party is in a supernatural universe where they're fighting some
+        sort of monsters, then perhaps one or more of them start turning into
+        the very monsters they're fighting. It's happening little bit by little
+        bit. Why? How can they make it stop?
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Mind Changes'">
+    <h3>Mind Changes</h3>
+    <p>
+      Weird and unexplained changes to one's mind can also be pretty darn
+      freaky! Be careful playing with this one, as some players don't feel
+      comfortable having the free will of their characters messed with. Others
+      will take it as an exciting challenge. You might want to ask some cagey
+      questions first, or start slowly and see how people react.
+    </p>
+    <p>
+      You don't want this plot to leave the player sidelined for any real length
+      of time. Either take him aside and explain things to him enough that he
+      can play the "altered" character himself, or otherwise allow him to take
+      the reins for the most part. I'll put a few suggestions for how to do this
+      in brackets, below.
+    </p>
+    <ul>
+      <li>
+        A character has short blackout periods. Eventually he starts meeting up
+        with people who have memories of him doing things that he doesn't
+        remember doing. His neighbor says "hey, thanks for helping me move that
+        sofa yesterday," but that was during one of the blackout periods and he
+        doesn't remember it. Is someone or something taking him over, or simply
+        distorting his memory? What else might he have done that he can't
+        remember? [You can have most blackout periods happen during times that
+        the party isn't roleplaying. For example, the party goes off to sleep,
+        and one player is told that he heads home, and then the next thing he
+        remembers he's getting up in the morning. This way the player isn't made
+        to sit and wait while the rest of the group gets to roleplay.
+        Alternately, if you trust the player to treat the out-of-game
+        information correctly, then you can give him some idea of how to
+        roleplay the character during the blackout phases and let him do it. One
+        possible advantage to this is that you could set things up such that the
+        other players have no idea what's going on, and only know that one
+        moment the character is acting strange, and the next he seems to have no
+        idea of what's going on.]
+      </li>
+      <li>
+        A character starts experiencing emotions that don't match what he's used
+        to. He gets inexplicably angry when someone asks him to help them, or he
+        feels frightened of a large dog that didn't bother him at all last week.
+        Has he been drugged? Is he suffering from post-traumatic stress disorder
+        or some other psychological or psychiatric problem? Is someone trying to
+        screw him over somehow? [You could explain what is happening to the
+        player and let him roleplay it as he sees fit. Or every now and then you
+        could tell him/pass him a note that says something like, "that makes you
+        really angry," or "you feel very sad for the rest of this scene."]
+      </li>
+      <li>
+        A character experiences episodes where he's just a passenger, watching
+        and listening to his own actions and words. Does he behave abnormally?
+        Does he interact as friends with people the character doesn't know? Does
+        he rob a store or kill someone? Has he been hypnotized or drugged in
+        some way, put under a spell, or taken over? [This is a trickier one. In
+        order to really make this one effective, it's preferable to not have the
+        player know what's going on. So I'd recommend making the "passenger
+        episodes" brief. Alternately, or additionally, you could allow the
+        player to hold a conversation/argument with whatever entity is in
+        control of him, or give him small ways in which to try to thwart it.
+        This way he gets to do some roleplaying, even though he isn't in control
+        of his character's body.]
+      </li>
+      <li>
+        A PC has thoughts that aren't his own. To him it seems like he's just
+        thinking in new directions, or having odd hunches or intuitions, at
+        least until things become more blatant and obvious. Whose thoughts are
+        they? Are they helpful or dangerous? Is it a prelude to something worse?
+        [This is pretty easy. You just tell the player (or pass him a note that
+        says) that he thinks thus-and-such. Before you play with this you might
+        want to have a talk with the player, to make sure he understands whether
+        these thoughts feel like hunches or intuition, or sound like a foreign
+        voice in his head. Always be clear on the difference; PCs are likely to
+        react very differently to these cases.]
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'The Hunt'">
+    <h3>The Hunt</h3>
+    <p>
+      Everyone gets scared when they realize they're being hunted. What's doing
+      the hunting? How dangerous is it? Why is it so difficult to get away from?
+      How does it keep finding them anyway?
+    </p>
+    <ul>
+      <li>
+        The unseen (or invisible) hunter. The party hears it occasionally or
+        sees signs of its passing. It pounds on walls or roars in the distance.
+        It leaves deep scratch-marks on the door. But since the party doesn't
+        see it, they don't know what it is. This tends to make party-members
+        very paranoid!
+      </li>
+      <li>
+        The party is hunted by something or someone slow-yet-inexorable. They
+        can outrun it. They can flee it. But slowly, somehow, it always catches
+        up with them again.
+      </li>
+      <li>
+        The party is kidnapped and dumped somewhere that confines them to an
+        area. They are told that if they live through the night, they'll be set
+        free. The hunt commences. Why are they being hunted? Is it someone with
+        a grudge? Is it someone who's impressed with them and testing their
+        abilities? Is it a cover for something else entirely? (Note: this plot
+        on its lonesome is a bit tired and overused. But if you give it some
+        interesting motives or an interesting spin, or make it a lead-in to or
+        cover for something more fascinating, you can take advantage of that.
+        Precisely because it feels so cliche, the players are likely to be very
+        surprised when the plot turns out to be something unexpected.)
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Monsters'">
+    <h3>Monsters</h3>
+    <p>
+      I don't mean any old random monstrosity. I mean truly frightening
+      creatures. A few suggestions for creating frightening monsters: Give them
+      emotions; an angry monster or a panicked monster can be a lot more
+      frightening than a... well... a "just kind of there" monster. Don't just
+      put your monster out in the open for the characters to see it; most
+      terrifying monsters don't seem nearly so terrifying in the full light of
+      day. Make use of darkness, uncertainty, partial glimpses, small details
+      and barely-heard noises. Hmm, maybe we should do a whole issue on this
+      subject at some point. (Any interest?)
+    </p>
+    <ul>
+      <li>
+        The monster that the party somehow sets free. It goes on a bloody
+        nighttime killing spree, and the party is left knowing that it's all
+        their fault. It's their responsibility to somehow stop it.
+      </li>
+      <li>
+        The monster that comes in human guise. Maybe its eyes are just an
+        unnatural shade of blue, or its smile a little too wide. It doesn't
+        bleed, or its skin is impossible to cut. Come up with small ways for the
+        monstrosity to differ from the human it's pretending to be.
+      </li>
+      <li>
+        The vicious, murderous monster that actually turns out to be a "normal"
+        person. This is the string of killings that seem so vicious or horrible
+        that they must have been done by something inhuman, but turn out to be
+        the work of a human serial killer.
+      </li>
+      <li>
+        The monster that someone else set free. If the person who freed the
+        monster isn't dead yet, then maybe she knows a way to send it back where
+        it came from.
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Mysterious Disappearances'">
+    <h3>Mysterious Disappearances</h3>
+    <p>
+      People and objects disappear all the time. This plot can range from the
+      small (hey, where's my gun?), to the huge (so what happened to the Empire
+      State Building last night anyway?), to the macabre (as you'll see in
+      example number one, below). Sometimes these disappearances turn out to be
+      misunderstandings, hallucinations, dreams, or something even stranger.
+      They might be kidnappings, thefts, or something much more nefarious. Let
+      your imagination run a little wild.
+    </p>
+    <ul>
+      <li>
+        Someone (a party member, friend or ally) ends up in the hospital, where
+        he discovers that patients are disappearing. Not slowly and carefully,
+        but in a real hurry! Perhaps every five or ten minutes, or under
+        circumstances that should really have left evidence behind. Who's doing
+        it? Is there a supernatural explanation? Why doesn't the staff seem to
+        notice (or do they)? Are the missing people dead? Were they drugged and
+        kidnapped for some horrifying purpose? Is an NPC who works at the
+        hospital trying to screw with the party in some way? Will the party get
+        implicated in the disappearances, or do the authorities seem to think
+        that nothing's wrong?
+      </li>
+      <li>
+        A party member's weapon is stolen and used to commit a crime. How will
+        the party convince the authorities that the party member didn't do it?
+        This is a good one to start when there's only a half-hour or less left;
+        the party can start looking into things, and then you'll have a whole
+        week to figure out what evidence they can find to clear their friend.
+      </li>
+      <li>
+        The entire city disappears from around the party while they're asleep.
+        So where'd it go, anyway? And why weren't they taken with it?
+      </li>
+      <li>
+        A friend of the party disappears (screams & vanishes; melts away; gets
+        sucked into a vortex...) in front of the party's eyes. What happened to
+        them? Where'd they go? Are they okay?
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'The Gift'">
+    <h3>The Gift</h3>
+    <p>
+      Pick an unlikely NPC and have him give a party-member an unusual gift with
+      minimal explanation. Or maybe the gift comes through the mail with no
+      return address, so there's no way of knowing who sent it.
+    </p>
+    <p>
+      The plan here is to get the party to spend a good part of the rest of the
+      night investigating the gift: what it might be or do, who sent it, where
+      it came from, and why. Thus the more mystery that surrounds the gift, the
+      better. The more unusual it is, the more they'll want to figure it out.
+      The weirder its origins, the more they'll feel a need to investigate it.
+      Drop weird clues here and there. Let them spend time casting spells on it,
+      fingerprinting it, or questioning anyone whose hands it might have gone
+      through. Maybe the item even comes with a mysterious or cryptic message.
+    </p>
+    <p>
+      You can use this as a one-time thing to take up a half-hour. Or if you
+      want plot fodder for the next run, allow yourself to drop hints without
+      giving everything away; you don't have to know exactly where you're going
+      with those hints. Just make sure you write them down so you don't forget
+      them! Then, during the following week, you can come up with the details of
+      any strange powers the item might have, or perhaps its convoluted history.
+      Use the details you dropped during the game and keep things consistent. If
+      you decide you don't like any of the hints you dropped, figure out a way
+      to turn them into red herrings. Some possible gifts:
+    </p>
+    <ul>
+      <li>
+        A pair of antique, curved blades with Arabic script on each side of each
+        blade; they're incredibly sharp. Anyone with a sense of the supernatural
+        gets a weird shiver when they touch these blades. They were delivered by
+        a dark-skinned man of few words; perhaps he didn't speak English. A
+        particularly good antique dealer might be able to tell the party that
+        the blades are traditionally passed down from father to son within a
+        family, and that most such knives are ornamental rather than functional.
+      </li>
+      <li>
+        A book on Native American Ceremonial Magic. It is well-worn. Pages are
+        dog-eared and passages underlined. There are notes in the margins in a
+        script the party cannot identify or read.
+      </li>
+      <li>
+        Stolen jewels or jewelry with mystical powers. Not only does the party
+        have to figure out what these are and what they do, but they'll need to
+        contend with the original owners, who will undoubtedly come looking for
+        them.
+      </li>
+      <li>
+        A cat with a voracious appetite and an attraction to anything dangerous.
+        It can do a surprising amount of damage with its claws and teeth!
+        Perhaps it decides to protect a member of the party, whether that person
+        wants it to or not.
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Mistaken Identity'">
+    <h3>A Case of Mistaken Identity</h3>
+    <p>
+      One of the party is mistaken for someone else. Confusion (and probably
+      danger) ensue. You could use this to get the party caught up in something
+      strange. Or you could set it up to simply send them searching for the
+      mystery-person or people they were confused with. Some people they could
+      be mistaken for:
+    </p>
+    <ul>
+      <li>
+        A local politician or police officer who's been making deals with and
+        taking bribes from organized crime figures. One of those people could
+        try to hand money off to a party-member and remind them of some deal
+        they have going. This could send the party off to look into the deal, it
+        could send them after the organized crime figure when he realizes his
+        mistake and takes off, or it could send them after the crooked
+        politician or cop.
+      </li>
+      <li>
+        A hit man. Someone could hand a party-member an envelope and take off.
+        In that envelope is half of the payment, and lots of information on some
+        unlucky person.
+      </li>
+      <li>
+        A criminal. The police or a bounty hunter gives chase, and the party
+        needs to avoid capture and find the real criminal, or clear their own
+        names.
+      </li>
+      <li>
+        Someone's blind date. Just make sure the date has something to drag the
+        party into. Perhaps she has enemies who are about to catch up to her, or
+        her "blind date" was supposed to help her steal something.
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Mis-Deliveries & Documents'">
+    <h3>Mis-Deliveries and Switched Documents</h3>
+    <p>
+      This could be a variation on the "mistaken identity" theme, in which
+      someone sends something meant for someone else to a member of the party.
+      Or documents or items get accidentally switched when sent, or in transit,
+      and the party ends up with a message, file or other item meant for someone
+      else. (It's easy enough for the wrong label to end up on a package or
+      letter.) Some things they might be sent:
+    </p>
+    <ul>
+      <li>
+        A body part. This leaves them to find out whose it is, what happened to
+        the owner, who was supposed to receive it and why.
+      </li>
+      <li>
+        A map with several buildings circled on it. This leaves them to run
+        around to those locations trying to figure out what they have in common
+        or what's going on there. These could all be safe-houses for a witness
+        or criminal, they could be places that are about to get broken into,
+        they could be targets of terrorist activity, they could be sites of
+        magical power, and so on.
+      </li>
+      <li>
+        The address of an apartment or house and a key to the front door. Inside
+        the house they could find almost anything: A man tied to a chair and
+        gagged. Weapons and blueprints to a bank vault. A hole down into Hell
+        itself. Or someone could try to shoot at them through a window.
+      </li>
+      <li>
+        A computer diskette, tape, or CD with an encrypted file on it
+        (alternatively, a coded letter). The file or letter could be almost
+        anything once decrypted: mysterious numbers, a list of names, or exact
+        instructions for performing a ritual, with a cryptic or incomplete
+        description of what the ritual does.
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Random Violence'">
+    <h3>Mugging, Theft and Random Combat</h3>
+    <p>
+      Someone tries to mug or attack a party member, the party, or someone a
+      member of the party cares about. They have to get through the combat, and
+      figure out why they were attacked and what their attacker cared about. If
+      the subject of the attack was a friend or relative, they need to find the
+      attacker, figure out why she attacked their friend, and take back anything
+      she stole. Several possible scenarios:
+    </p>
+    <ul>
+      <li>
+        The traditional random monster encounter fits into this category. When
+        you need to waste some time, it can certainly be useful.
+      </li>
+      <li>
+        Someone mugs an NPC the party cares about and grabs her purse or
+        backpack. She has something very important in there she needs to get
+        back.
+      </li>
+      <li>
+        A party member gets home to find his home broken into and ransacked. The
+        party will hopefully spend a while figuring out what's missing (or what
+        was left behind!) and trying to find the thief.
+      </li>
+      <li>
+        A friend of the party attacks a party member for no apparent reason.
+        What made him turn on his friend?
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'A Prophecy'">
+    <h3>A Prophecy or Vision</h3>
+    <p>
+      The party encounters a prophecy. Perhaps the prophecy is clear, and they
+      run off to figure out whether it's true or false, how it applies to them,
+      whether it applies to them, who it applies to if not them, and how to
+      accomplish or avoid it. Perhaps it's cryptic, and they have to figure out
+      how to interpret it. Several possible prophecy-plots:
+    </p>
+    <ul>
+      <li>
+        Make an excuse, go off to your room, pick out a CD, and grab a verse
+        from a song (preferably an obscure one). Have someone spout it off to
+        the party under mysterious circumstances. Watch them run around trying
+        to interpret it. Take the week after the game to figure out what it
+        really means. (Note: don't try this if any party members have abilities
+        that will allow them to instantaneously gain insight into the prophecy,
+        unless you think you can wing it.)
+      </li>
+      <li>
+        Have a fortune-teller offer to tell the fortunes of the party. Use a
+        tarot deck and pull one or two cards for each PC (make notes of which
+        cards you pull). Have the fortune-teller nod wisely and make suitably
+        vague predictions based on the cards. Let the party run around worrying
+        about what they mean and how they'll happen. Spend the next week
+        figuring out how the predictions will actually come true.
+      </li>
+      <li>
+        An NPC has a vision in which either another NPC or a member of the party
+        appears to be either a savior or a monster. (This is particularly useful
+        if you're interested in starting off a high-epic plot.) Add a few odd
+        details into the vision that will send the party running off to
+        investigate them. Maybe the vision takes place at a location nearby, and
+        they can check that out. Or someone they know is present in the vision,
+        and they can go talk to him.
+      </li>
+      <li>
+        If one of the PCs is hiding something, have an NPC say something to them
+        that seems to indicate they know the secret, but is obscure enough that
+        it doesn't give the secret away to other party members. Preferably make
+        the NPC's words sound dire enough that the PC with the secret will feel
+        they have to do something, or make them sound interesting enough that
+        the other PCs will feel it necessary to poke around further. (Be a
+        little careful when doing this; make sure you're willing to have that
+        secret come out if necessary, and make sure the relevant player won't
+        mind either!)
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Disasters and Catastrophes'">
+    <h3>Disasters and Catastrophes, Natural or Otherwise</h3>
+    <p>
+      Disasters and catastrophes can take up a remaining hour nicely. The party
+      might need to avert the catastrophe, save someone from the disaster, or
+      prevent the disaster from becoming worse. Several possible catastrophes
+      and disasters:
+    </p>
+    <ul>
+      <li>
+        An earthquake happens. The party spends the rest of the night helping to
+        dig survivors out of the rubble, digging themselves out from under a
+        collapsed building, helping to care for the injured, and so on.
+      </li>
+      <li>
+        A fire starts at a chemical plant or pharmaceutical company (arson) and
+        something has gone wrong with the fire suppression system (sabotage).
+        The party has to help stop the fire and/or get some of the chemicals out
+        of there before the fire spreads far enough to ignite the potentially
+        explosive ones, or burn toxic fumes into the air. This is a good one if
+        you have some time to fill, as they can investigate the arson afterward.
+      </li>
+      <li>
+        A riot starts. The party has to hide from rioters, prevent looting, calm
+        people down, or help someone being hurt by the crowds. A hurricane is
+        coming through the area. The party has to help get the word out to
+        people who haven't been listening to the radio, help to evacuate people,
+        make their own preparations, and rescue people once the devastation
+        starts or after it's over.
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'Job Offer'">
+    <h3>Job Offer</h3>
+    <p>
+      The party, or a member of the party, gets a job offer. Maybe someone
+      passed the party-member's name on, and exaggerated how good they were at
+      what they do. Perhaps someone who didn't want to be forced into a
+      dangerous assignment pointed the employer at the party. If someone in the
+      party has been looking for a job, maybe a head-hunter doctored his resume
+      to make it look good to a potential employer. Several possible job offers:
+    </p>
+    <p></p>
+    <ul>
+      <li>
+        Someone powerful has heard that the party are particularly good
+        bodyguards or protectors. She forces them to protect a member of her
+        family who doesn't want to be protected and who has figured out how to
+        elude the security firm the woman usually uses.
+      </li>
+      <li>
+        Someone offers a party member a job they're clearly unqualified for
+        (geneticist, nuclear engineer, lion trainer, whatever). The party has to
+        figure out how these people got the idea that they were qualified for
+        said job, convince them they didn't lie on a resume or some such thing
+        (or if for some reason they take the job, convince them they can
+        actually do it), track down the person who said they could do the job,
+        and deal with it.
+      </li>
+      <li>
+        Someone offers to pay the party an impressive sum of money if they'll
+        just deliver a letter for him. (Depending on how much time you have to
+        fill, this could involve either lots of danger and combat, or a
+        surprisingly simple and easy delivery--which might in itself make the
+        party suspicious enough to look into things further.)
+      </li>
+      <li>
+        Someone offers to pay the party to watch a person for a day and report
+        on all of her activities. Who is she? Why are her movements so important
+        to someone?
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'The Mysterious Friend'">
+    <h3>The Mysterious Nonexistent Relative or Friend</h3>
+    <p>
+      Someone shows up claiming to be a relative or friend of a party-member.
+      The party member is 100% certain he's never met and has not heard of this
+      person, but the person also seems certain. Some possible scenarios:
+    </p>
+    <ul>
+      <li>
+        Someone shows up claiming to be a party member's child, but the PC is
+        sure he (or she!) never had a child. The supposed progeny says her other
+        parent is dead now, and she found papers among her parent's belongings
+        identifying the party member as her other parent. During the week you
+        can figure out whether it's really their child or not, and if so, how
+        this happened without the character's knowledge.
+      </li>
+      <li>
+        Someone shows up claiming to be a party member's childhood best friend,
+        but the party member doesn't remember them, and if he contacts his
+        family they don't remember the person either. But any attempts to read
+        the person's mind, use a polygraph on her, or otherwise verify her story
+        reveal that she indeed believes that they were childhood friends. She
+        also has memories of times together that, while the party member doesn't
+        remember them, do involve things he liked or liked to do, and things
+        only he would have known. You can spend the next week figuring out whose
+        memories are right or wrong, and why.
+      </li>
+      <li>
+        Someone claims to be a party member's distant cousin, aunt, uncle, or
+        grandparent, but the party member was never told about this person. If
+        he contacts his family he finds out that he does have a relative by that
+        name, but since no one's seen her in decades, no one can verify that
+        it's really her. Where was she all those years? And why has she suddenly
+        introduced herself to the party member? Someone claims to be the party
+        member's significant other of some few days, but the party member
+        doesn't remember meeting him. All of the times the person claims to have
+        spent with the party member are times that the party member can't
+        account for (she was asleep, drunk, or otherwise out of it).
+      </li>
+    </ul>
+  </div>
+  <div *ngIf="selectedHook == 'A Sudden Trip'">
+    <h3>A Sudden Trip</h3>
+    <p>
+      The party gets whisked off in a sudden over-the-rainbow style trip. You
+      can haul them off to another universe, another dimension, a fictional
+      world, and so on. Just look at your shelf of movies or books to give you
+      ideas for where to send them. They can start looking around, and then
+      you'll have a full week to figure out where you're going to go with the
+      plot. This isn't something you want to pull out too often, but every now
+      and then it can be interesting. Some possible places to take them:
+    </p>
+    <ul>
+      <li>
+        The party falls through a deep dark hole into some tunnels beneath the
+        city. They can't immediately find a way back up, so they are forced to
+        explore their new surroundings.
+      </li>
+      <li>
+        The party is rendered unconscious and wakes up in a surreal and
+        dreamlike place like Wonderland, Oz, or Never-Never Land.
+      </li>
+      <li>
+        The party gets whisked off to an alternate version of their own world.
+      </li>
+      <li>
+        The party gets whisked off to some lesser-known fictional world
+        (hopefully one they aren't familiar with).
+      </li>
+    </ul>
+  </div>
+</div>

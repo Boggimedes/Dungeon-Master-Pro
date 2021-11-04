@@ -1,4 +1,4 @@
-import { Component, OnInit, ViewChild } from "@angular/core";
+import { Component, OnInit, ViewChild, AfterViewInit } from "@angular/core";
 import { World } from "../../models/world";
 import { Region } from "../../models/region";
 import { ActivatedRoute } from "@angular/router";
@@ -299,26 +299,33 @@ export class EditWorldsComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    this.worldSubscription = this.worldService.worldData$.subscribe((world) => {
-      if (world) {
-        if (
-          typeof world !== "undefined" &&
-          typeof world.races !== "undefined"
-        ) {
-          world.races.forEach((r) => {
-            r.genders.forEach((g) => {
-              if (this.genders.indexOf(g[0]) != -1) return;
-              this.genders.push(g[0]);
-            });
-          });
-          world.body_types = world.body_types.map((t: string) => {
-            t = t.replace("Body (", "").replace(")", "");
-            return t;
-          });
-        }
-        this.selectedWorld = new World(world);
-        console.log(this.selectedWorld);
+    this.route.paramMap.subscribe((p) => {
+      if (!!p.get("worldId")) {
+        this.worldService.getWorld(parseInt(p.get("worldId"), 10));
       }
     });
+    this.worldSubscription = this.worldService.selectedWorld$.subscribe(
+      (world) => {
+        if (world) {
+          if (
+            typeof world !== "undefined" &&
+            typeof world.races !== "undefined"
+          ) {
+            world.races.forEach((r) => {
+              r.genders.forEach((g) => {
+                if (this.genders.indexOf(g[0]) != -1) return;
+                this.genders.push(g[0]);
+              });
+            });
+            world.body_types = world.body_types.map((t: string) => {
+              t = t.replace("Body (", "").replace(")", "");
+              return t;
+            });
+          }
+          this.selectedWorld = new World(world);
+          console.log(this.selectedWorld);
+        }
+      }
+    );
   }
 }

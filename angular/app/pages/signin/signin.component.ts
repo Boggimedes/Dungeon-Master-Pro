@@ -26,7 +26,6 @@ export class SigninComponent {
     private route: ActivatedRoute
   ) {
     console.log("Construct");
-
   }
 
   get lf() {
@@ -63,7 +62,7 @@ export class SigninComponent {
         () => {
           this.spinner.hide();
           this.loginForm.reset();
-          this.router.navigate(["app/world/1/edit"]);
+          this.router.navigate(["app/welcome"]);
         }
       );
   }
@@ -71,6 +70,7 @@ export class SigninComponent {
   responseHandler(data) {
     console.log("auth token set");
     this.authService.setToken(data.access_token);
+
     // this.authService.refreshToken();
   }
 }

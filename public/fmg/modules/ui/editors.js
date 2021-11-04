@@ -24,23 +24,26 @@ function clicked() {
   const great = grand.parentElement;
   const p = d3.mouse(this);
   const i = findCell(p[0], p[1]);
-  console.log(grand.id, great.id);
-  // if (grand.id === "emblems") editEmblem();
-  // else if (parent.id === "rivers") editRiver(el.id);
-  // else if (grand.id === "routes") editRoute();
-  if (el.tagName === "tspan" && grand.parentNode.parentNode.id === "labels")
+
+  if (grand.id === "emblems") editEmblem();
+  else if (parent.id === "rivers") editRiver(el.id);
+  else if (grand.id === "routes") editRoute();
+  else if (
+    el.tagName === "tspan" &&
+    grand.parentNode.parentNode.id === "labels"
+  )
     editLabel();
-  else if (grand.id === "burgLabels") editLabel();
-  // else if (grand.id === "burgIcons") editBurg();
-  // else if (parent.id === "ice") editIce();
-  // else if (parent.id === "terrain") editReliefIcon();
+  else if (grand.id === "burgLabels") editBurg();
+  else if (grand.id === "burgIcons") editBurg();
+  else if (parent.id === "ice") editIce();
+  else if (parent.id === "terrain") editReliefIcon();
   else if (grand.id === "markers" || great.id === "markers") editMarker();
-  // else if (grand.id === "coastline") editCoastline();
-  // else if (great.id === "armies") editRegiment();
-  // else if (pack.cells.t[i] === 1) {
-  //   const node = document.getElementById("island_" + pack.cells.f[i]);
-  //   editCoastline(node);
-  // } else if (grand.id === "lakes") editLake();
+  else if (grand.id === "coastline") editCoastline();
+  else if (great.id === "armies") editRegiment();
+  else if (pack.cells.t[i] === 1) {
+    const node = document.getElementById("island_" + pack.cells.f[i]);
+    editCoastline(node);
+  } else if (grand.id === "lakes") editLake();
 }
 
 // clear elSelected variable
@@ -892,8 +895,7 @@ function selectIcon(initial, callback) {
   const table = document.getElementById("iconTable");
   const input = document.getElementById("iconInput");
   input.value = initial;
-  let customIcons = JSON.parse(localStorage.getItem("customIcons"));
-  if (typeof customIcons !== "array") customIcons = [];
+
   if (!table.innerHTML) {
     const icons = [
       "⚔️",
@@ -910,37 +912,179 @@ function selectIcon(initial, callback) {
       "👑",
       "⚜️",
       "☠️",
+      "🎆",
       "🗡️",
       "🔪",
       "⛏️",
       "🔥",
+      "🩸",
+      "💧",
       "🐾",
       "🎪",
       "🏰",
       "🏯",
+      "⛓️",
+      "❤️",
+      "💘",
+      "💜",
       "📜",
       "🔔",
+      "🔱",
+      "💎",
+      "🌈",
+      "🌠",
+      "✨",
+      "💥",
+      "☀️",
+      "🌙",
       "⚡",
       "❄️",
+      "♨️",
       "🎲",
+      "🚨",
+      "🌉",
+      "🗻",
+      "🌋",
       "🧱",
+      "⚖️",
+      "✂️",
+      "🎵",
+      "👗",
+      "🎻",
+      "🎨",
       "🎭",
+      "⛲",
+      "💉",
+      "📖",
       "📕",
+      "🎁",
       "💍",
       "⏳",
       "🕸️",
       "⚗️",
       "☣️",
       "☢️",
+      "🔰",
+      "🎖️",
       "🚩",
       "🏳️",
       "🏴",
+      "💪",
+      "✊",
+      "👊",
+      "🤜",
+      "🤝",
       "🙏",
+      "🧙",
+      "🧙‍♀️",
+      "💂",
+      "🤴",
+      "🧛",
+      "🧟",
+      "🧞",
+      "🧝",
+      "👼",
+      "👻",
+      "👺",
+      "👹",
+      "🦄",
+      "🐲",
       "🐉",
+      "🐎",
+      "🦓",
+      "🐺",
+      "🦊",
+      "🐱",
+      "🐈",
+      "🦁",
+      "🐯",
+      "🐅",
+      "🐆",
+      "🐕",
+      "🦌",
+      "🐵",
+      "🐒",
+      "🦍",
+      "🦅",
+      "🕊️",
+      "🐓",
+      "🦇",
+      "🦜",
+      "🐦",
+      "🦉",
+      "🐮",
+      "🐄",
+      "🐂",
+      "🐃",
+      "🐷",
+      "🐖",
+      "🐗",
+      "🐏",
+      "🐑",
+      "🐐",
+      "🐫",
+      "🦒",
+      "🐘",
+      "🦏",
+      "🐭",
+      "🐁",
+      "🐀",
+      "🐹",
+      "🐰",
+      "🐇",
+      "🦔",
+      "🐸",
+      "🐊",
+      "🐢",
+      "🦎",
+      "🐍",
+      "🐳",
+      "🐬",
+      "🦈",
+      "🐠",
+      "🐙",
       "🦑",
+      "🐌",
+      "🦋",
+      "🐜",
+      "🐝",
+      "🐞",
+      "🦗",
+      "🕷️",
+      "🦂",
+      "🦀",
+      "🌳",
+      "🌲",
+      "🎄",
+      "🌴",
+      "🍂",
+      "🍁",
+      "🌵",
+      "☘️",
+      "🍀",
+      "🌿",
+      "🌱",
+      "🌾",
+      "🍄",
+      "🌽",
+      "🌸",
+      "🌹",
+      "🌻",
+      "🍒",
+      "🍏",
+      "🍇",
+      "🍉",
+      "🍅",
+      "🍓",
+      "🥔",
+      "🥕",
+      "🥩",
+      "🍗",
+      "🍞",
       "🍻",
       "🍺",
-      ...customIcons,
+      "🍲",
+      "🍷",
     ];
 
     let row = "";

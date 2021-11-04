@@ -3214,6 +3214,12 @@
           <input id="urbanizationOutput" data-stored="urbanization" type="range" min=.01 max=5 step=.01 value=1 >
           <input id="urbanizationInput" data-stored="urbanization" type="number" min=.01 max=5 step=.01 value=1 >
         </div>
+
+        <div data-tip="Set urban density: average population per building in Medieval Fantasy City Generator">
+          <div>Urban density:</div>
+          <input id="urbanDensityOutput" data-stored="urbanDensity" type="range" min=1 max=200 step=1 value=10 >
+          <input id="urbanDensityInput" data-stored="urbanDensity" type="number" min=1 max=200 step=1 value=10 >
+        </div>
       </div>
 
       <div id="unitsBottom">
@@ -3374,6 +3380,8 @@
     <div id="markersOverview" class="dialog stable" style="display: none">
       <div id="markersHeader" class="header">
         <div style="left:1em" data-tip="Click to sort by marker type" class="sortable alphabetically" data-sortby="type">Type&nbsp;</div>
+        <div id="markersInverPin" style="left:14.9em; color: #6e5e66" data-tip="Click to invert pin state for all markers" class="icon-pin pointer"></div>
+        <div id="markersInverLock" style="left:16.1em; color: #6e5e66" data-tip="Click to invert lock state for all markers" class="icon-lock pointer"></div>
       </div>
 
       <div id="markersBody" class="table"></div>
@@ -3600,17 +3608,17 @@
       <p>Map will be split into tiles and downloaded as a single zip file. Avoid saving to big images</p>
       <div data-tip="Number of columns" style="margin-bottom: .3em">
         <div class="label">Columns:</div>
-        <input id="tileColsInput" data-stored="tileCols" type="range" min=2 max=20 value=8 style="width: 11em">
+        <input id="tileColsInput" data-stored="tileCols" type="range" min=2 max=20 value=8 style="width: 10em">
         <input id="tileColsOutput" data-stored="tileCols" type="number" min=2 value=8 >
       </div>
       <div data-tip="Number of rows" style="margin-bottom: .3em">
         <div class="label">Rows:</div>
-        <input id="tileRowsInput" data-stored="tileRows" type="range" min=2 max=20 value=8 style="width: 11em">
+        <input id="tileRowsInput" data-stored="tileRows" type="range" min=2 max=20 value=8 style="width: 10em">
         <input id="tileRowsOutput" data-stored="tileRows" type="number" min=2 value=8 >
       </div>
       <div data-tip="Image scale relative to image size (e.g. 5x)" style="margin-bottom: .3em">
         <div class="label">Scale:</div>
-        <input id="tileScaleInput" data-stored="tileScale" type="range" min=1 max=4 value=1 style="width: 11em">
+        <input id="tileScaleInput" data-stored="tileScale" type="range" min=1 max=4 value=1 style="width: 10em">
         <input id="tileScaleOutput" data-stored="tileScale" type="number" min=1 value=1
         >
       </div>
@@ -4307,12 +4315,22 @@
     </defs>
   </svg>
 
-  <!-- <script src="libs/translate.js"></script> -->
   <script src="libs/jquery-3.1.1.min.js"></script>
   <script src="libs/d3.min.js"></script>
   <script src="libs/priority-queue.min.js"></script>
   <script src="libs/delaunator.min.js"></script>
-  <script src="modules/utils.js"></script>
+
+  <script src="utils/commonUtils.js"></script>
+  <script src="utils/arrayUtils.js"></script>
+  <script src="utils/colorUtils.js"></script>
+  <script src="utils/graphUtils.js"></script>
+  <script src="utils/nodeUtils.js"></script>
+  <script src="utils/numberUtils.js"></script>
+  <script src="utils/polyfills.js"></script>
+  <script src="utils/probabilityUtils.js"></script>
+  <script src="utils/stringUtils.js"></script>
+  <script src="utils/unitUtils.js"></script>
+
   <script src="modules/voronoi.js"></script>
   <script src="modules/heightmap-templates.js"></script>
   <script src="modules/heightmap-generator.js"></script>

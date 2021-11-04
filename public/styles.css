@@ -1121,8 +1121,8 @@ table {
   border-collapse: collapse;
 }
 caption {
-  padding-top: 1.15rem 2rem;
-  padding-bottom: 1.15rem 2rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
   color: #bdbdbd;
   text-align: left;
   caption-side: bottom;
@@ -2490,7 +2490,7 @@ pre code {
 }
 .table th,
 .table td {
-  padding: 1.15rem 2rem;
+  padding: 0.5rem;
   vertical-align: top;
   border-top: 1px solid #e0e0e0;
 }

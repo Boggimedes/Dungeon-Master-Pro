@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\World;
 use App\Models\Region;
 use App\Models\Npc;
+use App\Models\POI;
 use Illuminate\Support\Facades\Storage;
 
 class WorldController extends Controller
@@ -203,26 +204,14 @@ class WorldController extends Controller
 		// $me = \Auth::user();
         // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
         $validatedData = $request->validate([
-            'svgString'  => 'string',
-            'cultures'  => 'string',
-            'states'  => 'string',
-            'religions'  => 'string',
-            'provinces'  => 'string',
-            'burgs'  => 'string',
-            'markers'  => 'string',
             'map'  => 'string',
             'url'  => 'string',
-            'canvas'  => 'string',
         ]);
         $image = $validatedData['url'];
         $image = str_replace('data:image/png;base64,', '', $image);
         $image = str_replace(' ', '+', $image);
-        Storage::disk('s3')->put('map/r' . $region->id . '.svg', $validatedData['svgString'], 'public');
         Storage::disk('s3')->put('map/rt' . $region->id . '.png', base64_decode($image), 'public');
-        $region->cultures = json_decode($validatedData['cultures']);
-        $region->states = json_decode($validatedData['states']);
         $region->map = $validatedData['map'];
-        $region->religions = json_decode($validatedData['religions']);
         $region->save();
 
         // $this->createPOI('burgs', $validatedData['burgs'], $region);
@@ -240,6 +229,30 @@ class WorldController extends Controller
         // return response()->json($region->map);
         // header("Content-type: image/svg+xml");
         return response()->make($map, '200', array('Content-Type' => 'image/svg+xml'));
+    }
+
+    public function getPOI(Region $region, $type, $i) {
+        $poi = POI::where('type', $type)->where('region_id', $region->id)->where('id', $i)->first();
+        if (empty($poi)) {
+            $poi = POI::create(['type' => $type, 'region_id' => $region->id, 'id' => $i]);
+        }
+        $mapData = $region->getMapItem($type, $i);
+        $poi = collect($poi)->merge($mapData)->toArray();
+
+        if (empty($poi['notes'])) $poi['notes'] = $poi['legend'];
+        return response()->json($poi);
+   }
+
+    public function updatePOI(Request $request, Region $region) {
+        $poiData = $request->all();
+        if ($request->has('capital')) $poiData['type'] = 'burgs';
+        \Log::info(print_r($poiData,1));
+        $poi = POI::firstOrCreate(['type' => $poiData['type'], 'region_id' => $region->id, 'id' => $poiData['i']]);
+        $poi->notes = $poiData['notes'];
+        $poi->hooks = $poiData['hooks'];
+        $poi->save();
+        $region->updateMapData($poiData['type'], $poiData);
+        return response()->json(['poi' => array_merge($poi->toArray(), $poiData)]);
     }
 }
 

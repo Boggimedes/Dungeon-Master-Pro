@@ -10,6 +10,7 @@ import { PageComponent } from "./page.component";
 import { CombatComponent } from "./combat/combat.component";
 import { StoryComponent } from "./story/story.component";
 import { StoryMapComponent } from "./story/map/map.component";
+import { StoryHooksComponent } from "./story/hooks/hooks.component";
 import { CombatLogComponent } from "./combat/combat-log/combat-log.component";
 import { NgbModule } from "@ng-bootstrap/ng-bootstrap";
 import { NgbDropdownModule } from "@ng-bootstrap/ng-bootstrap/";
@@ -21,6 +22,7 @@ import { EditMonstersComponent } from "./edit-monsters/edit-monsters.component";
 import { EditSpellsComponent } from "./edit-spells/edit-spells.component";
 import { EditWorldsComponent } from "./edit-worlds/edit-worlds.component";
 import { EditNpcsComponent } from "./edit-npcs/edit-npcs.component";
+import { WelcomeComponent } from './welcome/welcome.component';
 
 @NgModule({
   imports: [
@@ -51,6 +53,8 @@ import { EditNpcsComponent } from "./edit-npcs/edit-npcs.component";
     EditSpellsComponent,
     EditWorldsComponent,
     EditNpcsComponent,
+    StoryHooksComponent,
+    WelcomeComponent,
   ],
   providers: [],
 })
