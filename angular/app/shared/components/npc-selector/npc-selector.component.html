@@ -1,0 +1,78 @@
+<div class="btn-group btn-group-sm" style="z-index: 1000">
+  <span class="btn btn-light">Group By:</span>
+  <button
+    type="button"
+    (click)="groupNpcsBy('age')"
+    class="btn btn-outline-primary"
+  >
+    Age
+  </button>
+  <button
+    type="button"
+    (click)="groupNpcsBy('race')"
+    class="btn btn-outline-primary"
+  >
+    Race
+  </button>
+  <button
+    type="button"
+    (click)="groupNpcsBy('profession')"
+    class="btn btn-outline-primary"
+  >
+    Profession
+  </button>
+  <button
+    type="button"
+    (click)="groupNpcsBy('lineage')"
+    class="btn btn-outline-primary"
+  >
+    Lineage
+  </button>
+</div>
+<div class="npc-groups">
+  <ngb-accordion [closeOthers]="true">
+    <ng-container *ngFor="let group of groupedNpcs">
+      <ngb-panel [title]="group[0]">
+        <ng-template ngbPanelContent>
+          <perfect-scrollbar
+            class="scroll-container table-fixed-head"
+            style="position: relative; max-height: 30vh"
+            fxFlex="auto"
+            [config]="{}"
+          >
+            <table class="table table-sm pb-0" style="font-size: larger">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Age</th>
+                  <th>Race</th>
+                  <th>Profession</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let npc of group[1]; let i = index"
+                  [class.selected]="selectedNPC?.id == npc?.id"
+                  (click)="selectNpc(npc, i)"
+                >
+                  <td class="text-capitalize">{{ npc.name }}</td>
+                  <td>{{ npc.age }}</td>
+                  <td>{{ npc.race.name }}</td>
+                  <td>{{ npc.profession?.name }}</td>
+                  <td>
+                    <fa-icon *ngIf="npc.alive == 3" [icon]="faSkull"></fa-icon
+                    ><fa-icon
+                      *ngIf="npc.alive == 2"
+                      [icon]="faInfinity"
+                    ></fa-icon>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </perfect-scrollbar>
+        </ng-template>
+      </ngb-panel>
+    </ng-container>
+  </ngb-accordion>
+</div>

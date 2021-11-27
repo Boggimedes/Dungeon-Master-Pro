@@ -22,7 +22,8 @@ import { EditMonstersComponent } from "./edit-monsters/edit-monsters.component";
 import { EditSpellsComponent } from "./edit-spells/edit-spells.component";
 import { EditWorldsComponent } from "./edit-worlds/edit-worlds.component";
 import { EditNpcsComponent } from "./edit-npcs/edit-npcs.component";
-import { WelcomeComponent } from './welcome/welcome.component';
+import { WelcomeComponent } from "./welcome/welcome.component";
+import { QuillModule } from "ngx-quill";
 
 @NgModule({
   imports: [
@@ -34,6 +35,7 @@ import { WelcomeComponent } from './welcome/welcome.component';
     FormsModule,
     PerfectScrollbarModule,
     FontAwesomeModule,
+    QuillModule.forRoot(),
   ],
   exports: [
     NgbDropdownModule,

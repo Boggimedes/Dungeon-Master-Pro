@@ -637,8 +637,8 @@ function randomizeOptions() {
   // if (randomize || !locked("provinces"))
   provincesInput.value = provincesOutput.value = 0; //gauss(20, 10, 20, 100);
   // if (randomize || !locked("manors")) {
-  manorsInput.value = 100;
-  manorsOutput.value = 100;
+  // manorsInput.value = 100;
+  // manorsOutput.value = 100;
   // }
   // if (randomize || !locked("religions"))
   religionsInput.value = religionsOutput.value = 0; //gauss(5, 2, 2, 10);

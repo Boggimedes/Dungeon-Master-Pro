@@ -63,8 +63,8 @@ window.Markers = (function () {
         multiplier: 0,
         fn: addSacredPalmGroves,
       },
-      { type: "brigands", icon: "⚔️", multiplier: 1, fn: addBrigands },
-      { type: "pirates", icon: "🏴‍☠️", multiplier: 1, fn: addPirates },
+      { type: "brigands", icon: "⚔️", multiplier: 3, fn: addBrigands },
+      { type: "pirates", icon: "🏴‍☠️", multiplier: 2, fn: addPirates },
       { type: "statues", icon: "🗿", multiplier: 1, fn: addStatues },
       {
         type: "ruins",
@@ -124,7 +124,6 @@ window.Markers = (function () {
   }
 
   function extractAnyElement(array) {
-    console.log(array);
     let index = cryptoRand(0, array.length - 1);
     return [array[index]];
   }
@@ -259,7 +258,7 @@ window.Markers = (function () {
 
     while (quantity) {
       const [cell] = extractAnyElement(bridges);
-      const id = addMarker({ cell, icon, intrinsicSize });
+      const id = addMarker({ type, cell, icon, intrinsicSize });
       const burg = pack.burgs[cells.burg[cell]];
       const river = pack.rivers.find((r) => r.i === pack.cells.r[cell]);
       const riverName = river ? `${river.name} ${river.type}` : "river";
@@ -543,7 +542,7 @@ window.Markers = (function () {
 
     while (quantity) {
       const [cell] = extractAnyElement(taverns);
-      const id = addMarker({ cell, icon, intrinsicSize });
+      const id = addMarker({ type, cell, icon, intrinsicSize });
       const typeName = P(0.3) ? "inn" : "tavern";
       const isAnimalThemed = P(0.7);
       const animal = ra(animals);
@@ -923,7 +922,7 @@ window.Markers = (function () {
 
     while (quantity) {
       const [cell] = extractAnyElement(borealForests);
-      const id = addMarker({ cell, icon, intrinsicSize });
+      const id = addMarker({ type, cell, icon, intrinsicSize });
       const culture = cells.culture[cell];
       const name = `${Names.getCulture(culture)} Pinery`;
       const legend = `A sacred pinery of ${cultures[culture].name} culture`;
@@ -950,7 +949,7 @@ window.Markers = (function () {
 
     while (quantity) {
       const [cell] = extractAnyElement(oasises);
-      const id = addMarker({ cell, icon, intrinsicSize });
+      const id = addMarker({ type, cell, icon, intrinsicSize });
       const culture = cells.culture[cell];
       const name = `${Names.getCulture(culture)} Palm Grove`;
       const legend = `A sacred palm grove of ${cultures[culture].name} culture`;
@@ -968,6 +967,7 @@ window.Markers = (function () {
       )
     );
     let quantity = getQuantity(roads, 50, 100, multiplier);
+    console.log(quantity);
     if (!quantity) return;
 
     const animals = [
@@ -1006,7 +1006,7 @@ window.Markers = (function () {
 
     while (quantity) {
       const [cell] = extractAnyElement(roads);
-      const id = addMarker({ cell, icon, intrinsicSize });
+      const id = addMarker({ type, cell, icon, intrinsicSize });
       const culture = cells.culture[cell];
       const biome = cells.biome[cell];
       const height = cells.p[cell];
@@ -1159,7 +1159,7 @@ window.Markers = (function () {
     while (quantity) {
       const [portal] = extractAnyElement(portals);
       const [burgName, cell] = portal;
-      const id = addMarker({ cell, icon, intrinsicSize });
+      const id = addMarker({ type, cell, icon, intrinsicSize });
       const name = `${burgName} Portal`;
       const legend = `An element of the magic portal system connecting major cities. Portals installed centuries ago, but still work fine`;
       notes.push({ id, name, legend });

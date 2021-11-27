@@ -33,6 +33,8 @@ import { TopMenuDirective } from "./directives/topmenu.directive";
 import { TopMenuLinkDirective } from "./directives/topmenu-link.directive";
 import { TopMenuDropdownDirective } from "./directives/topmenu-dropdown.directive";
 import { TopMenuAnchorToggleDirective } from "./directives/topmenu-anchor-toggle.directive";
+import { NpcSelectorComponent } from "./components/npc-selector/npc-selector.component";
+import { CoaComponent } from "./components/coa/coa.component";
 
 @NgModule({
   exports: [
@@ -82,7 +84,10 @@ import { TopMenuAnchorToggleDirective } from "./directives/topmenu-anchor-toggle
     TopMenuDropdownDirective,
     TopMenuAnchorToggleDirective,
     TopMenuDirective,
+    NpcSelectorComponent,
+    CoaComponent,
     // ContextMenuComponent,
   ],
+  providers: [],
 })
 export class SharedModule {}

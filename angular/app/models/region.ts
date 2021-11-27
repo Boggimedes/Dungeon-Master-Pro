@@ -9,6 +9,7 @@ export class Region {
   public stats: any;
   public linked: boolean = false;
   public world;
+  public states;
 
   constructor(data: any = {}) {
     data = !!data ? data : {};

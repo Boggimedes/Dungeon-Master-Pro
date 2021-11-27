@@ -26,6 +26,7 @@ Route::group(['middleware' => ['api']], function ($router) {
 	Route::get('campaign', 'StoryController@getCampaign');
 	Route::post('map', 'StoryController@getMap');
 
+    Route::get('world/create', 'WorldController@createWorld');
     Route::get('world/{world}', 'WorldController@getWorld');
     Route::get('world/fr/{region}', 'WorldController@getWorldFromRegion');
     Route::post('world/{world}/region/add', 'WorldController@addRegion');
@@ -37,9 +38,16 @@ Route::group(['middleware' => ['api']], function ($router) {
     Route::get('region/{region}/clear', 'WorldController@clearRegion');
     Route::get('region/{region}/age/{years}', 'WorldController@ageRegion');
     Route::get('region/{region}/npcs', 'WorldController@getNpcs');
+    Route::get('region/{region}/npc-list', 'WorldController@getNpcList');
     Route::post('region/{region}/upload-map', 'WorldController@uploadMap');
     Route::put('npc/{npc}/generate-features', 'WorldController@generateFeatures');
     Route::put('region/{region}/poi', 'WorldController@updatePOI');
+    Route::put('region/{region}/svg', 'WorldController@updateSVG');
+    Route::put('npc/{npc}', 'WorldController@updateNpc');
+    Route::get('npc/{npc}', 'WorldController@getNpc');
     Route::get('region/{region}/{type}/{i}', 'WorldController@getPOI');
+    Route::post('region/{region}/{type}/{i}/{npc}', 'WorldController@attachNPC');
+    Route::post('region/{region}/create-poi', 'WorldController@createPOI');
+    Route::delete('region/{region}/{type}/{i}/{npc}', 'WorldController@detachNPC');
 
 });

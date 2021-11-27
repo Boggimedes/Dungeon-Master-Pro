@@ -23,6 +23,8 @@ import { CustomizerService } from "../services/customizer.service";
 import { FormControl } from "@angular/forms";
 import { Router, NavigationEnd } from "@angular/router";
 import { faDragon } from "@fortawesome/free-solid-svg-icons";
+import { faFistRaised } from "@fortawesome/free-solid-svg-icons";
+import { faPencilAlt } from "@fortawesome/free-solid-svg-icons";
 import { faHatWizard } from "@fortawesome/free-solid-svg-icons";
 import { faUserFriends } from "@fortawesome/free-solid-svg-icons";
 import { faSlidersH } from "@fortawesome/free-solid-svg-icons";
@@ -59,6 +61,8 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   layoutSub: Subscription;
   configSub: Subscription;
   faHatWizard = faHatWizard;
+  faFistRaised = faFistRaised;
+  faPencilAlt = faPencilAlt;
   faUserFriends = faUserFriends;
   faMap = faMap;
   faCaretSquareDown = faCaretSquareDown;
@@ -78,10 +82,11 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
   control = new FormControl();
   faDragon = faDragon;
   public config: any = {};
-  public worldId: number;
-  public regionId: number;
   public user;
   public regions;
+  public worlds;
+  public selectedRegion;
+  public selectedWorld;
 
   constructor(
     public translate: TranslateService,
@@ -101,34 +106,47 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
       this.hideSidebar = !isShow;
     });
   }
-
+  newWorld = () =>
+    this.worldService.createWorld().subscribe((world) => {
+      this.worlds.push(world);
+    });
   ngOnInit() {
     // this.listItems = LISTITEMS;
     this.worldService.selectedRegion$
       .pipe(untilDestroyed(this))
       .subscribe((region) => {
-        this.regionId = region.id;
-        if (this.worldId !== region.world_id) {
-          this.worldService.getWorldFromRegion(region.id);
-        }
+        console.log("navbar");
+        console.log(region);
+        this.selectedRegion = region;
       });
     this.worldService.selectedWorld$
       .pipe(untilDestroyed(this))
       .subscribe((world) => {
-        this.worldId = world.id;
-        if (!this.user)
+        this.selectedWorld = world;
+        console.log("navbar");
+        console.log(world);
+        if (this.user) {
           this.regions = this.user.search_list.filter(
             (w) => w.type == "region" && w.world_id == world.id
           );
+          this.worlds = this.user.search_list.filter((w) => w.type == "world");
+          console.log(this.regions);
+          console.log(this.worlds);
+          console.log(this.user);
+        }
       });
 
     this.authService.user$.pipe(untilDestroyed(this)).subscribe((user) => {
       this.user = user;
       this.listItems = user.search_list;
-      if (!this.worldId)
+      this.worlds = this.user.search_list.filter((w) => w.type == "world");
+      if (this.selectedWorld)
         this.regions = this.user.search_list.filter(
-          (w) => w.type == "region" && w.world_id == this.worldId
+          (w) => w.type == "region" && w.world_id == this.selectedWorld.id
         );
+      console.log(this.regions);
+      console.log(this.worlds);
+      console.log(this.user);
     });
 
     if (this.innerWidth < 1200) {
@@ -280,5 +298,13 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
 
   toggleSidebar() {
     this.layoutService.toggleSidebarSmallScreen(this.hideSidebar);
+  }
+
+  setWorld(world) {
+    this.worldService.getWorld(world.id);
+  }
+
+  setRegion(region) {
+    this.worldService.getRegion(region.id);
   }
 }

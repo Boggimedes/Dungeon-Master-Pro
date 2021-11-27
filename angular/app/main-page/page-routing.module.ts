@@ -19,6 +19,49 @@ const routes: Routes = [
     },
     children: [
       {
+        path: "welcome",
+        component: WelcomeComponent,
+        data: {
+          title: "Welcome",
+        },
+      },
+    ],
+  },
+  {
+    path: "app/region/:regionId",
+    component: PageComponent,
+    canActivate: [AuthGuard],
+    canLoad: [AuthGuard],
+    data: {
+      title: "Game Master Pro",
+    },
+    children: [
+      {
+        path: "story",
+        component: StoryComponent,
+        data: {
+          title: "Story",
+        },
+      },
+      {
+        path: "edit-npcs",
+        component: EditNpcsComponent,
+        data: {
+          title: "Edit NPCs",
+        },
+      },
+    ],
+  },
+  {
+    path: "app/world/:worldId",
+    component: PageComponent,
+    canActivate: [AuthGuard],
+    canLoad: [AuthGuard],
+    data: {
+      title: "Game Master Pro",
+    },
+    children: [
+      {
         path: "combat",
         component: CombatComponent,
         data: {
@@ -26,31 +69,17 @@ const routes: Routes = [
         },
       },
       {
-        path: "welcome",
-        component: WelcomeComponent,
-        data: {
-          title: "Welcome",
-        },
-      },
-      {
-        path: "region/:regionId/story",
-        component: StoryComponent,
-        data: {
-          title: "Story",
-        },
-      },
-      {
-        path: "world/:worldId/edit",
+        path: "edit",
         component: EditWorldsComponent,
         data: {
           title: "Edit Worlds",
         },
       },
       {
-        path: "region/:regionId/edit-npcs",
-        component: EditNpcsComponent,
+        path: "edit-sounds",
+        component: EditWorldsComponent,
         data: {
-          title: "Edit NPCs",
+          title: "Edit Sounds",
         },
       },
     ],

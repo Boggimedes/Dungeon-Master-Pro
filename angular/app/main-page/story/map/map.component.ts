@@ -9,7 +9,7 @@ import {
   Input,
   EventEmitter,
 } from "@angular/core";
-import { Voronoi } from "./modules/voronoi";
+import { Voronoi } from "./bak/voronoi";
 import {
   Rulers,
   Measurer,
@@ -17,7 +17,8 @@ import {
   Opisometer,
   RouteOpisometer,
   Planimeter,
-} from "./modules/ui/measurers";
+} from "./bak/ui/measurers";
+import { faSignature, faRoute } from "@fortawesome/free-solid-svg-icons";
 
 import { faHeart } from "@fortawesome/free-regular-svg-icons";
 import { faUserFriends } from "@fortawesome/free-solid-svg-icons";
@@ -47,8 +48,7 @@ import {
   species,
   modusOperandi,
   subjects,
-  icons,
-} from "./const";
+} from "../../../shared/configs/const";
 declare var $: any;
 declare var d3: any;
 declare const PriorityQueue: any;
@@ -62,7 +62,12 @@ declare namespace Intl {
     public format: (items: [string?]) => string;
   }
 }
+import { StoryService } from "../../../shared/services/story.service";
+import { WorldService } from "../../../shared/services/world.service";
+import { LayoutService } from "../../../shared/services/layout.service";
+import { UntilDestroy, untilDestroyed } from "@ngneat/until-destroy";
 
+@UntilDestroy()
 @Component({
   selector: "app-story-map",
   templateUrl: "./map.component.html",
@@ -71,6 +76,13 @@ declare namespace Intl {
 })
 export class StoryMapComponent implements OnInit, AfterViewInit {
   @Output() clickedEmitter: EventEmitter<any> = new EventEmitter();
+  @Input()
+  set burgName(name) {
+    if (!this.selectedBurg) return;
+    document.getElementById("burgLabel" + this.selectedBurg.i).innerHTML = name;
+    this.updateSVG();
+  }
+
   @Input()
   set selectedBurg(burg) {
     this._selectedBurg = burg;
@@ -88,13 +100,25 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   @ViewChild("defsEmblems") defsEmblems: ElementRef;
   @ViewChild("viewbox") viewboxElement: ElementRef;
   @ViewChild("tooltip") tooltip: ElementRef;
+  public faMeasure = faSignature;
+  public faRoute = faRoute;
   public mapBox = true;
   public npcBox = false;
   public timeBox = false;
   public selectedMarker: any;
   public mapImg;
+  public campaignYear;
+  public activeLayer;
+  public biomesToggle;
+  public markersToggle = localStorage.getItem("markersToggle");
   public startingMapHeight;
   public startingMapWidth;
+  public selectedRegion;
+  public selectedIcon;
+  public statesToggle;
+  public terrainsToggle;
+  public culturesToggle;
+  public religionsToggle;
   public faBookOpen = faBookOpen;
   faUserFriends = faUserFriends;
   faCogs = faCogs;
@@ -159,9 +183,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   public biomesData;
   public nameBases;
   public color;
-  public scale;
-  public viewX;
-  public viewY;
+  public scale = 1;
+  public viewX = 0;
+  public viewY = 0;
   public options;
   public mapCoordinates;
   public populationRate;
@@ -188,8 +212,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   public moved;
   public viewbox;
   public activeLegend;
+  public selectedState;
   public selectedParty: any = {};
-  distanceScaleInput;
+  settings;
   heightExponentInput;
   barSizeInput;
   mapSizeInput;
@@ -249,7 +274,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   precOutput: any;
   stylePreset: any;
 
-  constructor() {
+  constructor(
+    public storyService: StoryService,
+    public layoutService: LayoutService,
+    public worldService: WorldService
+  ) {
     // indexedDB; ldb object
     !(() => {
       function e(t, o) {
@@ -296,6 +325,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     this.svg = d3.select("#map");
     this.defs = this.svg.select("#deftemp");
     this.viewbox = this.svg.select("#viewbox");
+    this.viewbox.style.transform = localStorage.getItem("lastView");
+    this.activeLayer = localStorage.getItem("activeLayer");
     this.scaleBar = this.svg.select("#scaleBar");
     this.legend = this.svg.append("g").attr("id", "legend");
     this.ocean = this.viewbox.append("g").attr("id", "ocean");
@@ -428,8 +459,11 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       .attr("filter", "url(#splotch)");
 
     // assign events separately as not a viewbox child
-    // this.scaleBar.on("mousemove", () => tip("Click to open Units Editor")).on("click", () => editUnits());
-    // this.legend.on("mousemove", () => tip("Drag to change the position. Click to hide the legend")).on("click", () => clearLegend());
+    this.legend
+      .on("mousemove", () =>
+        this.tip("Drag to change the position. Click to hide the legend")
+      )
+      .on("click", () => this.clearLegend());
 
     // main data variables
     this.grid = {}; // initial grapg based on jittered square grid and data
@@ -439,18 +473,42 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     this.biomesData = this.applyDefaultBiomesSystem();
     this.nameBases = this.Names.getNameBases(); // cultures-related data
-
     this.color = d3.scaleSequential(d3.interpolateSpectral); // default color scheme
 
     // d3 zoom behavior
-    this.scale = 1;
-    this.viewX = 0;
-    this.viewY = 0;
+    // this.scale = 1;
+    // this.viewX = 0;
+    // this.viewY = 0;
 
     this.zoomThrottled = this.throttle(this.doWorkOnZoom, 100);
-    this.zoom = d3.zoom().scaleExtent([0.5, 20]).on("zoom", this.zoomed);
+    this.viewbox.attr("transform", localStorage.getItem("lastView"));
+    this.zoom = d3
+      .zoom()
+      .scaleExtent([0.5, 20])
+      // .translate([this.viewX, this.viewY])
+      // .scale(this.scale)
+      .on("zoom", this.zoomed);
+    // console.log(d3.zoomIdentity);
+    // this.viewbox
+    //   .call(this.zoom) // here
+    //   .call(
+    //     this.zoom.transform,
+    //     d3.zoomIdentity.translate(this.viewX, this.viewY).scale(this.scale)
+    //   );
+    // console.log(d3.zoomIdentity.transform);
+    // this.zoomTo(xys[0], xys[1], xys[2], 1600);
+    // let transform = d3.zoomIdentity
+    //   .translate(this.viewX, this.viewY)
+    //   .scale(this.scale);
+    // this.zoom.translate([this.viewX, this.viewY]).scale(this.scale);
+    // this.svg.call(this.zoom).call(this.zoom.transform, transform); // default options
+    // const { k, x, y } = d3.event.transform;
+    // const isScaleChanged = Boolean(this.scale - k);
+    // const isPositionChanged = Boolean(this.viewX - x || this.viewY - y);
+    // this.scale = k;
+    // this.viewX = x;
+    // this.viewY = y;
 
-    // default options
     this.options = { pinNotes: false }; // options object
     this.mapCoordinates = {}; // map coordinates on globe
     this.options.winds = [225, 45, 225, 315, 135, 315]; // default wind directions
@@ -652,9 +710,45 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     this.zoomThrottled(isScaleChanged, isPositionChanged);
   };
 
+  stateHighlightOff() {
+    this.debug.selectAll(".highlight").each(function () {
+      console.log(this);
+      d3.select(this).transition().duration(1000).attr("opacity", 0).remove();
+    });
+  }
+
+  stateHighlightOn(state) {
+    this.BurgsAndStates.toggle(true);
+    if (this.defs.select("#fog path").size()) return;
+
+    // const state = +event.target.dataset.id;
+    if (this.customization || !state) return;
+    const d = this.regions.select("#state" + state).attr("d");
+
+    const path = this.debug
+      .append("path")
+      .attr("class", "highlight")
+      .attr("d", d)
+      .attr("fill", "none")
+      .attr("stroke", "red")
+      .attr("stroke-width", 1)
+      .attr("opacity", 1)
+      .attr("filter", "url(#blur1)");
+
+    const l = path.node().getTotalLength(),
+      dur = (l + 5000) / 2;
+    const i = d3.interpolateString("0," + l, l + "," + l);
+    const animate = d3.transition().duration(500).ease(d3.easeSinIn);
+    path
+      .transition()
+      .duration(1500)
+      .attrTween("stroke-dasharray", function () {
+        return (t) => i(t);
+      });
+  }
+
   ngOnInit(): void {
     this.mapImg = {};
-    this.mapImg.id = 3;
     void (function addFindAll() {
       const Quad = function (node, x0, y0, x1, y1) {
         this.node = node;
@@ -751,6 +845,72 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         }
       };
     })();
+    this.layoutService.toggleSidebar$
+      .pipe(untilDestroyed(this))
+      .subscribe((isShow) => {
+        let mapWrapper = document.getElementById("map-wrapper");
+        if (!isShow) {
+          this.svgWidth = mapWrapper.clientWidth; //Math.min(+this.mapWidthInput.value, window.innerWidth);
+        } else {
+          this.svgWidth = mapWrapper.clientWidth - 400; //Math.min(+this.mapWidthInput.value, window.innerWidth);
+        }
+        this.changeMapSize();
+      });
+    this.storyService.zoom$
+      .pipe(untilDestroyed(this))
+      .subscribe((zoom: any) => {
+        if (!zoom) return;
+        let { x, y, z, d } = zoom;
+        this.zoomTo(x, y, z, d);
+      });
+    this.storyService.selected$
+      .pipe(untilDestroyed(this))
+      .subscribe((selected) => {
+        if (!Object.values(selected).length) return;
+        console.log(selected);
+        if (selected.selectType == "npc") {
+          // iconSelect;
+        }
+        if (selected.selectType == "burg") {
+          this.selectBurg(selected.i);
+          const burg = this.pack.burgs[selected.i];
+          if (!burg) return;
+
+          const { x, y } = burg;
+          if (selected.zoomTo) this.zoomTo(x, y, 5, 1600);
+        }
+        if (
+          (this.selectedState?.i == selected.i &&
+            selected.selectType == "state") ||
+          !Object.values(selected).length
+        ) {
+          this.selectedState = null;
+          this.stateHighlightOff();
+          return;
+        }
+        if (selected.selectType == "state") {
+          this.selectedState = selected;
+          const stateCenter = this.pack.cells.p[selected.center];
+          if (!stateCenter) return;
+          const [x, y] = stateCenter;
+          let e: any = {};
+          this.stateHighlightOn(selected.i);
+          if (selected.zoomTo) this.zoomTo(x, y, 1.5, 1600);
+        }
+        if (selected.selectType == "icon") {
+          this.selectedIcon = selected.icon;
+          this.toggleAddMarkerCustom(selected.icon);
+        }
+      });
+    this.worldService.selectedRegion$
+      .pipe(untilDestroyed(this))
+      .subscribe((region) => {
+        if (!Object.values(region).length) return;
+        console.log(region);
+        if (!region.id) return;
+        this.selectedRegion = region;
+        this.loadMapFromURL("region/" + region.id + "/map", false);
+      });
   }
 
   getBoundaryPoints = (width, height, spacing) => {
@@ -985,149 +1145,149 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   };
 
   // Detect and draw the coasline
-  drawCoastline() {
-    console.time("drawCoastline");
-    this.reMarkFeatures();
+  // drawCoastline() {
+  //   console.time("drawCoastline");
+  //   this.reMarkFeatures();
 
-    const cells = this.pack.cells,
-      vertices = this.pack.vertices,
-      n = cells.i.length,
-      features = this.pack.features;
-    const used = new Uint8Array(features.length); // store conneted features
-    const largestLand = d3.scan(
-      features.map((f) => (f.land ? f.cells : 0)),
-      (a, b) => b - a
-    );
-    const landMask = this.defs.select("#land");
-    const waterMask = this.defs.select("#water");
-    this.lineGen.curve(d3.curveBasisClosed);
+  //   const cells = this.pack.cells,
+  //     vertices = this.pack.vertices,
+  //     n = cells.i.length,
+  //     features = this.pack.features;
+  //   const used = new Uint8Array(features.length); // store conneted features
+  //   const largestLand = d3.scan(
+  //     features.map((f) => (f.land ? f.cells : 0)),
+  //     (a, b) => b - a
+  //   );
+  //   const landMask = this.defs.select("#land");
+  //   const waterMask = this.defs.select("#water");
+  //   this.lineGen.curve(d3.curveBasisClosed);
 
-    for (const i of cells.i) {
-      const startFromEdge = !i && cells.h[i] >= 20;
-      if (!startFromEdge && cells.t[i] !== -1 && cells.t[i] !== 1) continue; // non-edge cell
-      const f = cells.f[i];
-      if (used[f]) continue; // already connected
-      if (features[f].type === "ocean") continue; // ocean cell
+  //   for (const i of cells.i) {
+  //     const startFromEdge = !i && cells.h[i] >= 20;
+  //     if (!startFromEdge && cells.t[i] !== -1 && cells.t[i] !== 1) continue; // non-edge cell
+  //     const f = cells.f[i];
+  //     if (used[f]) continue; // already connected
+  //     if (features[f].type === "ocean") continue; // ocean cell
 
-      const type = features[f].type === "lake" ? 1 : -1; // type value to search for
-      const start = findStart(i, type);
-      if (start === -1) continue; // cannot start here
-      let vchain = connectVertices(start, type);
-      if (features[f].type === "lake") relax(vchain, 1.2);
-      used[f] = 1;
-      let points = this.clipPoly(
-        vchain.map((v) => vertices.p[v]),
-        1
-      );
-      const area = d3.polygonArea(points); // area with lakes/islands
-      if (area > 0 && features[f].type === "lake") {
-        points = points.reverse();
-        vchain = vchain.reverse();
-      }
+  //     const type = features[f].type === "lake" ? 1 : -1; // type value to search for
+  //     const start = findStart(i, type);
+  //     if (start === -1) continue; // cannot start here
+  //     let vchain = connectVertices(start, type);
+  //     if (features[f].type === "lake") relax(vchain, 1.2);
+  //     used[f] = 1;
+  //     let points = this.clipPoly(
+  //       vchain.map((v) => vertices.p[v]),
+  //       1
+  //     );
+  //     const area = d3.polygonArea(points); // area with lakes/islands
+  //     if (area > 0 && features[f].type === "lake") {
+  //       points = points.reverse();
+  //       vchain = vchain.reverse();
+  //     }
 
-      features[f].area = Math.abs(area);
-      features[f].vertices = vchain;
+  //     features[f].area = Math.abs(area);
+  //     features[f].vertices = vchain;
 
-      const path = Math.round(this.lineGen(points));
-      if (features[f].type === "lake") {
-        landMask
-          .append("path")
-          .attr("d", path)
-          .attr("fill", "black")
-          .attr("id", "land_" + f);
-        // waterMask.append("path").attr("d", path).attr("fill", "white").attr("id", "water_"+id); // uncomment to show over lakes
-        this.lakes
-          .select("#freshwater")
-          .append("path")
-          .attr("d", path)
-          .attr("id", "lake_" + f)
-          .attr("data-f", f); // draw the lake
-      } else {
-        landMask
-          .append("path")
-          .attr("d", path)
-          .attr("fill", "white")
-          .attr("id", "land_" + f);
-        waterMask
-          .append("path")
-          .attr("d", path)
-          .attr("fill", "black")
-          .attr("id", "water_" + f);
-        const g =
-          features[f].group === "lake_island" ? "lake_island" : "sea_island";
-        this.coastline
-          .select("#" + g)
-          .append("path")
-          .attr("d", path)
-          .attr("id", "island_" + f)
-          .attr("data-f", f); // draw the coastline
-      }
+  //     const path = Math.round(this.lineGen(points));
+  //     if (features[f].type === "lake") {
+  //       landMask
+  //         .append("path")
+  //         .attr("d", path)
+  //         .attr("fill", "black")
+  //         .attr("id", "land_" + f);
+  //       // waterMask.append("path").attr("d", path).attr("fill", "white").attr("id", "water_"+id); // uncomment to show over lakes
+  //       this.lakes
+  //         .select("#freshwater")
+  //         .append("path")
+  //         .attr("d", path)
+  //         .attr("id", "lake_" + f)
+  //         .attr("data-f", f); // draw the lake
+  //     } else {
+  //       landMask
+  //         .append("path")
+  //         .attr("d", path)
+  //         .attr("fill", "white")
+  //         .attr("id", "land_" + f);
+  //       waterMask
+  //         .append("path")
+  //         .attr("d", path)
+  //         .attr("fill", "black")
+  //         .attr("id", "water_" + f);
+  //       const g =
+  //         features[f].group === "lake_island" ? "lake_island" : "sea_island";
+  //       this.coastline
+  //         .select("#" + g)
+  //         .append("path")
+  //         .attr("d", path)
+  //         .attr("id", "island_" + f)
+  //         .attr("data-f", f); // draw the coastline
+  //     }
 
-      // draw ruler to cover the biggest land piece
-      if (f === largestLand) {
-        const from = points[d3.scan(points, (a, b) => a[0] - b[0])];
-        const to = points[d3.scan(points, (a, b) => b[0] - a[0])];
-        this.rulers.create(Ruler, [from, to]);
-      }
-    }
+  //     // draw ruler to cover the biggest land piece
+  //     if (f === largestLand) {
+  //       const from = points[d3.scan(points, (a, b) => a[0] - b[0])];
+  //       const to = points[d3.scan(points, (a, b) => b[0] - a[0])];
+  //       this.rulers.create(Ruler, [from, to]);
+  //     }
+  //   }
 
-    // find cell vertex to start path detection
-    function findStart(i, t) {
-      if (t === -1 && cells.b[i])
-        return cells.v[i].find((v) => vertices.c[v].some((c) => c >= n)); // map border cell
-      const filtered = cells.c[i].filter((c) => cells.t[c] === t);
-      const index = cells.c[i].indexOf(d3.min(filtered));
-      return index === -1 ? index : cells.v[i][index];
-    }
+  //   // find cell vertex to start path detection
+  //   function findStart(i, t) {
+  //     if (t === -1 && cells.b[i])
+  //       return cells.v[i].find((v) => vertices.c[v].some((c) => c >= n)); // map border cell
+  //     const filtered = cells.c[i].filter((c) => cells.t[c] === t);
+  //     const index = cells.c[i].indexOf(d3.min(filtered));
+  //     return index === -1 ? index : cells.v[i][index];
+  //   }
 
-    // connect vertices to chain
-    function connectVertices(start, t) {
-      const chain = []; // vertices chain to form a path
-      for (
-        let i = 0, current = start;
-        i === 0 || (current !== start && i < 50000);
-        i++
-      ) {
-        const prev = chain[chain.length - 1]; // previous vertex in chain
-        chain.push(current); // add current vertex to sequence
-        const c = vertices.c[current]; // cells adjacent to vertex
-        const v = vertices.v[current]; // neighboring vertices
-        const c0 = c[0] >= n || cells.t[c[0]] === t;
-        const c1 = c[1] >= n || cells.t[c[1]] === t;
-        const c2 = c[2] >= n || cells.t[c[2]] === t;
-        if (v[0] !== prev && c0 !== c1) current = v[0];
-        else if (v[1] !== prev && c1 !== c2) current = v[1];
-        else if (v[2] !== prev && c0 !== c2) current = v[2];
-        if (current === chain[chain.length - 1]) {
-          console.error("Next vertex is not found");
-          break;
-        }
-      }
-      return chain;
-    }
+  //   // connect vertices to chain
+  //   function connectVertices(start, t) {
+  //     const chain = []; // vertices chain to form a path
+  //     for (
+  //       let i = 0, current = start;
+  //       i === 0 || (current !== start && i < 50000);
+  //       i++
+  //     ) {
+  //       const prev = chain[chain.length - 1]; // previous vertex in chain
+  //       chain.push(current); // add current vertex to sequence
+  //       const c = vertices.c[current]; // cells adjacent to vertex
+  //       const v = vertices.v[current]; // neighboring vertices
+  //       const c0 = c[0] >= n || cells.t[c[0]] === t;
+  //       const c1 = c[1] >= n || cells.t[c[1]] === t;
+  //       const c2 = c[2] >= n || cells.t[c[2]] === t;
+  //       if (v[0] !== prev && c0 !== c1) current = v[0];
+  //       else if (v[1] !== prev && c1 !== c2) current = v[1];
+  //       else if (v[2] !== prev && c0 !== c2) current = v[2];
+  //       if (current === chain[chain.length - 1]) {
+  //         console.error("Next vertex is not found");
+  //         break;
+  //       }
+  //     }
+  //     return chain;
+  //   }
 
-    // move vertices that are too close to already added ones
-    function relax(vchain, r) {
-      const p = vertices.p,
-        tree = d3.quadtree();
+  //   // move vertices that are too close to already added ones
+  //   function relax(vchain, r) {
+  //     const p = vertices.p,
+  //       tree = d3.quadtree();
 
-      for (let i = 0; i < vchain.length; i++) {
-        const v = vchain[i];
-        let [x, y] = [p[v][0], p[v][1]];
-        if (i && vchain[i + 1] && tree.find(x, y, r) !== undefined) {
-          const v1 = vchain[i - 1],
-            v2 = vchain[i + 1];
-          const [x1, y1] = [p[v1][0], p[v1][1]];
-          const [x2, y2] = [p[v2][0], p[v2][1]];
-          [x, y] = [(x1 + x2) / 2, (y1 + y2) / 2];
-          p[v] = [x, y];
-        }
-        tree.add([x, y]);
-      }
-    }
+  //     for (let i = 0; i < vchain.length; i++) {
+  //       const v = vchain[i];
+  //       let [x, y] = [p[v][0], p[v][1]];
+  //       if (i && vchain[i + 1] && tree.find(x, y, r) !== undefined) {
+  //         const v1 = vchain[i - 1],
+  //           v2 = vchain[i + 1];
+  //         const [x1, y1] = [p[v1][0], p[v1][1]];
+  //         const [x2, y2] = [p[v2][0], p[v2][1]];
+  //         [x, y] = [(x1 + x2) / 2, (y1 + y2) / 2];
+  //         p[v] = [x, y];
+  //       }
+  //       tree.add([x, y]);
+  //     }
+  //   }
 
-    console.timeEnd("drawCoastline");
-  }
+  //   console.timeEnd("drawCoastline");
+  // }
 
   // conver temperature from °C to other scales
   convertTemperature = (c) => {
@@ -1155,15 +1315,14 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   };
 
   // random number in a range
-  // random number in a range
   rand(x = 1, y) {
     return x + (crypto.getRandomValues(new Uint32Array(1))[0] % (y - x + 1));
   }
 
   // return random value from the array
-  ra(array) {
+  ra = (array) => {
     return array[this.rand(0, array.length - 1)];
-  }
+  };
 
   // probability shorthand
   P = (probability) => {
@@ -1277,21 +1436,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     return minSegment;
   };
 
-  // normalization function
-  normalize = (val, min, max) => {
-    return Math.min(Math.max((val - min) / (max - min), 0), 1);
-  };
-
   // return a random integer from min to max biased towards one end based on exponent distribution (the bigger ex the higher bias towards min)
   // from https://gamedev.stackexchange.com/a/116875
   biased = (min, max, ex) => {
     return Math.round(min + (max - min) * Math.pow(Math.random(), ex));
-  };
-
-  // return array of values common for both array a and array b
-  common = (a, b) => {
-    const setB = new Set(b);
-    return [...new Set(a)].filter((a) => setB.has(a));
   };
 
   // clip polygon by graph bbox
@@ -1627,483 +1775,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     return [cx, cy];
   };
 
-  ReliefIcons = (() => {
-    const ReliefIcons = () => {
-      this.terrain.selectAll("*").remove();
-
-      const cells = this.pack.cells;
-      const density = this.terrain.attr("density") || 0.4;
-      const size = 2 * (this.terrain.attr("size") || 1);
-      const mod = 0.2 * size; // size modifier
-      const relief = [];
-
-      for (const i of cells.i) {
-        const height = cells.h[i];
-        if (height < 20) continue; // no icons on water
-        if (cells.r[i]) continue; // no icons on rivers
-        const biome = cells.biome[i];
-        if (height < 50 && this.biomesData.iconsDensity[biome] === 0) continue; // no icons for this biome
-
-        const polygon = this.getPackPolygon(i);
-        const [minX, maxX] = d3.extent(polygon, (p) => p[0]);
-        const [minY, maxY] = d3.extent(polygon, (p) => p[1]);
-
-        const placeBiomeIcons = () => {
-          const iconsDensity = this.biomesData.iconsDensity[biome] / 100;
-          const radius = 2 / iconsDensity / density;
-          if (Math.random() > iconsDensity * 10) return;
-
-          for (const [cx, cy] of this.poissonDiscSampler(
-            minX,
-            minY,
-            maxX,
-            maxY,
-            radius
-          )) {
-            if (!d3.polygonContains(polygon, [cx, cy])) continue;
-            let h = (4 + Math.random()) * size;
-            const icon = getBiomeIcon(i, this.biomesData.icons[biome]);
-            if (icon === "#relief-grass-1") h *= 1.2;
-            relief.push({
-              i: icon,
-              x: this.rn(cx - h, 2),
-              y: this.rn(cy - h, 2),
-              s: this.rn(h * 2, 2),
-            });
-          }
-        };
-
-        const placeReliefIcons = (i) => {
-          const radius = 2 / density;
-          const [icon, h] = getReliefIcon(i, height);
-
-          for (const [cx, cy] of this.poissonDiscSampler(
-            minX,
-            minY,
-            maxX,
-            maxY,
-            radius
-          )) {
-            if (!d3.polygonContains(polygon, [cx, cy])) continue;
-            relief.push({
-              i: icon,
-              x: this.rn(cx - <number>h, 2),
-              y: this.rn(cy - <number>h, 2),
-              s: this.rn(<number>h * 2, 2),
-            });
-          }
-        };
-
-        const getReliefIcon = (i, h) => {
-          const temp = this.grid.cells.temp[this.pack.cells.g[i]];
-          const type =
-            h > 70 && temp < 0 ? "mountSnow" : h > 70 ? "mount" : "hill";
-          const size =
-            h > 70 ? (h - 45) * mod : Math.min(Math.max((h - 40) * mod, 3), 6);
-          return [getIcon(type), size];
-        };
-        // if (height < 50) placeBiomeIcons(i,biome );
-        if (height < 50) placeBiomeIcons();
-        else placeReliefIcons(i);
-      }
-
-      // sort relief icons by y+size
-      relief.sort((a, b) => a.y + a.s - (b.y + b.s));
-
-      let reliefHTML = "";
-      for (const r of relief) {
-        reliefHTML += `<use href="${r.i}" x="${r.x}" y="${r.y}" width="${r.s}" height="${r.s}"/>`;
-      }
-      this.terrain.html(reliefHTML);
-    };
-
-    const getBiomeIcon = (i, b) => {
-      let type = b[Math.floor(Math.random() * b.length)];
-      const temp = this.grid.cells.temp[this.pack.cells.g[i]];
-      if (type === "conifer" && temp < 0) type = "coniferSnow";
-      return getIcon(type);
-    };
-
-    const getVariant = (type) => {
-      switch (type) {
-        case "mount":
-          return this.rand(2, 7);
-        case "mountSnow":
-          return this.rand(1, 6);
-        case "hill":
-          return this.rand(2, 5);
-        case "conifer":
-          return 2;
-        case "coniferSnow":
-          return 1;
-        case "swamp":
-          return this.rand(2, 3);
-        case "cactus":
-          return this.rand(1, 3);
-        case "deadTree":
-          return this.rand(1, 2);
-        default:
-          return 2;
-      }
-    };
-
-    function getOldIcon(type) {
-      switch (type) {
-        case "mountSnow":
-          return "mount";
-        case "vulcan":
-          return "mount";
-        case "coniferSnow":
-          return "conifer";
-        case "cactus":
-          return "dune";
-        case "deadTree":
-          return "dune";
-        default:
-          return type;
-      }
-    }
-
-    const getIcon = (type) => {
-      const set = this.terrain.attr("set") || "simple";
-      if (set === "simple") return "#relief-" + getOldIcon(type) + "-1";
-      if (set === "colored") return "#relief-" + type + "-" + getVariant(type);
-      if (set === "gray")
-        return "#relief-" + type + "-" + getVariant(type) + "-bw";
-      return "#relief-" + getOldIcon(type) + "-1"; // simple
-    };
-
-    return ReliefIcons;
-  })();
-
-  Names = (() => {
-    let chains = [];
-    let vowel = this.vowel;
-    let nameBases = this.nameBases;
-    let ra = this.ra;
-    let last = this.last;
-    let pack = this.pack;
-    let capitalize = this.capitalize;
-    // let locked = this.locked;
-    let rand = this.rand;
-    let P = this.P;
-    // let unlock = this.unlock;
-    let mapName = this.mapName;
-    // calculate Markov chain for a namesbase
-    const calculateChain = function (string) {
-      const chain = [];
-      const array = string.split(",");
-
-      for (const n of array) {
-        let name = n.trim().toLowerCase();
-        const basic = !/[^\u0000-\u007f]/.test(name); // basic chars and English rules can be applied
-
-        // split word into pseudo-syllables
-        for (
-          let i = -1, syllable = "";
-          i < name.length;
-          i += syllable.length || 1, syllable = ""
-        ) {
-          let prev = name[i] || ""; // pre-onset letter
-          let v = 0; // 0 if no vowels in syllable
-
-          for (let c = i + 1; name[c] && syllable.length < 5; c++) {
-            const that = name[c],
-              next = name[c + 1]; // next char
-            syllable += that;
-            if (syllable === " " || syllable === "-") break; // syllable starts with space or hyphen
-            if (!next || next === " " || next === "-") break; // no need to check
-
-            if (vowel(that)) v = 1; // check if letter is vowel
-
-            // do not split some diphthongs
-            if (that === "y" && next === "e") continue; // 'ye'
-            if (basic) {
-              // English-like
-              if (that === "o" && next === "o") continue; // 'oo'
-              if (that === "e" && next === "e") continue; // 'ee'
-              if (that === "a" && next === "e") continue; // 'ae'
-              if (that === "c" && next === "h") continue; // 'ch'
-            }
-
-            if (vowel(that) === next) break; // two same vowels in a row
-            if (v && vowel(name[c + 2])) break; // syllable has vowel and additional vowel is expected soon
-          }
-
-          if (chain[prev] === undefined) chain[prev] = [];
-          chain[prev].push(syllable);
-        }
-      }
-
-      return chain;
-    };
-
-    // update chain for specific base
-    const updateChain = (i) =>
-      (chains[i] =
-        nameBases[i] || nameBases[i].b ? calculateChain(nameBases[i].b) : null);
-
-    // update chains for all used bases
-    const clearChains = () => (chains = []);
-
-    // generate name using Markov's chain
-    const getBase = function (base, min = null, max = null, dupl = null) {
-      if (base === undefined) {
-        console.error("Please define a base");
-        return;
-      }
-      if (!chains[base]) updateChain(base);
-
-      const data = chains[base];
-      if (!data || data[""] === undefined) {
-        // tip("Namesbase " + base + " is incorrect. Please check in namesbase editor", false, "error");
-        console.error("Namebase " + base + " is incorrect!");
-        return "ERROR";
-      }
-
-      if (!min) min = nameBases[base].min;
-      if (!max) max = nameBases[base].max;
-      if (dupl !== "") dupl = nameBases[base].d;
-
-      let v = data[""],
-        cur = ra(v),
-        w = "";
-      for (let i = 0; i < 20; i++) {
-        if (cur === "") {
-          // end of word
-          if (w.length < min) {
-            cur = "";
-            w = "";
-            v = data[""];
-          } else break;
-        } else {
-          if (w.length + cur.length > max) {
-            // word too long
-            if (w.length < min) w += cur;
-            break;
-          } else v = data[last(cur)] || data[""];
-        }
-
-        w += cur;
-        cur = ra(v);
-      }
-
-      // parse word to get a final name
-      const l = last(w); // last letter
-      if (l === "'" || l === " " || l === "-") w = w.slice(0, -1); // not allow some characters at the end
-
-      let name = [...w].reduce(function (r, c, i, d) {
-        if (c === d[i + 1] && !dupl.includes(c)) return r; // duplication is not allowed
-        if (!r.length) return c.toUpperCase();
-        if (r.slice(-1) === "-" && c === " ") return r; // remove space after hyphen
-        if (r.slice(-1) === " ") return r + c.toUpperCase(); // capitalize letter after space
-        if (r.slice(-1) === "-") return r + c.toUpperCase(); // capitalize letter after hyphen
-        if (c === "a" && d[i + 1] === "e") return r; // "ae" => "e"
-        if (i + 2 < d.length && c === d[i + 1] && c === d[i + 2]) return r; // remove three same letters in a row
-        return r + c;
-      }, "");
-
-      // join the word if any part has only 1 letter
-      if (name.split(" ").some((part) => part.length < 2))
-        name = name
-          .split(" ")
-          .map((p, i) => (i ? p.toLowerCase() : p))
-          .join("");
-
-      if (name.length < 2) {
-        console.error("Name is too short! Random name will be selected");
-        name = ra(nameBases[base].b.split(","));
-      }
-
-      return name;
-    };
-
-    // generate name for culture
-    const getCulture = function (culture, min = null, max = null, dupl = null) {
-      if (culture === undefined) {
-        console.error("Please define a culture");
-        return;
-      }
-      const base = pack.cultures[culture].base;
-      return getBase(base, min, max, dupl);
-    };
-
-    // generate short name for culture
-    const getCultureShort = function (culture) {
-      if (culture === undefined) {
-        console.error("Please define a culture");
-        return;
-      }
-      return getBaseShort(pack.cultures[culture].base);
-    };
-
-    // generate short name for base
-    const getBaseShort = function (base) {
-      if (nameBases[base] === undefined) {
-        // tip(`Namebase ${base} does not exist. Please upload custom namebases of change the base in Cultures Editor`, false, "error");
-        base = 1;
-      }
-      const min = nameBases[base].min - 1;
-      const max = Math.max(nameBases[base].max - 2, min);
-      // Removed extraneous 0
-      return getBase(base, min, max, "");
-    };
-
-    // generate state name based on capital or random name and culture-specific suffix
-    // prettier-ignore
-    const getState = function(name = null, culture = null, base = null) {
-      if (name === null) {console.error("Please define a base name"); return;}
-      if (culture === null && base === null) {console.error("Please define a culture"); return;}
-      if (base === null) base = pack.cultures[culture].base;
-  
-      // exclude endings inappropriate for states name
-      if (name.includes(" ")) name = capitalize(name.replace(/ /g, "").toLowerCase()); // don't allow multiword state names
-      if (name.length > 6 && name.slice(-4) === "berg") name = name.slice(0,-4); // remove -berg for any
-      if (name.length > 5 && name.slice(-3) === "ton") name = name.slice(0,-3); // remove -ton for any
-  
-      if (base === 5 && ["sk", "ev", "ov"].includes(name.slice(-2))) name = name.slice(0,-2); // remove -sk/-ev/-ov for Ruthenian
-      else if (base === 12) return vowel(name.slice(-1)) ? name : name + "u"; // Japanese ends on any vowel or -u
-      else if (base === 18 && P(.4)) name = vowel(name.slice(0,1).toLowerCase()) ? "Al" + name.toLowerCase() : "Al " + name; // Arabic starts with -Al
-  
-      // no suffix for fantasy bases
-      if (base > 32 && base < 42) return name;
-  
-      // define if suffix should be used
-      if (name.length > 3 && vowel(name.slice(-1))) {
-        if (vowel(name.slice(-2,-1)) && P(.85)) name = name.slice(0,-2); // 85% for vv
-        else if (P(.7)) name = name.slice(0,-1); // ~60% for cv
-        else return name;
-      } else if (P(.4)) return name; // 60% for cc and vc
-  
-      // define suffix
-      let suffix = "ia"; // standard suffix
-  
-      const rnd = Math.random(), l = name.length;
-      if (base === 3 && rnd < .03 && l < 7) suffix = "terra"; // Italian
-      else if (base === 4 && rnd < .03 && l < 7) suffix = "terra"; // Spanish
-      else if (base === 13 && rnd < .03 && l < 7) suffix = "terra"; // Portuguese
-      else if (base === 2 && rnd < .03 && l < 7) suffix = "terre"; // French
-      else if (base === 0 && rnd < .5 && l < 7) suffix = "land"; // German
-      else if (base === 1 && rnd < .4 && l < 7 ) suffix = "land"; // English
-      else if (base === 6 && rnd < .3 && l < 7) suffix = "land"; // Nordic
-      else if (base === 32 && rnd < .1 && l < 7) suffix = "land"; // generic Human
-      else if (base === 7 && rnd < .1) suffix = "eia"; // Greek
-      else if (base === 9 && rnd < .35) suffix = "maa"; // Finnic
-      else if (base === 15 && rnd < .4 && l < 6) suffix = "orszag"; // Hungarian
-      else if (base === 16) suffix = rnd < .6 ? "stan" : "ya"; // Turkish
-      else if (base === 10) suffix = "guk"; // Korean
-      else if (base === 11) suffix = " Guo"; // Chinese
-      else if (base === 14) suffix = rnd < .5 && l < 6 ? "tlan" : "co"; // Nahuatl
-      else if (base === 17 && rnd < .8) suffix = "a"; // Berber
-      else if (base === 18 && rnd < .8) suffix = "a"; // Arabic
-  
-      return validateSuffix(name, suffix);
-    }
-
-    function validateSuffix(name, suffix) {
-      if (name.slice(-1 * suffix.length) === suffix) return name; // no suffix if name already ends with it
-      const s1 = suffix.charAt(0);
-      if (name.slice(-1) === s1) name = name.slice(0, -1); // remove name last letter if it's a suffix first letter
-      if (
-        vowel(s1) === vowel(name.slice(-1)) &&
-        vowel(s1) === vowel(name.slice(-2, -1))
-      )
-        name = name.slice(0, -1); // remove name last char if 2 last chars are the same type as suffix's 1st
-      if (name.slice(-1) === s1) name = name.slice(0, -1); // remove name last letter if it's a suffix first letter
-      return name + suffix;
-    }
-
-    // generato name for the map
-    const getMapName = function (force) {
-      // if (!force && locked("mapName")) return;
-      // if (force && locked("mapName")) unlock("mapName");
-      const base = P(0.7) ? 2 : P(0.5) ? rand(0, 6) : rand(0, 31);
-      if (!nameBases[base]) {
-        // tip("Namebase is not found", false, "error");
-        return "";
-      }
-      const min = nameBases[base].min - 1;
-      const max = Math.max(nameBases[base].max - 3, min);
-      // Removed extraneous 0
-      const baseName = getBase(base, min, max, "");
-      const name = P(0.7) ? addSuffix(baseName) : baseName;
-      mapName = name;
-    };
-
-    function addSuffix(name) {
-      const suffix = P(0.8) ? "ia" : "land";
-      if (suffix === "ia" && name.length > 6)
-        name = name.slice(0, -(name.length - 3));
-      else if (suffix === "land" && name.length > 6)
-        name = name.slice(0, -(name.length - 5));
-      return validateSuffix(name, suffix);
-    }
-
-    const getNameBases = function () {
-      // name, min length, max length, letters to allow duplication, multi-word name rate [deprecated]
-      // prettier-ignore
-      return [
-        // real-world bases by Azgaar:
-        {name: "German", i: 0, min: 5, max: 12, d: "lt", m: 0, b: "Achern,Aichhalden,Aitern,Albbruck,Alpirsbach,Altensteig,Althengstett,Appenweier,Auggen,Wildbad,Badenen,Badenweiler,Baiersbronn,Ballrechten,Bellingen,Berghaupten,Bernau,Biberach,Biederbach,Binzen,Birkendorf,Birkenfeld,Bischweier,Blumberg,Bollen,Bollschweil,Bonndorf,Bosingen,Braunlingen,Breisach,Breisgau,Breitnau,Brigachtal,Buchenbach,Buggingen,Buhl,Buhlertal,Calw,Dachsberg,Dobel,Donaueschingen,Dornhan,Dornstetten,Dottingen,Dunningen,Durbach,Durrheim,Ebhausen,Ebringen,Efringen,Egenhausen,Ehrenkirchen,Ehrsberg,Eimeldingen,Eisenbach,Elzach,Elztal,Emmendingen,Endingen,Engelsbrand,Enz,Enzklosterle,Eschbronn,Ettenheim,Ettlingen,Feldberg,Fischerbach,Fischingen,Fluorn,Forbach,Freiamt,Freiburg,Freudenstadt,Friedenweiler,Friesenheim,Frohnd,Furtwangen,Gaggenau,Geisingen,Gengenbach,Gernsbach,Glatt,Glatten,Glottertal,Gorwihl,Gottenheim,Grafenhausen,Grenzach,Griesbach,Gutach,Gutenbach,Hag,Haiterbach,Hardt,Harmersbach,Hasel,Haslach,Hausach,Hausen,Hausern,Heitersheim,Herbolzheim,Herrenalb,Herrischried,Hinterzarten,Hochenschwand,Hofen,Hofstetten,Hohberg,Horb,Horben,Hornberg,Hufingen,Ibach,Ihringen,Inzlingen,Kandern,Kappel,Kappelrodeck,Karlsbad,Karlsruhe,Kehl,Keltern,Kippenheim,Kirchzarten,Konigsfeld,Krozingen,Kuppenheim,Kussaberg,Lahr,Lauchringen,Lauf,Laufenburg,Lautenbach,Lauterbach,Lenzkirch,Liebenzell,Loffenau,Loffingen,Lorrach,Lossburg,Mahlberg,Malsburg,Malsch,March,Marxzell,Marzell,Maulburg,Monchweiler,Muhlenbach,Mullheim,Munstertal,Murg,Nagold,Neubulach,Neuenburg,Neuhausen,Neuried,Neuweiler,Niedereschach,Nordrach,Oberharmersbach,Oberkirch,Oberndorf,Oberbach,Oberried,Oberwolfach,Offenburg,Ohlsbach,Oppenau,Ortenberg,otigheim,Ottenhofen,Ottersweier,Peterstal,Pfaffenweiler,Pfalzgrafenweiler,Pforzheim,Rastatt,Renchen,Rheinau,Rheinfelden,Rheinmunster,Rickenbach,Rippoldsau,Rohrdorf,Rottweil,Rummingen,Rust,Sackingen,Sasbach,Sasbachwalden,Schallbach,Schallstadt,Schapbach,Schenkenzell,Schiltach,Schliengen,Schluchsee,Schomberg,Schonach,Schonau,Schonenberg,Schonwald,Schopfheim,Schopfloch,Schramberg,Schuttertal,Schwenningen,Schworstadt,Seebach,Seelbach,Seewald,Sexau,Simmersfeld,Simonswald,Sinzheim,Solden,Staufen,Stegen,Steinach,Steinen,Steinmauern,Straubenhardt,Stuhlingen,Sulz,Sulzburg,Teinach,Tiefenbronn,Tiengen,Titisee,Todtmoos,Todtnau,Todtnauberg,Triberg,Tunau,Tuningen,uhlingen,Unterkirnach,Reichenbach,Utzenfeld,Villingen,Villingendorf,Vogtsburg,Vohrenbach,Waldachtal,Waldbronn,Waldkirch,Waldshut,Wehr,Weil,Weilheim,Weisenbach,Wembach,Wieden,Wiesental,Wildberg,Winzeln,Wittlingen,Wittnau,Wolfach,Wutach,Wutoschingen,Wyhlen,Zavelstein"},
-        {name: "English", i: 1, min: 6, max: 11, d: "", m: .1, b: "Abingdon,Albrighton,Alcester,Almondbury,Altrincham,Amersham,Andover,Appleby,Ashboume,Atherstone,Aveton,Axbridge,Aylesbury,Baldock,Bamburgh,Barton,Basingstoke,Berden,Bere,Berkeley,Berwick,Betley,Bideford,Bingley,Birmingham,Blandford,Blechingley,Bodmin,Bolton,Bootham,Boroughbridge,Boscastle,Bossinney,Bramber,Brampton,Brasted,Bretford,Bridgetown,Bridlington,Bromyard,Bruton,Buckingham,Bungay,Burton,Calne,Cambridge,Canterbury,Carlisle,Castleton,Caus,Charmouth,Chawleigh,Chichester,Chillington,Chinnor,Chipping,Chisbury,Cleobury,Clifford,Clifton,Clitheroe,Cockermouth,Coleshill,Combe,Congleton,Crafthole,Crediton,Cuddenbeck,Dalton,Darlington,Dodbrooke,Drax,Dudley,Dunstable,Dunster,Dunwich,Durham,Dymock,Exeter,Exning,Faringdon,Felton,Fenny,Finedon,Flookburgh,Fowey,Frampton,Gateshead,Gatton,Godmanchester,Grampound,Grantham,Guildford,Halesowen,Halton,Harbottle,Harlow,Hatfield,Hatherleigh,Haydon,Helston,Henley,Hertford,Heytesbury,Hinckley,Hitchin,Holme,Hornby,Horsham,Kendal,Kenilworth,Kilkhampton,Kineton,Kington,Kinver,Kirby,Knaresborough,Knutsford,Launceston,Leighton,Lewes,Linton,Louth,Luton,Lyme,Lympstone,Macclesfield,Madeley,Malborough,Maldon,Manchester,Manningtree,Marazion,Marlborough,Marshfield,Mere,Merryfield,Middlewich,Midhurst,Milborne,Mitford,Modbury,Montacute,Mousehole,Newbiggin,Newborough,Newbury,Newenden,Newent,Norham,Northleach,Noss,Oakham,Olney,Orford,Ormskirk,Oswestry,Padstow,Paignton,Penkneth,Penrith,Penzance,Pershore,Petersfield,Pevensey,Pickering,Pilton,Pontefract,Portsmouth,Preston,Quatford,Reading,Redcliff,Retford,Rockingham,Romney,Rothbury,Rothwell,Salisbury,Saltash,Seaford,Seasalter,Sherston,Shifnal,Shoreham,Sidmouth,Skipsea,Skipton,Solihull,Somerton,Southam,Southwark,Standon,Stansted,Stapleton,Stottesdon,Sudbury,Swavesey,Tamerton,Tarporley,Tetbury,Thatcham,Thaxted,Thetford,Thornbury,Tintagel,Tiverton,Torksey,Totnes,Towcester,Tregoney,Trematon,Tutbury,Uxbridge,Wallingford,Wareham,Warenmouth,Wargrave,Warton,Watchet,Watford,Wendover,Westbury,Westcheap,Weymouth,Whitford,Wickwar,Wigan,Wigmore,Winchelsea,Winkleigh,Wiscombe,Witham,Witheridge,Wiveliscombe,Woodbury,Yeovil"},
-        {name: "French", i: 2, min: 5, max: 13, d: "nlrs", m: .1, b: "Adon,Aillant,Amilly,Andonville,Ardon,Artenay,Ascheres,Ascoux,Attray,Aubin,Audeville,Aulnay,Autruy,Auvilliers,Auxy,Aveyron,Baccon,Bardon,Barville,Batilly,Baule,Bazoches,Beauchamps,Beaugency,Beaulieu,Beaune,Bellegarde,Boesses,Boigny,Boiscommun,Boismorand,Boisseaux,Bondaroy,Bonnee,Bonny,Bordes,Bou,Bougy,Bouilly,Boulay,Bouzonville,Bouzy,Boynes,Bray,Breteau,Briare,Briarres,Bricy,Bromeilles,Bucy,Cepoy,Cercottes,Cerdon,Cernoy,Cesarville,Chailly,Chaingy,Chalette,Chambon,Champoulet,Chanteau,Chantecoq,Chapell,Charme,Charmont,Charsonville,Chateau,Chateauneuf,Chatel,Chatenoy,Chatillon,Chaussy,Checy,Chevannes,Chevillon,Chevilly,Chevry,Chilleurs,Choux,Chuelles,Clery,Coinces,Coligny,Combleux,Combreux,Conflans,Corbeilles,Corquilleroy,Cortrat,Coudroy,Coullons,Coulmiers,Courcelles,Courcy,Courtemaux,Courtempierre,Courtenay,Cravant,Crottes,Dadonville,Dammarie,Dampierre,Darvoy,Desmonts,Dimancheville,Donnery,Dordives,Dossainville,Douchy,Dry,Echilleuses,Egry,Engenville,Epieds,Erceville,Ervauville,Escrennes,Escrignelles,Estouy,Faverelles,Fay,Feins,Ferolles,Ferrieres,Fleury,Fontenay,Foret,Foucherolles,Freville,Gatinais,Gaubertin,Gemigny,Germigny,Gidy,Gien,Girolles,Givraines,Gondreville,Grangermont,Greneville,Griselles,Guigneville,Guilly,Gyleslonains,Huetre,Huisseau,Ingrannes,Ingre,Intville,Isdes,Jargeau,Jouy,Juranville,Bussiere,Laas,Ladon,Lailly,Langesse,Leouville,Ligny,Lombreuil,Lorcy,Lorris,Loury,Louzouer,Malesherbois,Marcilly,Mardie,Mareau,Marigny,Marsainvilliers,Melleroy,Menestreau,Merinville,Messas,Meung,Mezieres,Migneres,Mignerette,Mirabeau,Montargis,Montbarrois,Montbouy,Montcresson,Montereau,Montigny,Montliard,Mormant,Morville,Moulinet,Moulon,Nancray,Nargis,Nesploy,Neuville,Neuvy,Nevoy,Nibelle,Nogent,Noyers,Ocre,Oison,Olivet,Ondreville,Onzerain,Orleans,Ormes,Orville,Oussoy,Outarville,Ouzouer,Pannecieres,Pannes,Patay,Paucourt,Pers,Pierrefitte,Pithiverais,Pithiviers,Poilly,Potier,Prefontaines,Presnoy,Pressigny,Puiseaux,Quiers,Ramoulu,Rebrechien,Rouvray,Rozieres,Rozoy,Ruan,Sandillon,Santeau,Saran,Sceaux,Seichebrieres,Semoy,Sennely,Sermaises,Sigloy,Solterre,Sougy,Sully,Sury,Tavers,Thignonville,Thimory,Thorailles,Thou,Tigy,Tivernon,Tournoisis,Trainou,Treilles,Trigueres,Trinay,Vannes,Varennes,Vennecy,Vieilles,Vienne,Viglain,Vignes,Villamblain,Villemandeur,Villemoutiers,Villemurlin,Villeneuve,Villereau,Villevoques,Villorceau,Vimory,Vitry,Vrigny,Ivre"},
-        {name: "Italian", i: 3, min: 5, max: 12, d: "cltr", m: .1, b: "Accumoli,Acquafondata,Acquapendente,Acuto,Affile,Agosta,Alatri,Albano,Allumiere,Alvito,Amaseno,Amatrice,Anagni,Anguillara,Anticoli,Antrodoco,Anzio,Aprilia,Aquino,Arce,Arcinazzo,Ardea,Ariccia,Arlena,Arnara,Arpino,Arsoli,Artena,Ascrea,Atina,Ausonia,Bagnoregio,Barbarano,Bassano,Bassiano,Bellegra,Belmonte,Blera,Bolsena,Bomarzo,Borbona,Borgo,Borgorose,Boville,Bracciano,Broccostella,Calcata,Camerata,Campagnano,Campodimele,Campoli,Canale,Canepina,Canino,Cantalice,Cantalupo,Canterano,Capena,Capodimonte,Capranica,Caprarola,Carbognano,Casalattico,Casalvieri,Casape,Casaprota,Casperia,Cassino,Castelforte,Castelliri,Castello,Castelnuovo,Castiglione,Castro,Castrocielo,Cave,Ceccano,Celleno,Cellere,Ceprano,Cerreto,Cervara,Cervaro,Cerveteri,Ciampino,Ciciliano,Cineto,Cisterna,Cittaducale,Cittareale,Civita,Civitavecchia,Civitella,Colfelice,Collalto,Colle,Colleferro,Collegiove,Collepardo,Collevecchio,Colli,Colonna,Concerviano,Configni,Contigliano,Corchiano,Coreno,Cori,Cottanello,Esperia,Fabrica,Faleria,Fara,Farnese,Ferentino,Fiamignano,Fiano,Filacciano,Filettino,Fiuggi,Fiumicino,Fondi,Fontana,Fonte,Fontechiari,Forano,Formello,Formia,Frascati,Frasso,Frosinone,Fumone,Gaeta,Gallese,Gallicano,Gallinaro,Gavignano,Genazzano,Genzano,Gerano,Giuliano,Gorga,Gradoli,Graffignano,Greccio,Grottaferrata,Grotte,Guarcino,Guidonia,Ischia,Isola,Itri,Jenne,Labico,Labro,Ladispoli,Lanuvio,Lariano,Latera,Lenola,Leonessa,Licenza,Longone,Lubriano,Maenza,Magliano,Mandela,Manziana,Marano,Marcellina,Marcetelli,Marino,Marta,Mazzano,Mentana,Micigliano,Minturno,Mompeo,Montalto,Montasola,Monte,Montebuono,Montefiascone,Monteflavio,Montelanico,Monteleone,Montelibretti,Montenero,Monterosi,Monterotondo,Montopoli,Montorio,Moricone,Morlupo,Morolo,Morro,Nazzano,Nemi,Nepi,Nerola,Nespolo,Nettuno,Norma,Olevano,Onano,Oriolo,Orte,Orvinio,Paganico,Palestrina,Paliano,Palombara,Pastena,Patrica,Percile,Pescorocchiano,Pescosolido,Petrella,Piansano,Picinisco,Pico,Piedimonte,Piglio,Pignataro,Pisoniano,Pofi,Poggio,Poli,Pomezia,Pontecorvo,Pontinia,Ponza,Ponzano,Posta,Pozzaglia,Priverno,Proceno,Prossedi,Riano,Rieti,Rignano,Riofreddo,Ripi,Rivodutri,Rocca,Roccagiovine,Roccagorga,Roccantica,Roccasecca,Roiate,Ronciglione,Roviano,Sabaudia,Sacrofano,Salisano,Sambuci,Santa,Santi,Santopadre,Saracinesco,Scandriglia,Segni,Selci,Sermoneta,Serrone,Settefrati,Sezze,Sgurgola,Sonnino,Sora,Soriano,Sperlonga,Spigno,Stimigliano,Strangolagalli,Subiaco,Supino,Sutri,Tarano,Tarquinia,Terelle,Terracina,Tessennano,Tivoli,Toffia,Tolfa,Torre,Torri,Torrice,Torricella,Torrita,Trevi,Trevignano,Trivigliano,Turania,Tuscania,Vacone,Valentano,Vallecorsa,Vallemaio,Vallepietra,Vallerano,Vallerotonda,Vallinfreda,Valmontone,Varco,Vasanello,Vejano,Velletri,Ventotene,Veroli,Vetralla,Vicalvi,Vico,Vicovaro,Vignanello,Viterbo,Viticuso,Vitorchiano,Vivaro,Zagarolo"},
-        {name: "Castillian", i: 4, min: 5, max: 11, d: "lr", m: 0, b: "Abanades,Ablanque,Adobes,Ajofrin,Alameda,Alaminos,Alarilla,Albalate,Albares,Albarreal,Albendiego,Alcabon,Alcanizo,Alcaudete,Alcocer,Alcolea,Alcoroches,Aldea,Aldeanueva,Algar,Algora,Alhondiga,Alique,Almadrones,Almendral,Almoguera,Almonacid,Almorox,Alocen,Alovera,Alustante,Angon,Anguita,Anover,Anquela,Arbancon,Arbeteta,Arcicollar,Argecilla,Arges,Armallones,Armuna,Arroyo,Atanzon,Atienza,Aunon,Azuqueca,Azutan,Baides,Banos,Banuelos,Barcience,Bargas,Barriopedro,Belvis,Berninches,Borox,Brihuega,Budia,Buenaventura,Bujalaro,Burguillos,Burujon,Bustares,Cabanas,Cabanillas,Calera,Caleruela,Calzada,Camarena,Campillo,Camunas,Canizar,Canredondo,Cantalojas,Cardiel,Carmena,Carranque,Carriches,Casa,Casarrubios,Casas,Casasbuenas,Caspuenas,Castejon,Castellar,Castilforte,Castillo,Castilnuevo,Cazalegas,Cebolla,Cedillo,Cendejas,Centenera,Cervera,Checa,Chequilla,Chillaron,Chiloeches,Chozas,Chueca,Cifuentes,Cincovillas,Ciruelas,Ciruelos,Cobeja,Cobeta,Cobisa,Cogollor,Cogolludo,Condemios,Congostrina,Consuegra,Copernal,Corduente,Corral,Cuerva,Domingo,Dosbarrios,Driebes,Duron,El,Embid,Erustes,Escalona,Escalonilla,Escamilla,Escariche,Escopete,Espinosa,Espinoso,Esplegares,Esquivias,Estables,Estriegana,Fontanar,Fuembellida,Fuensalida,Fuentelsaz,Gajanejos,Galve,Galvez,Garciotum,Gascuena,Gerindote,Guadamur,Henche,Heras,Herreria,Herreruela,Hijes,Hinojosa,Hita,Hombrados,Hontanar,Hontoba,Horche,Hormigos,Huecas,Huermeces,Huerta,Hueva,Humanes,Illan,Illana,Illescas,Iniestola,Irueste,Jadraque,Jirueque,Lagartera,Las,Layos,Ledanca,Lillo,Lominchar,Loranca,Los,Lucillos,Lupiana,Luzaga,Luzon,Madridejos,Magan,Majaelrayo,Malaga,Malaguilla,Malpica,Mandayona,Mantiel,Manzaneque,Maqueda,Maranchon,Marchamalo,Marjaliza,Marrupe,Mascaraque,Masegoso,Matarrubia,Matillas,Mazarete,Mazuecos,Medranda,Megina,Mejorada,Mentrida,Mesegar,Miedes,Miguel,Millana,Milmarcos,Mirabueno,Miralrio,Mocejon,Mochales,Mohedas,Molina,Monasterio,Mondejar,Montarron,Mora,Moratilla,Morenilla,Muduex,Nambroca,Navalcan,Negredo,Noblejas,Noez,Nombela,Noves,Numancia,Nuno,Ocana,Ocentejo,Olias,Olmeda,Ontigola,Orea,Orgaz,Oropesa,Otero,Palmaces,Palomeque,Pantoja,Pardos,Paredes,Pareja,Parrillas,Pastrana,Pelahustan,Penalen,Penalver,Pepino,Peralejos,Peralveche,Pinilla,Pioz,Piqueras,Polan,Portillo,Poveda,Pozo,Pradena,Prados,Puebla,Puerto,Pulgar,Quer,Quero,Quintanar,Quismondo,Rebollosa,Recas,Renera,Retamoso,Retiendas,Riba,Rielves,Rillo,Riofrio,Robledillo,Robledo,Romanillos,Romanones,Rueda,Sacecorbo,Sacedon,Saelices,Salmeron,San,Santa,Santiuste,Santo,Sartajada,Sauca,Sayaton,Segurilla,Selas,Semillas,Sesena,Setiles,Sevilleja,Sienes,Siguenza,Solanillos,Somolinos,Sonseca,Sotillo,Sotodosos,Talavera,Tamajon,Taragudo,Taravilla,Tartanedo,Tembleque,Tendilla,Terzaga,Tierzo,Tordellego,Tordelrabano,Tordesilos,Torija,Torralba,Torre,Torrecilla,Torrecuadrada,Torrejon,Torremocha,Torrico,Torrijos,Torrubia,Tortola,Tortuera,Tortuero,Totanes,Traid,Trijueque,Trillo,Turleque,Uceda,Ugena,Ujados,Urda,Utande,Valdarachas,Valdesotos,Valhermoso,Valtablado,Valverde,Velada,Viana,Vinuelas,Yebes,Yebra,Yelamos,Yeles,Yepes,Yuncler,Yunclillos,Yuncos,Yunquera,Zaorejas,Zarzuela,Zorita"},
-        {name: "Ruthenian", i: 5, min: 5, max: 10, d: "", m: 0, b: "Belgorod,Beloberezhye,Belyi,Belz,Berestiy,Berezhets,Berezovets,Berezutsk,Bobruisk,Bolonets,Borisov,Borovsk,Bozhesk,Bratslav,Bryansk,Brynsk,Buryn,Byhov,Chechersk,Chemesov,Cheremosh,Cherlen,Chern,Chernigov,Chernitsa,Chernobyl,Chernogorod,Chertoryesk,Chetvertnia,Demyansk,Derevesk,Devyagoresk,Dichin,Dmitrov,Dorogobuch,Dorogobuzh,Drestvin,Drokov,Drutsk,Dubechin,Dubichi,Dubki,Dubkov,Dveren,Galich,Glebovo,Glinsk,Goloty,Gomiy,Gorodets,Gorodische,Gorodno,Gorohovets,Goroshin,Gorval,Goryshon,Holm,Horobor,Hoten,Hotin,Hotmyzhsk,Ilovech,Ivan,Izborsk,Izheslavl,Kamenets,Kanev,Karachev,Karna,Kavarna,Klechesk,Klyapech,Kolomyya,Kolyvan,Kopyl,Korec,Kornik,Korochunov,Korshev,Korsun,Koshkin,Kotelno,Kovyla,Kozelsk,Kozelsk,Kremenets,Krichev,Krylatsk,Ksniatin,Kulatsk,Kursk,Kursk,Lebedev,Lida,Logosko,Lomihvost,Loshesk,Loshichi,Lubech,Lubno,Lubutsk,Lutsk,Luchin,Luki,Lukoml,Luzha,Lvov,Mtsensk,Mdin,Medniki,Melecha,Merech,Meretsk,Mescherskoe,Meshkovsk,Metlitsk,Mezetsk,Mglin,Mihailov,Mikitin,Mikulino,Miloslavichi,Mogilev,Mologa,Moreva,Mosalsk,Moschiny,Mozyr,Mstislav,Mstislavets,Muravin,Nemech,Nemiza,Nerinsk,Nichan,Novgorod,Novogorodok,Obolichi,Obolensk,Obolensk,Oleshsk,Olgov,Omelnik,Opoka,Opoki,Oreshek,Orlets,Osechen,Oster,Ostrog,Ostrov,Perelai,Peremil,Peremyshl,Pererov,Peresechen,Perevitsk,Pereyaslav,Pinsk,Ples,Polotsk,Pronsk,Proposhesk,Punia,Putivl,Rechitsa,Rodno,Rogachev,Romanov,Romny,Roslavl,Rostislavl,Rostovets,Rsha,Ruza,Rybchesk,Rylsk,Rzhavesk,Rzhev,Rzhischev,Sambor,Serensk,Serensk,Serpeysk,Shilov,Shuya,Sinech,Sizhka,Skala,Slovensk,Slutsk,Smedin,Sneporod,Snitin,Snovsk,Sochevo,Sokolec,Starica,Starodub,Stepan,Sterzh,Streshin,Sutesk,Svinetsk,Svisloch,Terebovl,Ternov,Teshilov,Teterin,Tiversk,Torchevsk,Toropets,Torzhok,Tripolye,Trubchevsk,Tur,Turov,Usvyaty,Uteshkov,Vasilkov,Velil,Velye,Venev,Venicha,Verderev,Vereya,Veveresk,Viazma,Vidbesk,Vidychev,Voino,Volodimer,Volok,Volyn,Vorobesk,Voronich,Voronok,Vorotynsk,Vrev,Vruchiy,Vselug,Vyatichsk,Vyatka,Vyshegorod,Vyshgorod,Vysokoe,Yagniatin,Yaropolch,Yasenets,Yuryev,Yuryevets,Zaraysk,Zhitomel,Zholvazh,Zizhech,Zubkov,Zudechev,Zvenigorod"},
-        {name: "Nordic", i: 6, min: 6, max: 10, d: "kln", m: .1, b: "Akureyri,Aldra,Alftanes,Andenes,Austbo,Auvog,Bakkafjordur,Ballangen,Bardal,Beisfjord,Bifrost,Bildudalur,Bjerka,Bjerkvik,Bjorkosen,Bliksvaer,Blokken,Blonduos,Bolga,Bolungarvik,Borg,Borgarnes,Bosmoen,Bostad,Bostrand,Botsvika,Brautarholt,Breiddalsvik,Bringsli,Brunahlid,Budardalur,Byggdakjarni,Dalvik,Djupivogur,Donnes,Drageid,Drangsnes,Egilsstadir,Eiteroga,Elvenes,Engavogen,Ertenvog,Eskifjordur,Evenes,Eyrarbakki,Fagernes,Fallmoen,Fellabaer,Fenes,Finnoya,Fjaer,Fjelldal,Flakstad,Flateyri,Flostrand,Fludir,Gardaber,Gardur,Gimstad,Givaer,Gjeroy,Gladstad,Godoya,Godoynes,Granmoen,Gravdal,Grenivik,Grimsey,Grindavik,Grytting,Hafnir,Halsa,Hauganes,Haugland,Hauknes,Hella,Helland,Hellissandur,Hestad,Higrav,Hnifsdalur,Hofn,Hofsos,Holand,Holar,Holen,Holkestad,Holmavik,Hopen,Hovden,Hrafnagil,Hrisey,Husavik,Husvik,Hvammstangi,Hvanneyri,Hveragerdi,Hvolsvollur,Igeroy,Indre,Inndyr,Innhavet,Innes,Isafjordur,Jarklaustur,Jarnsreykir,Junkerdal,Kaldvog,Kanstad,Karlsoy,Kavosen,Keflavik,Kjelde,Kjerstad,Klakk,Kopasker,Kopavogur,Korgen,Kristnes,Krutoga,Krystad,Kvina,Lande,Laugar,Laugaras,Laugarbakki,Laugarvatn,Laupstad,Leines,Leira,Leiren,Leland,Lenvika,Loding,Lodingen,Lonsbakki,Lopsmarka,Lovund,Luroy,Maela,Melahverfi,Meloy,Mevik,Misvaer,Mornes,Mosfellsber,Moskenes,Myken,Naurstad,Nesberg,Nesjahverfi,Nesset,Nevernes,Obygda,Ofoten,Ogskardet,Okervika,Oknes,Olafsfjordur,Oldervika,Olstad,Onstad,Oppeid,Oresvika,Orsnes,Orsvog,Osmyra,Overdal,Prestoya,Raudalaekur,Raufarhofn,Reipo,Reykholar,Reykholt,Reykjahlid,Rif,Rinoya,Rodoy,Rognan,Rosvika,Rovika,Salhus,Sanden,Sandgerdi,Sandoker,Sandset,Sandvika,Saudarkrokur,Selfoss,Selsoya,Sennesvik,Setso,Siglufjordur,Silvalen,Skagastrond,Skjerstad,Skonland,Skorvogen,Skrova,Sleneset,Snubba,Softing,Solheim,Solheimar,Sorarnoy,Sorfugloy,Sorland,Sormela,Sorvaer,Sovika,Stamsund,Stamsvika,Stave,Stokka,Stokkseyri,Storjord,Storo,Storvika,Strand,Straumen,Strendene,Sudavik,Sudureyri,Sundoya,Sydalen,Thingeyri,Thorlakshofn,Thorshofn,Tjarnabyggd,Tjotta,Tosbotn,Traelnes,Trofors,Trones,Tverro,Ulvsvog,Unnstad,Utskor,Valla,Vandved,Varmahlid,Vassos,Vevelstad,Vidrek,Vik,Vikholmen,Vogar,Vogehamn,Vopnafjordur"},
-        {name: "Greek", i: 7, min: 5, max: 11, d: "s", m: .1, b: "Abdera,Abila,Abydos,Acanthus,Acharnae,Actium,Adramyttium,Aegae,Aegina,Aegium,Aenus,Agrinion,Aigosthena,Akragas,Akrai,Akrillai,Akroinon,Akrotiri,Alalia,Alexandreia,Alexandretta,Alexandria,Alinda,Amarynthos,Amaseia,Ambracia,Amida,Amisos,Amnisos,Amphicaea,Amphigeneia,Amphipolis,Amphissa,Ankon,Antigona,Antipatrea,Antioch,Antioch,Antiochia,Andros,Apamea,Aphidnae,Apollonia,Argos,Arsuf,Artanes,Artemita,Argyroupoli,Asine,Asklepios,Aspendos,Assus,Astacus,Athenai,Athmonia,Aytos,Ancient,Baris,Bhrytos,Borysthenes,Berge,Boura,Bouthroton,Brauron,Byblos,Byllis,Byzantium,Bythinion,Callipolis,Cebrene,Chalcedon,Calydon,Carystus,Chamaizi,Chalcis,Chersonesos,Chios,Chytri,Clazomenae,Cleonae,Cnidus,Colosse,Corcyra,Croton,Cyme,Cyrene,Cythera,Decelea,Delos,Delphi,Demetrias,Dicaearchia,Dimale,Didyma,Dion,Dioscurias,Dodona,Dorylaion,Dyme,Edessa,Elateia,Eleusis,Eleutherna,Emporion,Ephesus,Ephyra,Epidamnos,Epidauros,Eresos,Eretria,Erythrae,Eubea,Gangra,Gaza,Gela,Golgi,Gonnos,Gorgippia,Gournia,Gortyn,Gythium,Hagios,Hagia,Halicarnassus,Halieis,Helike,Heliopolis,Hellespontos,Helorus,Hemeroskopeion,Heraclea,Hermione,Hermonassa,Hierapetra,Hierapolis,Himera,Histria,Hubla,Hyele,Ialysos,Iasus,Idalium,Imbros,Iolcus,Itanos,Ithaca,Juktas,Kallipolis,Kamares,Kameiros,Kannia,Kamarina,Kasmenai,Katane,Kerkinitida,Kepoi,Kimmerikon,Kios,Klazomenai,Knidos,Knossos,Korinthos,Kos,Kourion,Kume,Kydonia,Kynos,Kyrenia,Lamia,Lampsacus,Laodicea,Lapithos,Larissa,Lato,Laus,Lebena,Lefkada,Lekhaion,Leibethra,Leontinoi,Lepreum,Lessa,Lilaea,Lindus,Lissus,Epizephyrian,Madytos,Magnesia,Mallia,Mantineia,Marathon,Marmara,Maroneia,Masis,Massalia,Megalopolis,Megara,Mesembria,Messene,Metapontum,Methana,Methone,Methumna,Miletos,Misenum,Mochlos,Monastiraki,Morgantina,Mulai,Mukenai,Mylasa,Myndus,Myonia,Myra,Myrmekion,Mutilene,Myos,Nauplios,Naucratis,Naupactus,Naxos,Neapoli,Neapolis,Nemea,Nicaea,Nicopolis,Nirou,Nymphaion,Nysa,Oenoe,Oenus,Odessos,Olbia,Olous,Olympia,Olynthus,Opus,Orchomenus,Oricos,Orestias,Oreus,Oropus,Onchesmos,Pactye,Pagasae,Palaikastro,Pandosia,Panticapaeum,Paphos,Parium,Paros,Parthenope,Patrae,Pavlopetri,Pegai,Pelion,Peiraies,Pella,Percote,Pergamum,Petsofa,Phaistos,Phaleron,Phanagoria,Pharae,Pharnacia,Pharos,Phaselis,Philippi,Pithekussa,Philippopolis,Platanos,Phlius,Pherae,Phocaea,Pinara,Pisa,Pitane,Pitiunt,Pixous,Plataea,Poseidonia,Potidaea,Priapus,Priene,Prousa,Pseira,Psychro,Pteleum,Pydna,Pylos,Pyrgos,Rhamnus,Rhegion,Rhithymna,Rhodes,Rhypes,Rizinia,Salamis,Same,Samos,Scyllaeum,Selinus,Seleucia,Semasus,Sestos,Scidrus,Sicyon,Side,Sidon,Siteia,Sinope,Siris,Sklavokampos,Smyrna,Soli,Sozopolis,Sparta,Stagirus,Stratos,Stymphalos,Sybaris,Surakousai,Taras,Tanagra,Tanais,Tauromenion,Tegea,Temnos,Tenedos,Tenea,Teos,Thapsos,Thassos,Thebai,Theodosia,Therma,Thespiae,Thronion,Thoricus,Thurii,Thyreum,Thyria,Tiruns,Tithoraea,Tomis,Tragurion,Trapeze,Trapezus,Tripolis,Troizen,Troliton,Troy,Tylissos,Tyras,Tyros,Tyritake,Vasiliki,Vathypetros,Zakynthos,Zakros,Zankle"},
-        {name: "Roman", i: 8, min: 6, max: 11, d: "ln", m: .1, b: "Abila,Adflexum,Adnicrem,Aelia,Aelius,Aeminium,Aequum,Agrippina,Agrippinae,Ala,Albanianis,Ambianum,Andautonia,Apulum,Aquae,Aquaegranni,Aquensis,Aquileia,Aquincum,Arae,Argentoratum,Ariminum,Ascrivium,Atrebatum,Atuatuca,Augusta,Aurelia,Aurelianorum,Batavar,Batavorum,Belum,Biriciana,Blestium,Bonames,Bonna,Bononia,Borbetomagus,Bovium,Bracara,Brigantium,Burgodunum,Caesaraugusta,Caesarea,Caesaromagus,Calleva,Camulodunum,Cannstatt,Cantiacorum,Capitolina,Castellum,Castra,Castrum,Cibalae,Clausentum,Colonia,Concangis,Condate,Confluentes,Conimbriga,Corduba,Coria,Corieltauvorum,Corinium,Coriovallum,Cornoviorum,Danum,Deva,Divodurum,Dobunnorum,Drusi,Dubris,Dumnoniorum,Durnovaria,Durocobrivis,Durocornovium,Duroliponte,Durovernum,Durovigutum,Eboracum,Edetanorum,Emerita,Emona,Euracini,Faventia,Flaviae,Florentia,Forum,Gerulata,Gerunda,Glevensium,Hadriani,Herculanea,Isca,Italica,Iulia,Iuliobrigensium,Iuvavum,Lactodurum,Lagentium,Lauri,Legionis,Lemanis,Lentia,Lepidi,Letocetum,Lindinis,Lindum,Londinium,Lopodunum,Lousonna,Lucus,Lugdunum,Luguvalium,Lutetia,Mancunium,Marsonia,Martius,Massa,Matilo,Mattiacorum,Mediolanum,Mod,Mogontiacum,Moridunum,Mursa,Naissus,Nervia,Nida,Nigrum,Novaesium,Noviomagus,Olicana,Ovilava,Parisiorum,Partiscum,Paterna,Pistoria,Placentia,Pollentia,Pomaria,Pons,Portus,Praetoria,Praetorium,Pullum,Ragusium,Ratae,Raurica,Regina,Regium,Regulbium,Rigomagus,Roma,Romula,Rutupiae,Salassorum,Salernum,Salona,Scalabis,Segovia,Silurum,Sirmium,Siscia,Sorviodurum,Sumelocenna,Tarraco,Taurinorum,Theranda,Traiectum,Treverorum,Tungrorum,Turicum,Ulpia,Valentia,Venetiae,Venta,Verulamium,Vesontio,Vetera,Victoriae,Victrix,Villa,Viminacium,Vindelicorum,Vindobona,Vinovia,Viroconium"},
-        {name: "Finnic", i: 9, min: 5, max: 11, d: "akiut", m: 0, b: "Aanekoski,Abjapaluoja,Ahlainen,Aholanvaara,Ahtari,Aijala,Aimala,Akaa,Alajarvi,Alatornio,Alavus,Antsla,Aspo,Bennas,Bjorkoby,Elva,Emasalo,Espoo,Esse,Evitskog,Forssa,Haapajarvi,Haapamaki,Haapavesi,Haapsalu,Haavisto,Hameenlinna,Hameenmaki,Hamina,Hanko,Harjavalta,Hattuvaara,Haukipudas,Hautajarvi,Havumaki,Heinola,Hetta,Hinkabole,Hirmula,Hossa,Huittinen,Husula,Hyryla,Hyvinkaa,Iisalmi,Ikaalinen,Ilmola,Imatra,Inari,Iskmo,Itakoski,Jamsa,Jarvenpaa,Jeppo,Jioesuu,Jiogeva,Joensuu,Jokela,Jokikyla,Jokisuu,Jormua,Juankoski,Jungsund,Jyvaskyla,Kaamasmukka,Kaarina,Kajaani,Kalajoki,Kallaste,Kankaanpaa,Kannus,Kardla,Karesuvanto,Karigasniemi,Karkkila,Karkku,Karksinuia,Karpankyla,Kaskinen,Kasnas,Kauhajoki,Kauhava,Kauniainen,Kauvatsa,Kehra,Keila,Kellokoski,Kelottijarvi,Kemi,Kemijarvi,Kerava,Keuruu,Kiikka,Kiipu,Kilinginiomme,Kiljava,Kilpisjarvi,Kitee,Kiuruvesi,Kivesjarvi,Kiviioli,Kivisuo,Klaukkala,Klovskog,Kohtlajarve,Kokemaki,Kokkola,Kolho,Koria,Koskue,Kotka,Kouva,Kouvola,Kristiina,Kaupunki,Kuhmo,Kunda,Kuopio,Kuressaare,Kurikka,Kusans,Kuusamo,Kylmalankyla,Lahti,Laitila,Lankipohja,Lansikyla,Lappeenranta,Lapua,Laurila,Lautiosaari,Lepsama,Liedakkala,Lieksa,Lihula,Littoinen,Lohja,Loimaa,Loksa,Loviisa,Luohuanylipaa,Lusi,Maardu,Maarianhamina,Malmi,Mantta,Masaby,Masala,Matasvaara,Maula,Miiluranta,Mikkeli,Mioisakula,Munapirtti,Mustvee,Muurahainen,Naantali,Nappa,Narpio,Nickby,Niinimaa,Niinisalo,Nikkila,Nilsia,Nivala,Nokia,Nummela,Nuorgam,Nurmes,Nuvvus,Obbnas,Oitti,Ojakkala,Ollola,onningeby,Orimattila,Orivesi,Otanmaki,Otava,Otepaa,Oulainen,Oulu,Outokumpu,Paavola,Paide,Paimio,Pakankyla,Paldiski,Parainen,Parkano,Parkumaki,Parola,Perttula,Pieksamaki,Pietarsaari,Pioltsamaa,Piolva,Pohjavaara,Porhola,Pori,Porrasa,Porvoo,Pudasjarvi,Purmo,Pussi,Pyhajarvi,Raahe,Raasepori,Raisio,Rajamaki,Rakvere,Rapina,Rapla,Rauma,Rautio,Reposaari,Riihimaki,Rovaniemi,Roykka,Ruonala,Ruottala,Rutalahti,Saarijarvi,Salo,Sastamala,Saue,Savonlinna,Seinajoki,Sillamae,Sindi,Siuntio,Somero,Sompujarvi,Suonenjoki,Suurejaani,Syrjantaka,Tampere,Tamsalu,Tapa,Temmes,Tiorva,Tormasenvaara,Tornio,Tottijarvi,Tulppio,Turenki,Turi,Tuukkala,Tuurala,Tuuri,Tuuski,Ulvila,Unari,Upinniemi,Utti,Uusikaarlepyy,Uusikaupunki,Vaaksy,Vaalimaa,Vaarinmaja,Vaasa,Vainikkala,Valga,Valkeakoski,Vantaa,Varkaus,Vehkapera,Vehmasmaki,Vieki,Vierumaki,Viitasaari,Viljandi,Vilppula,Viohma,Vioru,Virrat,Ylike,Ylivieska,Ylojarvi"},
-        {name: "Korean", i: 10, min: 5, max: 11, d: "", m: 0, b: "Aewor,Andong,Angang,Anjung,Anmyeon,Ansan,Anseong,Anyang,Aphae,Apo,Asan,Baebang,Baekseok,Baeksu,Beobwon,Beolgyo,Beomseo,Boeun,Bongdam,Bongdong,Bonghwa,Bongyang,Boryeong,Boseong,Buan,Bubal,Bucheon,Buksam,Busan,Busan,Busan,Buyeo,Changnyeong,Changwon,Cheonan,Cheongdo,Cheongjin,Cheongju,Cheongju,Cheongsong,Cheongyang,Cheorwon,Chirwon,Chowol,Chuncheon,Chuncheon,Chungju,Chungmu,Daecheon,Daedeok,Daegaya,Daegu,Daegu,Daegu,Daejeon,Daejeon,Daejeon,Daejeong,Daesan,Damyang,Dangjin,Danyang,Dasa,Dogye,Dolsan,Dong,Dongducheon,Donggwangyang,Donghae,Dongsong,Doyang,Eonyang,Eumseong,Gaeseong,Galmal,Gampo,Ganam,Ganggyeong,Ganghwa,Gangjin,Gangneung,Ganseong,Gapyeong,Gaun,Gaya,Geochang,Geoje,Geojin,Geoncheon,Geumho,Geumil,Geumsan,Geumseong,Geumwang,Gijang,Gimcheon,Gimhae,Gimhwa,Gimje,Gimpo,Goa,Gochang,Gochon,Goesan,Gohan,Goheung,Gokseong,Gongdo,Gongju,Gonjiam,Goseong,Goyang,Gujwa,Gumi,Gungnae,Gunpo,Gunsan,Gunsan,Gunwi,Guri,Gurye,Guryongpo,Gwacheon,Gwangcheon,Gwangju,Gwangju,Gwangju,Gwangju,Gwangmyeong,Gwangyang,Gwansan,Gyeongju,Gyeongsan,Gyeongseong,Gyeongseong,Gyeryong,Hadong,Haeju,Haenam,Hamchang,Hamheung,Hampyeong,Hamyang,Hamyeol,Hanam,Hanrim,Hapcheon,Hapdeok,Hayang,Heunghae,Heungnam,Hoengseong,Hongcheon,Hongnong,Hongseong,Hwacheon,Hwado,Hwando,Hwaseong,Hwasun,Hwawon,Hyangnam,Icheon,Iksan,Illo,Imsil,Incheon,Incheon,Incheon,Inje,Iri,Iri,Jangan,Janghang,Jangheung,Janghowon,Jangseong,Jangseungpo,Jangsu,Jecheon,Jeju,Jeomchon,Jeongeup,Jeonggwan,Jeongju,Jeongok,Jeongseon,Jeonju,Jeonju,Jeungpyeong,Jido,Jiksan,Jillyang,Jinan,Jincheon,Jindo,Jingeon,Jinhae,Jinjeop,Jinju,Jinju,Jinnampo,Jinyeong,Jocheon,Jochiwon,Jori,Judeok,Jumunjin,Maepo,Mangyeong,Masan,Masan,Migeum,Miryang,Mokcheon,Mokpo,Mokpo,Muan,Muju,Mungyeong,Munmak,Munsan,Munsan,Naeseo,Naesu,Najin,Naju,Namhae,Namji,Nampyeong,Namwon,Namyang,Namyangju,Nohwa,Nongong,Nonsan,Ochang,Ocheon,Oedong,Okcheon,Okgu,Onam,Onsan,Onyang,Opo,Osan,Osong,Paengseong,Paju,Pocheon,Pogok,Pohang,Poseung,Punggi,Pungsan,Pyeongchang,Pyeonghae,Pyeongtaek,Pyeongyang,Sabi,Sabuk,Sacheon,Samcheok,Samcheonpo,Samho,Samhyang,Samnangjin,Samrye,Sancheong,Sangdong,Sangju,Sanyang,Sapgyo,Sariwon,Sejong,Seocheon,Seogwipo,Seokjeok,Seonggeo,Seonghwan,Seongjin,Seongju,Seongnam,Seongsan,Seonsan,Seosan,Seoul,Seungju,Siheung,Sinbuk,Sindong,Sineuiju,Sintaein,Soheul,Sokcho,Songak,Songjeong,Songnim,Songtan,Sunchang,Suncheon,Suwon,Taean,Taebaek,Tongjin,Tongyeong,Uijeongbu,Uiryeong,Uiseong,Uiwang,Ujeong,Uljin,Ulleung,Ulsan,Ulsan,Unbong,Ungcheon,Ungjin,Wabu,Waegwan,Wando,Wanggeomseong,Wiryeseong,Wondeok,Wonju,Wonsan,Yangchon,Yanggu,Yangju,Yangpyeong,Yangsan,Yangyang,Yecheon,Yeocheon,Yeoju,Yeomchi,Yeoncheon,Yeongam,Yeongcheon,Yeongdeok,Yeongdong,Yeonggwang,Yeongju,Yeongwol,Yeongyang,Yeonil,Yeonmu,Yeosu,Yesan,Yongin,Yongjin,Yugu,Wayang"},
-        {name: "Chinese", i: 11, min: 5, max: 10, d: "", m: 0, b: "Anding,Anlu,Anqing,Anshun,Baan,Baixing,Banyang,Baoding,Baoqing,Binzhou,Caozhou,Changbai,Changchun,Changde,Changling,Changsha,Changtu,Changzhou,Chaozhou,Cheli,Chengde,Chengdu,Chenzhou,Chizhou,Chongqing,Chuxiong,Chuzhou,Dading,Dali,Daming,Datong,Daxing,Dean,Dengke,Dengzhou,Deqing,Dexing,Dihua,Dingli,Dongan,Dongchang,Dongchuan,Dongping,Duyun,Fengtian,Fengxiang,Fengyang,Fenzhou,Funing,Fuzhou,Ganzhou,Gaoyao,Gaozhou,Gongchang,Guangnan,Guangning,Guangping,Guangxin,Guangzhou,Guide,Guilin,Guiyang,Hailong,Hailun,Hangzhou,Hanyang,Hanzhong,Heihe,Hejian,Henan,Hengzhou,Hezhong,Huaian,Huaide,Huaiqing,Huanglong,Huangzhou,Huining,Huizhou,Hulan,Huzhou,Jiading,Jian,Jianchang,Jiande,Jiangning,Jiankang,Jianning,Jiaxing,Jiayang,Jilin,Jinan,Jingjiang,Jingzhao,Jingzhou,Jinhua,Jinzhou,Jiujiang,Kaifeng,Kaihua,Kangding,Kuizhou,Laizhou,Lanzhou,Leizhou,Liangzhou,Lianzhou,Liaoyang,Lijiang,Linan,Linhuang,Linjiang,Lintao,Liping,Liuzhou,Longan,Longjiang,Longqing,Longxing,Luan,Lubin,Lubin,Luzhou,Mishan,Nanan,Nanchang,Nandian,Nankang,Nanning,Nanyang,Nenjiang,Ningan,Ningbo,Ningguo,Ninguo,Ningwu,Ningxia,Ningyuan,Pingjiang,Pingle,Pingliang,Pingyang,Puer,Puzhou,Qianzhou,Qingyang,Qingyuan,Qingzhou,Qiongzhou,Qujing,Quzhou,Raozhou,Rende,Ruian,Ruizhou,Runing,Shafeng,Shajing,Shaoqing,Shaowu,Shaoxing,Shaozhou,Shinan,Shiqian,Shouchun,Shuangcheng,Shulei,Shunde,Shunqing,Shuntian,Shuoping,Sicheng,Sien,Sinan,Sizhou,Songjiang,Suiding,Suihua,Suining,Suzhou,Taian,Taibei,Tainan,Taiping,Taiwan,Taiyuan,Taizhou,Taonan,Tengchong,Tieli,Tingzhou,Tongchuan,Tongqing,Tongren,Tongzhou,Weihui,Wensu,Wenzhou,Wuchang,Wuding,Wuzhou,Xian,Xianchun,Xianping,Xijin,Xiliang,Xincheng,Xingan,Xingde,Xinghua,Xingjing,Xingqing,Xingyi,Xingyuan,Xingzhong,Xining,Xinmen,Xiping,Xuanhua,Xunzhou,Xuzhou,Yanan,Yangzhou,Yanji,Yanping,Yanqi,Yanzhou,Yazhou,Yichang,Yidu,Yilan,Yili,Yingchang,Yingde,Yingtian,Yingzhou,Yizhou,Yongchang,Yongping,Yongshun,Yongzhou,Yuanzhou,Yuezhou,Yulin,Yunnan,Yunyang,Zezhou,Zhangde,Zhangzhou,Zhaoqing,Zhaotong,Zhenan,Zhending,Zhengding,Zhenhai,Zhenjiang,Zhenxi,Zhenyun,Zhongshan,Zunyi"},
-        {name: "Japanese", i: 12, min: 4, max: 10, d: "", m: 0, b: "Abira,Aga,Aikawa,Aizumisato,Ajigasawa,Akkeshi,Amagi,Ami,Anan,Ando,Asakawa,Ashikita,Bandai,Biratori,China,Chonan,Esashi,Fuchu,Fujimi,Funagata,Genkai,Godo,Goka,Gonohe,Gyokuto,Haboro,Hamatonbetsu,Happo,Harima,Hashikami,Hayashima,Heguri,Hidaka,Higashiagatsuma,Higashiura,Hiranai,Hirogawa,Hiroo,Hodatsushimizu,Hoki,Hokuei,Hokuryu,Horokanai,Ibigawa,Ichikai,Ichikawamisato,Ichinohe,Iide,Iijima,Iizuna,Ikawa,Inagawa,Itakura,Iwaizumi,Iwate,Kagamino,Kaisei,Kamifurano,Kamiita,Kamijima,Kamikawa,Kamikawa,Kamikawa,Kaminokawa,Kamishihoro,Kamitonda,Kamiyama,Kanda,Kanna,Kasagi,Kasuya,Katsuura,Kawabe,Kawagoe,Kawajima,Kawamata,Kawamoto,Kawanehon,Kawanishi,Kawara,Kawasaki,Kawasaki,Kawatana,Kawazu,Kihoku,Kikonai,Kin,Kiso,Kitagata,Kitajima,Kiyama,Kiyosato,Kofu,Koge,Kohoku,Kokonoe,Kora,Kosa,Kosaka,Kotohira,Kudoyama,Kumejima,Kumenan,Kumiyama,Kunitomi,Kurate,Kushimoto,Kutchan,Kyonan,Kyotamba,Mashike,Matsumae,Mifune,Mihama,Minabe,Minami,Minamiechizen,Minamioguni,Minamiosumi,Minamitane,Misaki,Misasa,Misato,Miyashiro,Miyoshi,Mori,Moseushi,Mutsuzawa,Nagaizumi,Nagatoro,Nagayo,Nagomi,Nakadomari,Nakanojo,Nakashibetsu,Nakatosa,Namegawa,Namie,Nanbu,Nanporo,Naoshima,Nasu,Niseko,Nishihara,Nishiizu,Nishikatsura,Nishikawa,Nishinoshima,Nishiwaga,Nogi,Noto,Nyuzen,Oarai,Obuse,Odai,Ogawara,Oharu,Oi,Oirase,Oishida,Oiso,Oizumi,Oji,Okagaki,Oketo,Okutama,Omu,Ono,Osaki,Osakikamijima,Otobe,Otsuki,Owani,Reihoku,Rifu,Rikubetsu,Rishiri,Rokunohe,Ryuo,Saka,Sakuho,Samani,Satsuma,Sayo,Saza,Setana,Shakotan,Shibayama,Shikama,Shimamoto,Shimizu,Shimokawa,Shintomi,Shirakawa,Shisui,Shitara,Sobetsu,Sue,Sumita,Suooshima,Suttsu,Tabuse,Tachiarai,Tadami,Tadaoka,Taiji,Taiki,Takachiho,Takahama,Taketoyo,Tako,Taragi,Tateshina,Tatsugo,Tawaramoto,Teshikaga,Tobe,Toin,Tokigawa,Toma,Tomioka,Tonosho,Tosa,Toyo,Toyokoro,Toyotomi,Toyoyama,Tsubata,Tsubetsu,Tsukigata,Tsunan,Tsuno,Tsuwano,Umi,Wakasa,Yamamoto,Yamanobe,Yamatsuri,Yanaizu,Yasuda,Yoichi,Yonaguni,Yoro,Yoshino,Yubetsu,Yugawara,Yuni,Yusuhara,Yuza"},
-        {name: "Portuguese", i: 13, min: 5, max: 11, d: "", m: .1, b: "Abrigada,Afonsoeiro,Agueda,Aguiar,Aguilada,Alagoas,Alagoinhas,Albufeira,Alcacovas,Alcanhoes,Alcobaca,Alcochete,Alcoutim,Aldoar,Alexania,Alfeizerao,Algarve,Alenquer,Almada,Almagreira,Almeirim,Alpalhao,Alpedrinha,Alvalade,Alverca,Alvor,Alvorada,Amadora,Amapa,Amieira,Anapolis,Anhangueira,Ansiaes,Apelacao,Aracaju,Aranhas,Arega,Areira,Araguaina,Araruama,Arganil,Armacao,Arouca,Asfontes,Assenceira,Avelar,Aveiro,Azambuja,Azinheira,Azueira,Bahia,Bairros,Balsas,Barcarena,Barreiras,Barreiro,Barretos,Batalha,Beira,Beja,Benavente,Betim,Boticas,Braga,Braganca,Brasilia,Brejo,Cabecao,Cabeceiras,Cabedelo,Cabofrio,Cachoeiras,Cadafais,Calheta,Calihandriz,Calvao,Camacha,Caminha,Campinas,Canidelo,Canha,Canoas,Capinha,Carmoes,Cartaxo,Carvalhal,Carvoeiro,Cascavel,Castanhal,Castelobranco,Caueira,Caxias,Chapadinha,Chaves,Celheiras,Cocais,Coimbra,Comporta,Coentral,Conde,Copacabana,Coqueirinho,Coruche,Corumba,Couco,Cubatao,Curitiba,Damaia,Doisportos,Douradilho,Dourados,Enxames,Enxara,Erada,Erechim,Ericeira,Ermidasdosado,Ervidel,Escalhao,Escariz,Esmoriz,Estombar,Espinhal,Espinho,Esposende,Esquerdinha,Estela,Estoril,Eunapolis,Evora,Famalicao,Famoes,Fanhoes,Fanzeres,Fatela,Fatima,Faro,Felgueiras,Ferreira,Figueira,Flecheiras,Florianopolis,Fornalhas,Fortaleza,Freiria,Freixeira,Frielas,Fronteira,Funchal,Fundao,Gaeiras,Gafanhadaboahora,Goa,Goiania,Gracas,Gradil,Grainho,Gralheira,Guarulhos,Guetim,Guimaraes,Horta,Iguacu,Igrejanova,Ilhavo,Ilheus,Ipanema,Iraja,Itaboral,Itacuruca,Itaguai,Itanhaem,Itapevi,Juazeiro,Lagos,Lavacolchos,Laies,Lamego,Laranjeiras,Leiria,Limoeiro,Linhares,Lisboa,Lomba,Lorvao,Lourencomarques,Lourical,Lourinha,Luziania,Macao,Macapa,Macedo,Machava,Malveira,Manaus,Mangabeira,Mangaratiba,Marambaia,Maranhao,Maringue,Marinhais,Matacaes,Matosinhos,Maxial,Maxias,Mealhada,Meimoa,Meires,Milharado,Mira,Miranda,Mirandela,Mogadouro,Montalegre,Montesinho,Moura,Mourao,Mozelos,Negroes,Neiva,Nespereira,Nilopolis,Niteroi,Nordeste,Obidos,Odemira,Odivelas,Oeiras,Oleiros,Olhao,Olhalvo,Olhomarinho,Olinda,Olival,Oliveira,Oliveirinha,Oporto,Ourem,Ovar,Palhais,Palheiros,Palmeira,Palmela,Palmital,Pampilhosa,Pantanal,Paradinha,Parelheiros,Paripueira,Paudalho,Pedrosinho,Penafiel,Peniche,Pedrogao,Pegoes,Pinhao,Pinheiro,Pinhel,Pombal,Pontal,Pontinha,Portel,Portimao,Poxim,Quarteira,Queijas,Queluz,Quiaios,Ramalhal,Reboleira,Recife,Redinha,Ribadouro,Ribeira,Ribeirao,Rosais,Roteiro,Sabugal,Sacavem,Sagres,Sandim,Sangalhos,Santarem,Santos,Sarilhos,Sarzedas,Satao,Satuba,Seixal,Seixas,Seixezelo,Seixo,Selmes,Sepetiba,Serta,Setubal,Silvares,Silveira,Sinhaem,Sintra,Sobral,Sobralinho,Sorocaba,Tabuacotavir,Tabuleiro,Taveiro,Teixoso,Telhado,Telheiro,Tomar,Torrao,Torreira,Torresvedras,Tramagal,Trancoso,Troviscal,Vagos,Valpacos,Varzea,Vassouras,Velas,Viana,Vidigal,Vidigueira,Vidual,Viladerei,Vilamar,Vimeiro,Vinhais,Vinhos,Viseu,Vitoria,Vlamao,Vouzela"},
-        {name: "Nahuatl", i: 14, min: 6, max: 13, d: "l", m: 0, b: "Acaltepec,Acaltepecatl,Acapulco,Acatlan,Acaxochitlan,Ajuchitlan,Atotonilco,Azcapotzalco,Camotlan,Campeche,Chalco,Chapultepec,Chiapan,Chiapas,Chihuahua,Cihuatlan,Cihuatlancihuatl,Coahuila,Coatepec,Coatlan,Coatzacoalcos,Colima,Colotlan,Coyoacan,Cuauhillan,Cuauhnahuac,Cuauhtemoc,Cuernavaca,Ecatepec,Epatlan,Guanajuato,Huaxacac,Huehuetlan,Hueyapan,Ixtapa,Iztaccihuatl,Iztapalapa,Jalisco,Jocotepec,Jocotepecxocotl,Matixco,Mazatlan,Michhuahcan,Michoacan,Michoacanmichin,Minatitlan,Naucalpan,Nayarit,Nezahualcoyotl,Oaxaca,Ocotepec,Ocotlan,Olinalan,Otompan,Popocatepetl,Queretaro,Sonora,Tabasco,Tamaulipas,Tecolotlan,Tenochtitlan,Teocuitlatlan,Teocuitlatlanteotl,Teotlalco,Teotlalcoteotl,Tepotzotlan,Tepoztlantepoztli,Texcoco,Tlachco,Tlalocan,Tlaxcala,Tlaxcallan,Tollocan,Tolutepetl,Tonanytlan,Tototlan,Tuchtlan,Tuxpan,Uaxacac,Xalapa,Xochimilco,Xolotlan,Yaotlan,Yopico,Yucatan,Yztac,Zacatecas,Zacualco"},
-        {name: "Hungarian", i: 15, min: 6, max: 13, d: "", m: 0.1, b: "Aba,Abadszalok,Abony,Adony,Ajak,Albertirsa,Alsozsolca,Aszod,Babolna,Bacsalmas,Baktaloranthaza,Balassagyarmat,Balatonalmadi,Balatonboglar,Balatonfured,Balatonfuzfo,Balkany,Balmazujvaros,Barcs,Bataszek,Batonyterenye,Battonya,Bekes,Berettyoujfalu,Berhida,Biatorbagy,Bicske,Biharkeresztes,Bodajk,Boly,Bonyhad,Budakalasz,Budakeszi,Celldomolk,Csakvar,Csenger,Csongrad,Csorna,Csorvas,Csurgo,Dabas,Demecser,Derecske,Devavanya,Devecser,Dombovar,Dombrad,Dorogullo,Dunafoldvar,Dunaharaszti,Dunavarsany,Dunavecse,Edeleny,Elek,Emod,Encs,Enying,Ercsi,Fegyvernek,Fehergyarmat,Felsozsolca,Fertoszentmiklos,Fonyod,Fot,Fuzesabony,Fuzesgyarmat,Gardony,God,Gyal,Gyomaendrod,Gyomro,Hajdudorog,Hajduhadhaz,Hajdunanas,Hajdusamson,Hajduszoboszlo,Halasztelek,Harkany,Hatvan,Heves,Heviz,Ibrany,Isaszeg,Izsak,Janoshalma,Janossomorja,Jaszapati,Jaszarokszallas,Jaszfenyszaru,Jaszkiser,Kaba,Kalocsa,Kapuvar,Karcag,Kecel,Kemecse,Kenderes,Kerekegyhaza,Kerepes,Keszthely,Kisber,Kiskoros,Kiskunmajsa,Kistarcsa,Kistelek,Kisujszallas,Kisvarda,Komadi,Komarom,Komlo,Kormend,Korosladany,Koszeg,Kozarmisleny,Kunhegyes,Kunszentmarton,Kunszentmiklos,Labatlan,Lajosmizse,Lenti,Letavertes,Letenye,Lorinci,Maglod,Mako,Mandok,Marcali,Martfu,Martonvasar,Mateszalka,Melykut,Mezobereny,Mezocsat,Mezohegyes,Mezokeresztes,Mezokovacshaza,Mezokovesd,Mezotur,Mindszent,Mohacs,Monor,Mor,Morahalom,Nadudvar,Nagyatad,Nagyecsed,Nagyhalasz,Nagykallo,Nagykata,Nagykoros,Nagymaros,Nyekladhaza,Nyergesujfalu,Nyiradony,Nyirbator,Nyirmada,Nyirtelek,Ocsa,Orkeny,Oroszlany,Paks,Pannonhalma,Paszto,Pecel,Pecsvarad,Pilis,Pilisvorosvar,Polgar,Polgardi,Pomaz,Puspokladany,Pusztaszabolcs,Putnok,Racalmas,Rackeve,Rakamaz,Rakoczifalva,Sajoszentpeter,Sandorfalva,Sarbogard,Sarkad,Sarospatak,Sarvar,Satoraljaujhely,Siklos,Simontornya,Solt,Soltvadkert,Sumeg,Szabadszallas,Szarvas,Szazhalombatta,Szecseny,Szeghalom,Szendro,Szentgotthard,Szentlorinc,Szerencs,Szigethalom,Szigetvar,Szikszo,Tab,Tamasi,Tapioszele,Tapolca,Tat,Tata,Teglas,Tet,Tiszacsege,Tiszafoldvar,Tiszafured,Tiszakecske,Tiszalok,Tiszaujvaros,Tiszavasvari,Tokaj,Tokol,Tolna,Tompa,Torokbalint,Torokszentmiklos,Totkomlos,Tura,Turkeve,Ujkigyos,ujszasz,Vamospercs,Varpalota,Vasarosnameny,Vasvar,Vecses,Velence,Veresegyhaz,Verpelet,Veszto,Zahony,Zalaszentgrot,Zirc,Zsambek"},
-        {name: "Turkish", i: 16, min: 4, max: 10, d: "", m: 0, b: "Adapazari,Adiyaman,Afshin,Afyon,Ari,Akchaabat,Akchakale,Akchakoca,Akdamadeni,Akhisar,Aksaray,Akshehir,Alaca,Alanya,Alapli,Alashehir,Amasya,Anamur,Antakya,Ardeshen,Artvin,Aydin,Ayvalik,Babaeski,Bafra,Balikesir,Bandirma,Bartin,Bashiskele,Batman,Bayburt,Belen,Bergama,Besni,Beypazari,Beyshehir,Biga,Bilecik,Bingul,Birecik,Bismil,Bitlis,Bodrum,Bolu,Bolvadin,Bor,Bostanichi,Boyabat,Bozuyuk,Bucak,Bulancak,Bulanik,Burdur,Burhaniye,Chan,Chanakkale,Chankiri,Charshamba,Chaycuma,Chayeli,Chayirova,Cherkezkuy,Cheshme,Ceyhan,Ceylanpinar,Chine,Chivril,Cizre,Chorlu,Chumra,Dalaman,Darica,Denizli,Derik,Derince,Develi,Devrek,Didim,Dilovasi,Dinar,Diyadin,Diyarbakir,Doubayazit,Durtyol,Duzce,Duzichi,Edirne,Edremit,Elazi,Elbistan,Emirda,Erbaa,Ercish,Erdek,Erdemli,Ereli,Ergani,Erzin,Erzincan,Erzurum,Eskishehir,Fatsa,Fethiye,Gazipasha,Gebze,Gelibolu,Gerede,Geyve,Giresun,Guksun,Gulbashi,Gulcuk,Gurnen,Gumushhane,Guroymak,Hakkari,Harbiye,Havza,Hayrabolu,Hilvan,Idil,Idir,Ilgin,Imamolu,Incirliova,Inegul,Iskenderun,Iskilip,Islahiye,Isparta,Izmit,Iznik,Kadirli,Kahramanmarash,Kahta,Kaman,Kapakli,Karabuk,Karacabey,Karadeniz Ereli,Karakupru,Karaman,Karamursel,Karapinar,Karasu,Kars,Kartepe,Kastamonu,Kemer,Keshan,Kilimli,Kilis,Kirikhan,Kirikkale,Kirklareli,Kirshehir,Kiziltepe,Kurfez,Korkuteli,Kovancilar,Kozan,Kozlu,Kozluk,Kulu,Kumluca,Kurtalan,Kushadasi,Kutahya,Luleburgaz,Malatya,Malazgirt,Malkara,Manavgat,Manisa,Mardin,Marmaris,Mersin,Merzifon,Midyat,Milas,Mula,Muratli,Mush,Mut,Nazilli,Nevshehir,Nide,Niksar,Nizip,Nusaybin,udemish,Oltu,Ordu,Orhangazi,Ortaca,Osmancik,Osmaniye,Patnos,Payas,Pazarcik,Polatli,Reyhanli,Rize,Safranbolu,Salihli,Samanda,Samsun,Sandikli,shanliurfa,Saray,Sarikamish,Sarikaya,sharkishla,shereflikochhisar,Serik,Serinyol,Seydishehir,Siirt,Silifke,Silopi,Silvan,Simav,Sinop,shirnak,Sivas,Siverek,Surke,Soma,Sorgun,Suluova,Sungurlu,Suruch,Susurluk,Tarsus,Tatvan,Tavshanli,Tekirda,Terme,Tire,Tokat,Tosya,Trabzon,Tunceli,Turgutlu,Turhal,Unye,Ushak,Uzunkurpru,Van,Vezirkurpru,Viranshehir,Yahyali,Yalova,Yenishehir,Yerkury,Yozgat,Yuksekova,Zile,Zonguldak"},
-        {name: "Berber", i: 17, min: 4, max: 10, d: "s", m: .2, b: "Abkhouch,Adrar,Agadir,Agelmam,Aghmat,Agrakal,Agulmam,Ahaggar,Almou,Anfa,Annaba,Aousja,Arbat,Argoub,Arif,Asfi,Assamer,Assif,Azaghar,Azmour,Azrou,Beccar,Beja,Bennour,Benslimane,Berkane,Berrechid,Bizerte,Bouskoura,Boutferda,Dar Bouazza,Darallouch,Darchaabane,Dcheira,Denden,Djebel,Djedeida,Drargua,Essaouira,Ezzahra,Fas,Fnideq,Ghezeze,Goubellat,Grisaffen,Guelmim,Guercif,Hammamet,Harrouda,Hoceima,Idurar,Ifendassen,Ifoghas,Imilchil,Inezgane,Izoughar,Jendouba,Kacem,Kelibia,Kenitra,Kerrando,Khalidia,Khemisset,Khenifra,Khouribga,Kidal,Korba,Korbous,Lahraouyine,Larache,Leyun,Lqliaa,Manouba,Martil,Mazagan,Mcherga,Mdiq,Megrine,Mellal,Melloul,Midelt,Mohammedia,Mornag,Mrrakc,Nabeul,Nadhour,Nador,Nawaksut,Nefza,Ouarzazate,Ouazzane,Oued Zem,Oujda,Ouladteima,Qsentina,Rades,Rafraf,Safi,Sefrou,Sejnane,Settat,Sijilmassa,Skhirat,Slimane,Somaa,Sraghna,Susa,Tabarka,Taferka,Tafza,Tagbalut,Tagerdayt,Takelsa,Tanja,Tantan,Taourirt,Taroudant,Tasfelalayt,Tattiwin,Taza,Tazerka,Tazizawt,Tebourba,Teboursouk,Temara,Testour,Tetouan,Tibeskert,Tifelt,Tinariwen,Tinduf,Tinja,Tiznit,Toubkal,Trables,Tubqal,Tunes,Urup,Watlas,Wehran,Wejda,Youssoufia,Zaghouan,Zahret,Zemmour,Zriba"},
-        {name: "Arabic", i: 18, min: 4, max: 9, d: "ae", m: .2, b: "Abadilah,Abayt,Abha,Abud,Aden,Ahwar,Ajman,Alabadilah,Alabar,Alahjer,Alain,Alaraq,Alarish,Alarjam,Alashraf,Alaswaaq,Alawali,Albarar,Albawadi,Albirk,Aldhabiyah,Alduwaid,Alfareeq,Algayed,Alhada,Alhafirah,Alhamar,Alharam,Alharidhah,Alhawtah,Alhazim,Alhrateem,Alhudaydah,Alhujun,Alhuwaya,Aljahra,Aljohar,Aljubail,Alkawd,Alkhalas,Alkhawaneej,Alkhen,Alkhhafah,Alkhobar,Alkhuznah,Alkiranah,Allisafah,Allith,Almadeed,Almardamah,Almarwah,Almasnaah,Almejammah,Almojermah,Almshaykh,Almurjan,Almuwayh,Almuzaylif,Alnaheem,Alnashifah,Alqadeimah,Alqah,Alqahma,Alqalh,Alqouz,Alquaba,Alqunfudhah,Alqurayyat,Alradha,Alraqmiah,Alsadyah,Alsafa,Alshagab,Alshoqiq,Alshuqaiq,Alsilaa,Althafeer,Alwakrah,Alwasqah,Amaq,Amran,Annaseem,Aqbiyah,Arafat,Arar,Ardah,Arrawdah,Asfan,Ashayrah,Ashshahaniyah,Askar,Assaffaniyah,Ayaar,Aziziyah,Baesh,Bahrah,Baish,Balhaf,Banizayd,Baqaa,Baqal,Bidiyah,Bisha,Biyatah,Buqhayq,Burayda,Dafiyat,Damad,Dammam,Dariyah,Daynah,Dhafar,Dhahran,Dhalkut,Dhamar,Dhubab,Dhurma,Dibab,Dirab,Doha,Dukhan,Duwaibah,Enaker,Fadhla,Fahaheel,Fanateer,Farasan,Fardah,Fujairah,Ghalilah,Ghar,Ghizlan,Ghomgyah,Ghran,Hababah,Habil,Hadiyah,Haffah,Hajanbah,Hajrah,Halban,Haqqaq,Haradh,Hasar,Hathah,Hawarwar,Hawaya,Hawiyah,Hebaa,Hefar,Hijal,Husnah,Huwailat,Huwaitah,Irqah,Isharah,Ithrah,Jamalah,Jarab,Jareef,Jarwal,Jash,Jazan,Jeddah,Jiblah,Jihanah,Jilah,Jizan,Joha,Joraibah,Juban,Jubbah,Juddah,Jumeirah,Kamaran,Keyad,Khab,Khabtsaeed,Khaiybar,Khasab,Khathirah,Khawarah,Khulais,Khulays,Klayah,Kumzar,Limah,Linah,Mabar,Madrak,Mahab,Mahalah,Makhtar,Makshosh,Manfuhah,Manifah,Manshabah,Mareah,Masdar,Mashwar,Masirah,Maskar,Masliyah,Mastabah,Maysaan,Mazhar,Mdina,Meeqat,Mirbah,Mirbat,Mokhtara,Muharraq,Muladdah,Musandam,Musaykah,Muscat,Mushayrif,Musrah,Mussafah,Mutrah,Nafhan,Nahdah,Nahwa,Najran,Nakhab,Nizwa,Oman,Qadah,Qalhat,Qamrah,Qasam,Qatabah,Qawah,Qosmah,Qurain,Quraydah,Quriyat,Qurwa,Rabigh,Radaa,Rafha,Rahlah,Rakamah,Rasheedah,Rasmadrakah,Risabah,Rustaq,Ryadh,Saabah,Saabar,Sabtaljarah,Sabya,Sadad,Sadah,Safinah,Saham,Sahlat,Saihat,Salalah,Salmalzwaher,Salmiya,Sanaa,Sanaban,Sayaa,Sayyan,Shabayah,Shabwah,Shafa,Shalim,Shaqra,Sharjah,Sharkat,Sharurah,Shatifiyah,Shibam,Shidah,Shifiyah,Shihar,Shoqra,Shoqsan,Shuwaq,Sibah,Sihmah,Sinaw,Sirwah,Sohar,Suhailah,Sulaibiya,Sunbah,Tabuk,Taif,Taqah,Tarif,Tharban,Thumrait,Thuqbah,Thuwal,Tubarjal,Turaif,Turbah,Tuwaiq,Ubar,Umaljerem,Urayarah,Urwah,Wabrah,Warbah,Yabreen,Yadamah,Yafur,Yarim,Yemen,Yiyallah,Zabid,Zahwah,Zallaq,Zinjibar,Zulumah"},
-        {name: "Inuit", i: 19, min: 5, max: 15, d: "alutsn", m: 0, b: "Aaluik,Aappilattoq,Aasiaat,Agdleruussakasit,Aggas,Akia,Akilia,Akuliaruseq,Akuliarutsip,Akunnaaq,Agissat,Agssaussat,Alluitsup,Alluttoq,Aluit,Aluk,Ammassalik,Amarortalik,Amitsorsuaq,Anarusuk,Angisorsuaq,Anguniartarfik,Annertussoq,Annikitsoq,Anoraliuirsoq,Appat,Apparsuit,Apusiaajik,Arsivik,Arsuk,Ataa,Atammik,Ateqanngitsorsuaq,Atilissuaq,Attu,Aukarnersuaq,Augpalugtoq, Aumat,Auvilikavsak,Auvilkikavsaup,Avadtlek,Avallersuaq,Bjornesk,Blabaerdalen,Blomsterdalen,Brattalhid,Bredebrae,Brededal,Claushavn,Edderfulegoer,Egger,Eqalugalinnguit,Eqalugarssuit,Eqaluit,Eqqua,Etah,Graah,Hakluyt,Haredalen,Hareoen,Hundeo,Igdlorssuit,Igaliku,Igdlugdlip,Igdluluarssuk,Iginniafik,Ikamiuk,Ikamiut,Ikarissat,Ikateq,Ikeq,Ikerasak,Ikerasaarsuk,Ikermiut,Ikermoissuaq,Ikertivaq,Ikorfarssuit,Ikorfat,Ilimanaq,Illorsuit,Iluileq,Iluiteq,Ilulissat,Illunnguit,Imaarsivik,Imartunarssuk,Immikkoortukajik,Innaarsuit,Ingjald,Inneruulalik,Inussullissuaq,Iqek,Ikerasakassak,Iperaq,Ippik,Isortok,Isungartussoq,Itileq,Itivdleq,Itissaalik,Ittit,Ittoqqortoormiit,Ivingmiut,Ivittuut,Kanajoorartuut,Kangaamiut,Kangaarsuk,Kangaatsiaq,Kangeq,Kangerluk,Kangerlussuaq,Kanglinnguit,Kapisillit,Karrat,Kekertamiut,Kiatak,Kiatassuaq,Kiataussaq,Kigatak,Kigdlussat,Kinaussak,Kingittorsuaq,Kitak,Kitsissuarsuit,Kitsissut,Klenczner,Kook,Kraulshavn,Kujalleq,Kullorsuaq,Kulusuk,Kuurmiit,Kuusuaq,Laksedalen,Maniitsoq,Marrakajik,Mattaangassut,Mernoq,Mittivakkat,Moriusaq,Myggbukta,Naajaat,Nako,Nangissat,Nanortalik,Nanuuseq,Nappassoq,Narsarmijt,Narssaq,Narsarsuaq,Narssarssuk,Nasaussaq,Nasiffik,Natsiarsiorfik,Naujanguit,Niaqornaarsuk,Niaqornat,Nordfjordspasset,Nugatsiaq,Nuluuk,Nunaa,Nunarssit,Nunarsuaq,Nunataaq,Nunatakavsaup,Nutaarmiut,Nuugaatsiaq,Nuuk,Nuukullak,Nuuluk,Nuussuaq,Olonkinbyen,Oqaatsut,Oqaitsúnguit,Oqonermiut,Oodaaq,Paagussat,Palungataq,Pamialluk,Paamiut,Paatuut,Patuersoq,Perserajoq,Paornivik,Pituffik,Puugutaa,Puulkuip,Qaanaq,Qaarsorsuaq,Qaarsorsuatsiaq,Qaasuitsup,Qaersut,Qajartalik,Qallunaat,Qaneq,Qaqaarissorsuaq,Qaqit,Qaqortok,Qasigiannguit,Qasse,Qassimiut,Qeertartivaq,Qeertartivatsiaq,Qeqertaq,Qeqertarssdaq,Qeqertarsuaq,Qeqertasussuk,Qeqertarsuatsiaat,Qeqertat,Qeqqata,Qernertoq,Qernertunnguit,Qianarreq,Qilalugkiarfik,Qingagssat,Qingaq,Qoornuup,Qorlortorsuaq,Qullikorsuit,Qunnerit,Qutdleq,Ravnedalen,Ritenbenk,Rypedalen,Sarfannguit,Saarlia,Saarloq,Saatoq,Saatorsuaq,Saatup,Saattut,Sadeloe,Salleq,Salliaruseq,Sammeqqat,Sammisoq,Sanningassoq,Saqqaq,Saqqarlersuaq,Saqqarliit,Sarqaq,Sattiaatteq,Savissivik,Serfanguaq,Sermersooq,Sermersut,Sermilik,Sermiligaaq,Sermitsiaq,Simitakaja,Simiutaq,Singamaq,Siorapaluk,Sisimiut,Sisuarsuit,Skal,Skarvefjeld,Skjoldungen,Storoen,Sullorsuaq,Suunikajik,Sverdrup,Taartoq,Takiseeq,Talerua,Tarqo,Tasirliaq,Tasiusak,Tiilerilaaq,Timilersua,Timmiarmiut,Tingmjarmiut,Traill,Tukingassoq,Tuttorqortooq,Tuujuk,Tuttulissuup,Tussaaq,Uigordlit,Uigorlersuaq,Uilortussoq,Uiivaq,Ujuaakajiip,Ukkusissat,Umanat,Upernavik,Upernattivik,Upepnagssivik,Upernivik,Uttorsiutit,Uumannaq,Uummannaarsuk,Uunartoq,Uvkusigssat,Ymer"},
-        {name: "Basque", i: 20, min: 4, max: 11, d: "r", m: .1, b: "Abadio,Abaltzisketa,Abanto Zierbena,Aduna,Agurain,Aia,Aiara,Aizarnazabal,Ajangiz,Albiztur,Alegia,Alkiza,Alonsotegi,Altzaga,Altzo,Amezketa,Amorebieta,Amoroto,Amurrio,Andoain,Anoeta,Antzuola,Arakaldo,Arama,Aramaio,Arantzazu,Arbatzegi ,Areatza,Aretxabaleta,Arraia,Arrankudiaga,Arrasate,Arratzu,Arratzua,Arrieta,Arrigorriaga,Artea,Artzentales,Artziniega,Asparrena,Asteasu,Astigarraga,Ataun,Atxondo,Aulesti,Azkoitia,Azpeitia,Bakio,Baliarrain,Balmaseda,Barakaldo,Barrika,Barrundia,Basauri,Bastida,Beasain,Bedia,Beizama,Belauntza,Berango,Berantevilla,Berastegi,Bergara,Bermeo,Bernedo,Berriatua,Berriz,Berrobi,Bidania,Bilar,Bilbao,Burgelu,Busturia,Deba,Derio,Dima,Donemiliaga,Donostia,Dulantzi,Durango,Ea,Eibar,Elantxobe,Elduain,Elgeta,Elgoibar,Elorrio,Erandio,Ere-o,Ermua,Errenteria,Errezil,Erribera Beitia,Erriberagoitia,Errigoiti,Eskoriatza,Eskuernaga,Etxebarri,Etxebarria,Ezkio,Fika,Forua,Fruiz,Gabiria,Gaintza,Galdakao,Galdames,Gamiz,Garai,Gasteiz,Gatika,Gatzaga,Gaubea,Gauna,Gautegiz Arteaga,Gaztelu,Gernika,Gerrikaitz,Getaria,Getxo,Gizaburuaga,Goiatz,Gordexola,Gorliz,Harana,Hernani,Hernialde,Hondarribia,Ibarra,Ibarrangelu,Idiazabal,Iekora,Igorre,Ikaztegieta,Iru-a Oka,Irun,Irura,Iruraiz,Ispaster,Itsaso,Itsasondo,Iurreta,Izurtza,Jatabe,Kanpezu,Karrantza Harana,Kortezubi,Kripan,Kuartango,Lanestosa,Lantziego,Larrabetzu,Larraul,Lasarte,Laudio,Laukiz,Lazkao,Leaburu,Legazpi,Legorreta,Legutio,Leintz,Leioa,Lekeitio,Lemoa,Lemoiz,Leza,Lezama,Lezo,Lizartza,Loiu,Lumo,Ma-aria,Maeztu,Mallabia,Markina,Maruri,Ma-ueta,Me-aka,Mendaro,Mendata,Mendexa,Moreda Araba,Morga,Mundaka,Mungia,Munitibar,Murueta,Muskiz,Mutiloa,Mutriku,Muxika,Nabarniz,O-ati,Oiartzun,Oion,Okondo,Olaberria,Ondarroa,Ordizia,Orendain,Orexa,Oria,Orio,Ormaiztegi,Orozko,Ortuella,Otxandio,Pasaia,Plentzia,Portugalete,Samaniego,Santurtzi,Segura,Sestao,Sondika,Sopela,Sopuerta,Soraluze,Sukarrieta,Tolosa,Trapagaran,Turtzioz,Ubarrundia,Ubide,Ugao,Urdua,Urduliz,Urizaharra,Urkabustaiz,Urnieta,Urretxu,Usurbil,Xemein,Zaia,Zaldibar,Zaldibia,Zalduondo,Zambrana,Zamudio,Zaratamo,Zarautz,Zeanuri,Zeberio,Zegama,Zerain,Zestoa,Zierbena,Zigoitia,Ziortza,Zizurkil,Zuia,Zumaia,Zumarraga"},
-        {name: "Nigerian", i: 21, min: 4, max: 10, d: "", m: .3, b: "Abadogo,Abafon,Abdu,Acharu,Adaba,Adealesu,Adeto,Adyongo,Afaga,Afamju,Afuje,Agbelagba,Agigbigi,Agogoke,Ahute,Aiyelaboro,Ajebe,Ajola,Akarekwu,Akessan,Akunuba,Alawode,Alkaijji,Amangam,Amaoji,Amgbaye,Amtasa,Amunigun,Anase,Aniho,Animahun,Antul,Anyoko,Apekaa,Arapagi,Asamagidi,Asande,Ataibang,Awgbagba,Awhum,Awodu,Babanana,Babateduwa,Bagu,Bakura,Bandakwai,Bangdi,Barbo,Barkeje,Basa,Basabra,Basansagawa,Bieleshin,Bilikani,Birnindodo,Braidu,Bulakawa,Buriburi,Burisidna,Busum,Bwoi,Cainnan,Chakum,Charati,Chondugh,Dabibikiri,Dagwarga,Dallok,Danalili,Dandala,Darpi,Dhayaki,Dokatofa,Doma,Dozere,Duci,Dugan,Ebelibri,Efem,Efoi,Egudu,Egundugbo,Ekoku,Ekpe,Ekwere,Erhua,Eteu,Etikagbene,Ewhoeviri,Ewhotie,Ezemaowa,Fatima,Gadege,Galakura,Galea,Gamai,Gamen,Ganjin,Gantetudu,Garangamawa,Garema,Gargar,Gari,Garinbode,Garkuwa,Garu Kime,Gazabu,Gbure,Gerti,Gidan,Giringwe,Gitabaremu,Giyagiri,Giyawa,Gmawa,Golakochi,Golumba,Guchi,Gudugu,Gunji,Gusa,Gwambula,Gwamgwam,Gwodoti,Hayinlere,Hayinmaialewa,Hirishi,Hombo,Ibefum,Iberekodo,Ibodeipa,Icharge,Ideoro,Idofin,Idofinoka,Idya,Iganmeji,Igbetar,Igbogo,Ijoko,Ijuwa,Ikawga,Ikekogbe,Ikhin,Ikoro,Ikotefe,Ikotokpora,Ikpakidout,Ikpeoniong,Ilofa,Imuogo,Inyeneke,Iorsugh,Ipawo,Ipinlerere,Isicha,Itakpa,Itoki,Iyedeame,Jameri,Jangi,Jara,Jare,Jataudakum,Jaurogomki,Jepel,Jibam,Jirgu,Jirkange,Kafinmalama,Kamkem,Katab,Katanga,Katinda,Katirije,Kaurakimba,Keffinshanu,Kellumiri,Kiagbodor,Kibiare,Kingking,Kirbutu,Kita,Kogbo,Kogogo,Kopje,Koriga,Koroko,Korokorosei,Kotoku,Kuata,Kujum,Kukau,Kunboon,Kuonubogbene,Kurawe,Kushinahu,Kwaramakeri,Ladimeji,Lafiaro,Lahaga,Laindebajanle,Laindegoro,Lajere,Lakati,Ligeri,Litenswa,Lokobimagaji,Lusabe,Maba,Madarzai,Magoi,Maialewa,Maianita,Maijuja,Mairakuni,Maleh,Malikansaa,Mallamkola,Mallammaduri,Marmara,Masagu,Masoma,Mata,Matankali,Mbalare,Megoyo,Meku,Miama,Mige,Mkporagwu,Modi,Molafa,Mshi,Msugh,Muduvu,Murnachehu,Namnai,Nanumawa,Nasudu,Ndagawo,Ndamanma,Ndiebeleagu,Ndiwulunbe,Ndonutim,Ngaruwa,Ngbande,Nguengu,Nto Ekpe,Nubudi,Nyajo,Nyido,Nyior,Obafor,Obazuwa,Odajie,Odiama,Ofunatam,Ogali,Ogan,Ogbaga,Ogbahu,Ogultu,Ogunbunmi,Ogunmakin,Ojaota,Ojirami,Ojopode,Okehin,Olugunna,Omotunde,Onipede,Onisopi,Onma,Orhere,Orya,Oshotan,Otukwang,Otunade,Pepegbene,Poros,Rafin,Rampa,Rimi,Rinjim,Robertkiri,Rugan,Rumbukawa,Sabiu,Sabon,Sabongari,Sai,Salmatappare,Sangabama,Sarabe,Seboregetore,Seibiri,Sendowa,Shafar,Shagwa,Shata,Shefunda,Shengu,Sokoron,Sunnayu,Taberlma,Tafoki,Takula,Talontan,Taraku,Tarhemba,Tayu,Ter,Timtim,Timyam,Tindirke,Tirkalou,Tokunbo,Tonga,Torlwam,Tseakaadza,Tseanongo,Tseavungu,Tsebeeve,Tsekov,Tsepaegh,Tuba,Tumbo,Tungalombo,Tungamasu,Tunganrati,Tunganyakwe,Tungenzuri,Ubimimi,Uhkirhi,Umoru,Umuabai,Umuaja,Umuajuju,Umuimo,Umuojala,Unchida,Ungua,Unguwar,Unongo,Usha,Ute,Utongbo,Vembera,Vorokotok,Wachin,Walebaga,Wurawura,Wuro,Yanbashi,Yanmedi,Yenaka,Yoku,Zamangera,Zarunkwari,Zilumo,Zulika"},
-        {name: "Celtic", i: 22, min: 4, max: 12, d: "nld", m: 0, b: "Aberaman,Aberangell,Aberarth,Aberavon,Aberbanc,Aberbargoed,Aberbeeg,Abercanaid,Abercarn,Abercastle,Abercegir,Abercraf,Abercregan,Abercych,Abercynon,Aberdare,Aberdaron,Aberdaugleddau,Aberdeen,Aberdulais,Aberdyfi,Aberedw,Abereiddy,Abererch,Abereron,Aberfan,Aberffraw,Aberffrwd,Abergavenny,Abergele,Aberglasslyn,Abergorlech,Abergwaun,Abergwesyn,Abergwili,Abergwynfi,Abergwyngregyn,Abergynolwyn,Aberhafesp,Aberhonddu,Aberkenfig,Aberllefenni,Abermain,Abermaw,Abermorddu,Abermule,Abernant,Aberpennar,Aberporth,Aberriw,Abersoch,Abersychan,Abertawe,Aberteifi,Aberthin,Abertillery,Abertridwr,Aberystwyth,Achininver,Afonhafren,Alisaha,Antinbhearmor,Ardenna,Attacon,Beira,Bhrura,Boioduro,Bona,Boudobriga,Bravon,Brigant,Briganta,Briva,Cambodunum,Cambra,Caracta,Catumagos,Centobriga,Ceredigion,Chalain,Dinn,Diwa,Dubingen,Duro,Ebora,Ebruac,Eburodunum,Eccles,Eighe,Eireann,Ferkunos,Genua,Ghrainnse,Inbhear,Inbhir,Inbhirair,Innerleithen,Innerleven,Innerwick,Inver,Inveraldie,Inverallan,Inveralmond,Inveramsay,Inveran,Inveraray,Inverarnan,Inverbervie,Inverclyde,Inverell,Inveresk,Inverfarigaig,Invergarry,Invergordon,Invergowrie,Inverhaddon,Inverkeilor,Inverkeithing,Inverkeithney,Inverkip,Inverleigh,Inverleith,Inverloch,Inverlochlarig,Inverlochy,Invermay,Invermoriston,Inverness,Inveroran,Invershin,Inversnaid,Invertrossachs,Inverugie,Inveruglas,Inverurie,Kilninver,Kirkcaldy,Kirkintilloch,Krake,Latense,Leming,Lindomagos,Llanaber,Lochinver,Lugduno,Magoduro,Monmouthshire,Narann,Novioduno,Nowijonago,Octoduron,Penning,Pheofharain,Ricomago,Rossinver,Salodurum,Seguia,Sentica,Theorsa,Uige,Vitodurum,Windobona"},
-        {name: "Mesopotamian", i: 23, min: 4, max: 9, d: "srpl", m: .1, b: "Adab,Akkad,Akshak,Amnanum,Arbid,Arpachiyah,Arrapha,Assur,Babilim,Badtibira,Balawat,Barsip,Borsippa,Carchemish,Chagar Bazar,Chuera,Ctesiphon ,Der,Dilbat,Diniktum,Doura,Durkurigalzu,Ekallatum,Emar,Erbil,Eridu,Eshnunn,Fakhariya ,Gawra,Girsu,Hadatu,Hamoukar,Haradum,Harran,Hatra,Idu,Irisagrig,Isin,Jemdet,Kahat,Kartukulti,Khaiber,Kish ,Kisurra,Kuara,Kutha,Lagash,Larsa ,Leilan,Marad,Mardaman,Mari,Mashkan,Mumbaqat ,Nabada,Nagar,Nerebtum,Nimrud,Nineveh,Nippur,Nuzi,Qalatjarmo,Qatara,Rawda,Seleucia,Shaduppum,Shanidar,Sharrukin,Shemshara,Shibaniba,Shuruppak,Sippar,Tarbisu,Tellagrab,Tellessawwan,Tellessweyhat,Tellhassuna,Telltaya,Telul,Terqa,Thalathat,Tutub,Ubaid ,Umma,Ur,Urfa,Urkesh,Uruk,Urum,Zabalam,Zenobia"},
-        {name: "Iranian", i: 24, min: 5, max: 11, d: "", m: .1, b: "Abali,Abrisham,Absard,Abuzeydabad,Afus,Alavicheh,Alikosh,Amol,Anarak,Anbar,Andisheh,Anshan,Aran,Ardabil,Arderica,Ardestan,Arjomand,Asgaran,Asgharabad,Ashian,Awan,Babajan,Badrud,Bafran,Baghestan,Baghshad,Bahadoran,Baharan Shahr,Baharestan,Bakun,Bam,Baqershahr,Barzok,Bastam,Behistun,Bitistar,Bumahen,Bushehr,Chadegan,Chahardangeh,Chamgardan,Chermahin,Choghabonut,Chugan,Damaneh,Damavand,Darabgard,Daran,Dastgerd,Dehaq,Dehaqan,Dezful,Dizicheh,Dorcheh,Dowlatabad,Duruntash,Ecbatana,Eslamshahr,Estakhr,Ezhiyeh,Falavarjan,Farrokhi,Fasham,Ferdowsieh,Fereydunshahr,Ferunabad,Firuzkuh,Fuladshahr,Ganjdareh,Ganzak,Gaz,Geoy,Godin,Goldasht,Golestan,Golpayegan,Golshahr,Golshan,Gorgab,Guged,Habibabad,Hafshejan,Hajjifiruz,Hana,Harand,Hasanabad,Hasanlu,Hashtgerd,Hecatompylos,Hormirzad,Imanshahr,Isfahan,Jandaq,Javadabad,Jiroft,Jowsheqan ,Jowzdan,Kabnak,Kahriz Sang,Kahrizak,Kangavar,Karaj,Karkevand,Kashan,Kelishad,Kermanshah,Khaledabad,Khansar,Khorramabad,Khur,Khvorzuq,Kilan,Komeh,Komeshcheh,Konar,Kuhpayeh,Kul,Kushk,Lavasan,Laybid,Liyan,Lyan,Mahabad,Mahallat,Majlesi,Malard,Manzariyeh,Marlik,Meshkat,Meymeh,Miandasht,Mish,Mobarakeh,Nahavand,Nain,Najafabad,Naqshe,Narezzash,Nasimshahr,Nasirshahr,Nasrabad,Natanz,Neyasar,Nikabad,Nimvar,Nushabad,Pakdasht,Parand,Pardis,Parsa,Pasargadai,Patigrabana,Pir Bakran,Pishva,Qahderijan,Qahjaverestan,Qamsar,Qarchak,Qods,Rabat,Ray-shahr,Rezvanshahr,Rhages,Robat Karim,Rozveh,Rudehen,Sabashahr,Safadasht,Sagzi,Salehieh,Sandal,Sarvestan,Sedeh,Sefidshahr,Semirom,Semnan,Shadpurabad,Shah,Shahdad,Shahedshahr,Shahin,Shahpour,Shahr,Shahreza,Shahriar,Sharifabad,Shemshak,Shiraz,Shushan,Shushtar,Sialk,Sin,Sukhteh,Tabas,Tabriz,Takhte,Talkhuncheh,Talli,Tarq,Temukan,Tepe,Tiran,Tudeshk,Tureng,Urmia,Vahidieh,Vahrkana,Vanak,Varamin,Varnamkhast,Varzaneh,Vazvan,Yahya,Yarim,Yasuj,Zarrin Shahr,Zavareh,Zayandeh,Zazeran,Ziar,Zibashahr,Zranka"},
-        {name: "Hawaiian", i: 25, min: 5, max: 10, d: "auo", m: 1, b: "Aapueo,Ahoa,Ahuakaio,Ahuakamalii,Ahuakeio,Ahupau,Aki,Alaakua,Alae,Alaeloa,Alaenui,Alamihi,Aleamai,Alena,Alio,Aupokopoko,Auwahi,Hahakea,Haiku,Halakaa,Halehaku,Halehana,Halemano,Haleu,Haliimaile,Hamakuapoko,Hamoa,Hanakaoo,Hanaulu,Hanawana,Hanehoi,Haneoo,Haou,Hikiaupea,Hoalua,Hokuula,Honohina,Honokahua,Honokala,Honokalani,Honokeana,Honokohau,Honokowai,Honolua,Honolulu,Honolulunui,Honomaele,Honomanu,Hononana,Honopou,Hoolawa,Hopenui,Hualele,Huelo,Hulaia,Ihuula,Ilikahi,Kaalaea,Kaalelehinale,Kaapahu,Kaehoeho,Kaeleku,Kaeo,Kahakuloa,Kahalawe,Kahalawe,Kahalehili,Kahana,Kahilo,Kahuai,Kaiaula,Kailihiakoko,Kailua,Kainehe,Kakalahale,Kakanoni,Kakio,Kakiweka,Kalena,Kalenanui,Kaleoaihe,Kalepa,Kaliae,Kalialinui,Kalihi,Kalihi,Kalihi,Kalimaohe,Kaloi,Kamani,Kamaole,Kamehame,Kanahena,Kanaio,Kaniaula,Kaonoulu,Kaopa,Kapaloa,Kapaula,Kapewakua,Kapohue,Kapuaikini,Kapunakea,Kapuuomahuka,Kauau,Kauaula,Kaukuhalahala,Kaulalo,Kaulanamoa,Kauluohana,Kaumahalua,Kaumakani,Kaumanu,Kaunauhane,Kaunuahane,Kaupakulua,Kawaipapa,Kawaloa,Kawaloa,Kawalua,Kawela,Keaa,Keaalii,Keaaula,Keahua,Keahuapono,Keakuapauaela,Kealahou,Keanae,Keauhou,Kekuapawela,Kelawea,Keokea,Keopuka,Kepio,Kihapuhala,Kikoo,Kilolani,Kipapa,Koakupuna,Koali,Koananai,Koheo,Kolea,Kolokolo,Kooka,Kopili,Kou,Kualapa,Kuhiwa,Kuholilea,Kuhua,Kuia,Kuiaha,Kuikui,Kukoae,Kukohia,Kukuiaeo,Kukuioolu,Kukuipuka,Kukuiula,Kulahuhu,Kumunui,Lapakea,Lapalapaiki,Lapueo,Launiupoko,Loiloa,Lole,Lualailua,Maalo,Mahinahina,Mahulua,Maiana,Mailepai,Makaakini,Makaalae,Makaehu,Makaiwa,Makaliua,Makapipi,Makapuu,Makawao,Makila,Mala,Maluaka,Mamalu,Manawaiapiki,Manawainui,Maulili,Mehamenui,Miana,Mikimiki,Moalii,Moanui,Mohopili,Mohopilo,Mokae,Mokuia,Mokupapa,Mooiki,Mooloa,Moomuku,Muolea,Nahuakamalii,Nailiilipoko,Nakaaha,Nakalepo,Nakaohu,Nakapehu,Nakula,Napili,Niniau,Niumalu,Nuu,Ohia,Oloewa,Olowalu,Omaopio,Onau,Onouli,Opaeula,Opana,Opikoula,Paakea,Paeahu,Paehala,Paeohi,Pahoa,Paia,Pakakia,Pakala,Palauea,Palemo,Panaewa,Paniau,Papaaea,Papaanui,Papaauhau,Papahawahawa,Papaka,Papauluana,Pauku,Paunau,Pauwalu,Pauwela,Peahi,Piapia,Pohakanele,Pohoula,Polaiki,Polanui,Polapola,Polua,Poopoo,Popoiwi,Popoloa,Poponui,Poupouwela,Puaa,Puaaluu,Puahoowali,Puakea,Puako,Pualaea,Puehuehu,Puekahi,Pueokauiki,Pukaauhuhu,Pukalani,Pukuilua,Pulehu,Pulehuiki,Pulehunui,Punaluu,Puolua,Puou,Puuhaehae,Puuhaoa,Puuiki,Puuki,Puukohola,Puulani,Puumaneoneo,Puunau,Puunoa,Puuomaiai,Puuomaile,Uaoa,Uhao,Ukumehame,Ulaino,Ulumalu,Wahikuli,Waiahole,Waiakoa,Waianae,Waianu,Waiawa,Waiehu,Waieli,Waihee,Waikapu,Wailamoa,Wailaulau,Wailua,Wailuku,Wainee,Waiohole,Waiohonu,Waiohue,Waiohuli,Waiokama,Waiokila,Waiopai,Waiopua,Waipao,Waipio,Waipioiki,Waipionui,Waipouli,Wakiu,Wananalua"},
-        {name: "Karnataka", i: 26, min: 5, max: 11, d: "tnl", m: 0, b: "Adityapatna,Adyar,Afzalpur,Aland,Alnavar,Alur,Ambikanagara,Anekal,Ankola,Annigeri,Arkalgud,Arsikere,Athni,Aurad,Badami,Bagalkot,Bagepalli,Bail,Bajpe,Bangalore,Bangarapet,Bankapura,Bannur,Bantval,Basavakalyan,Basavana,Belgaum,Beltangadi,Belur,Bhadravati,Bhalki,Bhatkal,Bhimarayanagudi,Bidar,Bijapur,Bilgi,Birur,Bommasandra,Byadgi,Challakere,Chamarajanagar,Channagiri,Channapatna,Channarayapatna,Chik,Chikmagalur,Chiknayakanhalli,Chikodi,Chincholi,Chintamani,Chitapur,Chitgoppa,Chitradurga,Dandeli,Dargajogihalli,Devadurga,Devanahalli,Dod,Donimalai,Gadag,Gajendragarh,Gangawati,Gauribidanur,Gokak,Gonikoppal,Gubbi,Gudibanda,Gulbarga,Guledgudda,Gundlupet,Gurmatkal,Haliyal,Hangal,Harapanahalli,Harihar,Hassan,Hatti,Haveri,Hebbagodi,Heggadadevankote,Hirekerur,Holalkere,Hole,Homnabad,Honavar,Honnali,Hoovina,Hosakote,Hosanagara,Hosdurga,Hospet,Hubli,Hukeri,Hungund,Hunsur,Ilkal,Indi,Jagalur,Jamkhandi,Jevargi,Jog,Kadigenahalli,Kadur,Kalghatgi,Kamalapuram,Kampli,Kanakapura,Karkal,Karwar,Khanapur,Kodiyal,Kolar,Kollegal,Konnur,Koppa,Koppal,Koratagere,Kotturu,Krishnarajanagara,Krishnarajasagara,Krishnarajpet,Kudchi,Kudligi,Kudremukh,Kumta,Kundapura,Kundgol,Kunigal,Kurgunta,Kushalnagar,Kushtagi,Lakshmeshwar,Lingsugur,Londa,Maddur,Madhugiri,Madikeri,Mahalingpur,Malavalli,Mallar,Malur,Mandya,Mangalore,Manvi,Molakalmuru,Mudalgi,Mudbidri,Muddebihal,Mudgal,Mudhol,Mudigere,Mulbagal,Mulgund,Mulki,Mulur,Mundargi,Mundgod,Munirabad,Mysore,Nagamangala,Nanjangud,Narasimharajapura,Naregal,Nargund,Navalgund,Nipani,Pandavapura,Pavagada,Piriyapatna,Pudu,Puttur,Rabkavi,Raichur,Ramanagaram,Ramdurg,Ranibennur,Raybag,Robertson,Ron,Sadalgi,Sagar,Sakleshpur,Saligram,Sandur,Sankeshwar,Saundatti,Savanur,Sedam,Shahabad,Shahpur,Shaktinagar,Shiggaon,Shikarpur,Shirhatti,Shorapur,Shrirangapattana,Siddapur,Sidlaghatta,Sindgi,Sindhnur,Sira,Siralkoppa,Sirsi,Siruguppa,Somvarpet,Sorab,Sringeri,Srinivaspur,Sulya,Talikota,Tarikere,Tekkalakote,Terdal,Thumbe,Tiptur,Tirthahalli,Tirumakudal,Tumkur,Turuvekere,Udupi,Vijayapura,Wadi,Yadgir,Yelandur,Yelbarga,Yellapur,Yenagudde"},
-        {name: "Quechua", i: 27, min: 6, max: 12, d: "l", m: 0, b: "Altomisayoq,Ancash,Andahuaylas,Apachekta,Apachita,Apu ,Apurimac,Arequipa,Atahuallpa,Atawalpa,Atico,Ayacucho,Ayllu,Cajamarca,Carhuac,Carhuacatac,Cashan,Caullaraju,Caxamalca,Cayesh,Chacchapunta,Chacraraju,Champara,Chanchan,Chekiacraju,Chinchey,Chontah,Chopicalqui,Chucuito,Chuito,Chullo,Chumpi,Chuncho,Chuquiapo,Churup,Cochapata,Cojup,Collota,Conococha,Copa,Corihuayrachina,Cusichaca,Despacho,Haika,Hanpiq,Hatun,Haywarisqa,Huaca,Hualcan,Huamanga,Huamashraju,Huancarhuas,Huandoy,Huantsan,Huarmihuanusca,Huascaran,Huaylas,Huayllabamba,Huichajanca,Huinayhuayna,Huinioch,Illiasca,Intipunku,Ishinca,Jahuacocha,Jirishanca,Juli,Jurau,Kakananpunta,Kamasqa,Karpay,Kausay,Khuya ,Kuelap,Llaca,Llactapata,Llanganuco,Llaqta,Llupachayoc,Machu,Mallku,Matarraju,Mikhuy,Milluacocha,Munay,Ocshapalca,Ollantaytambo,Pacamayo,Paccharaju,Pachacamac,Pachakamaq,Pachakuteq,Pachakuti,Pachamama  ,Paititi,Pajaten,Palcaraju,Pampa,Panaka,Paqarina,Paqo,Parap,Paria,Patallacta,Phuyupatamarca,Pisac,Pongos,Pucahirca,Pucaranra,Puscanturpa,Putaca,Qawaq ,Qayqa,Qochamoqo,Qollana,Qorihuayrachina,Qorimoqo,Quenuaracra,Queshque,Quillcayhuanca,Quillya,Quitaracsa,Quitaraju,Qusqu,Rajucolta,Rajutakanan,Rajutuna,Ranrahirca,Ranrapalca,Raria,Rasac,Rimarima,Riobamba,Runkuracay,Rurec,Sacsa,Saiwa,Sarapo,Sayacmarca,Sinakara,TamboColorado,Tamboccocha,Taripaypacha,Taulliraju,Tawantinsuyu,Taytanchis,Tiwanaku,Tocllaraju,Tsacra,Tuco,Tullparaju,Tumbes,Ulta,Uruashraju,Vallunaraju,Vilcabamba,Wacho ,Wankawillka,Wayra,Yachay,Yahuarraju,Yanamarey,Yanesha,Yerupaja"},
-        {name: "Swahili", i: 28, min: 4, max: 9, d: "", m: 0, b: "Abim,Adjumani,Alebtong,Amolatar,Amuria,Amuru,Apac,Arua,Arusha,Babati,Baragoi,Bombo,Budaka,Bugembe,Bugiri,Buikwe,Bukedea,Bukoba,Bukomansimbi,Bukungu,Buliisa,Bundibugyo,Bungoma,Busembatya,Bushenyi,Busia,Busia,Busolwe,Butaleja,Butambala,Butere,Buwenge,Buyende,Dadaab,Dodoma,Dokolo,Eldoret,Elegu,Emali,Embu,Entebbe,Garissa,Gede,Gulu,Handeni,Hima,Hoima,Hola,Ibanda,Iganga,Iringa,Isingiro,Isiolo,Jinja,Kaabong,Kabale,Kaberamaido,Kabuyanda,Kabwohe,Kagadi,Kahama,Kajiado,Kakamega,Kakinga,Kakira,Kakiri,Kakuma,Kalangala,Kaliro,Kalisizo,Kalongo,Kalungu,Kampala,Kamuli,Kamwenge,Kanoni,Kanungu,Kapchorwa,Kapenguria,Kasese,Kasulu,Katakwi,Kayunga,Kericho,Keroka,Kiambu,Kibaale,Kibaha,Kibingo,Kiboga,Kibwezi,Kigoma,Kihiihi,Kilifi,Kira,Kiruhura,Kiryandongo,Kisii,Kisoro,Kisumu,Kitale,Kitgum,Kitui,Koboko,Korogwe,Kotido,Kumi,Kyazanga,Kyegegwa,Kyenjojo,Kyotera,Lamu,Langata,Lindi,Lodwar,Lokichoggio,Londiani,Loyangalani,Lugazi,Lukaya,Luweero,Lwakhakha,Lwengo,Lyantonde,Machakos,Mafinga,Makambako,Makindu,Malaba,Malindi,Manafwa,Mandera,Maralal,Marsabit,Masaka,Masindi,MasindiPort,Masulita,Matugga,Mayuge,Mbale,Mbarara,Mbeya,Meru,Mitooma,Mityana,Mombasa,Morogoro,Moroto,Moshi,Moyale,Moyo,Mpanda,Mpigi,Mpondwe,Mtwara,Mubende,Mukono,Mumias,Muranga,Musoma,Mutomo,Mutukula,Mwanza,Nagongera,Nairobi,Naivasha,Nakapiripirit,Nakaseke,Nakasongola,Nakuru,Namanga,Namayingo,Namutumba,Nansana,Nanyuki,Narok,Naromoru,Nebbi,Ngora,Njeru,Njombe,Nkokonjeru,Ntungamo,Nyahururu,Nyeri,Oyam,Pader,Paidha,Pakwach,Pallisa,Rakai,Ruiru,Rukungiri,Rwimi,Sanga,Sembabule,Shimoni,Shinyanga,Singida,Sironko,Songea,Soroti,Ssabagabo,Sumbawanga,Tabora,Takaungu,Tanga,Thika,Tororo,Tunduma,Vihiga,Voi,Wajir,Wakiso,Watamu,Webuye,Wobulenzi,Wote,Wundanyi,Yumbe,Zanzibar"},
-        {name: "Vietnamese", i: 29, min: 3, max: 12, d: "", m: 1, b: "An Khe,An Nhon,Ayun Pa,Ba Don,Ba Ria,Bac Giang,Bac Kan,Bac Lieu,Bac Ninh,Bao Loc,Ben Cat,Ben Tre,Bien Hoa,Bim Son,Binh Long,Binh Minh,Buon Ho,Buon Ma Thuot,Ca Mau,Cai Lay,Cam Pha,Cam Ranh,Can Tho,Cao Bang,Cao Lanh,Chau Doc,Chi Linh,Cua Lo,Da Lat,Da Nang,Di An,Dien Ban,Dien Bien Phu,Dong Ha,Dong Hoi,Dong Trieu,Duyen Hai,Gia Nghia,Gia Rai,Go Cong,Ha Giang,Ha Long,Ha Noi,Ha Tinh,Hai Duong,Hai Phong,Hoa Binh,Hoang Mai,Hoi An,Hong Linh,Hong Ngu,Hue,Hung Yen,Huong Thuy,Huong Tra,Kien Tuong,Kon Tum,Ky Anh,La Gi,Lai Chau,Lang Son,Lao Cai,Long Khanh,Long My,Long Xuyen,Mong Cai,Muong Lay,My Hao,My Tho,Nam Dinh,Nga Bay,Nga Nam,Nghia Lo,Nha Trang,Ninh Binh,Ninh Hoa,Phan Rang Thap Cham,Phan Thiet,Pho Yen,Phu Ly,Phu My,Phu Tho,Phuoc Long,Pleiku,Quang Ngai,Quang Tri,Quang Yen,Quy Nhon,Rach Gia,Sa Dec,Sam Son,Soc Trang,Son La,Son Tay,Song Cau,Song Cong,Tam Diep,Tam Ky,Tan An,Tan Chau,Tan Uyen,Tay Ninh,Thai Binh,Thai Hoa,Thai Nguyen,Thanh Hoa,Thu Dau Mot,Thuan An,Tra Vinh,Tu Son,Tuy Hoa,Tuyen Quang,Uong Bi,Vi Thanh,Viet Tri,Vinh,Vinh Chau,Vinh Long,Vinh Yen,Vung Tau,Yen Bai"},
-        {name: "Cantonese", i: 30, min: 5, max: 11, d: "", m: 0, b: "Chaiwan,Chekham,Cheungshawan,Chingchung,Chinghoi,Chingsen,Chingshing,Chiunam,Chiuon,Chiuyeung,Chiyuen,Choihung,Chuehoi,Chuiman,Chungfa,Chungfu,Chungsan,Chunguktsuen,Dakhing,Daopo,Daumun,Dingwu,Dinpak,Donggun,Dongyuen,Duenchau,Fachau,Fado,Fanling,Fatgong,Fatshan,Fotan,Fuktien,Fumun,Funggong,Funghoi,Fungshun,Fungtei,Gamtin,Gochau,Goming,Gonghoi,Gongshing,Goyiu,Hanghau,Hangmei,Hashan,Hengfachuen,Hengon,Heungchau,Heunggong,Heungkiu,Hingning,Hohfuktong,Hoichue,Hoifung,Hoiping,Hokong,Hokshan,Homantin,Hotin,Hoyuen,Hunghom,Hungshuikiu,Jiuling,Kamping,Kamsheung,Kamwan,Kaulongtong,Keilun,Kinon,Kinsang,Kityeung,Kongmun,Kukgong,Kwaifong,Kwaihing,Kwongchau,Kwongling,Kwongming,Kwuntong,Laichikok,Laiking,Laiwan,Lamtei,Lamtin,Leitung,Leungking,Limkong,Linchau,Linnam,Linping,Linshan,Loding,Lokcheong,Lokfu,Lokmachau,Longchuen,Longgong,Longmun,Longping,Longwa,Longwu,Lowu,Luichau,Lukfung,Lukho,Lungmun,Macheung,Maliushui,Maonshan,Mauming,Maunam,Meifoo,Mingkum,Mogong,Mongkok,Muichau,Muigong,Muiyuen,Naiwai,Namcheong,Namhoi,Namhong,Namo,Namsha,Namshan,Nganwai,Ngchuen,Ngoumun,Ngwa,Nngautaukok,Onting,Pakwun,Paotoishan,Pingshan,Pingyuen,Poklo,Polam,Pongon,Poning,Potau,Puito,Punyue,Saiwanho,Saiyingpun,Samshing,Samshui,Samtsen,Samyuenlei,Sanfung,Sanhing,Sanhui,Sanwai,Sanwui,Seiwui,Shamshuipo,Shanmei,Shantau,Shatin,Shatinwai,Shaukeiwan,Shauking,Shekkipmei,Shekmun,Shekpai,Sheungshui,Shingkui,Shiuhing,Shundak,Shunyi,Shupinwai,Simshing,Siuhei,Siuhong,Siukwan,Siulun,Suikai,Taihing,Taikoo,Taipo,Taishuihang,Taiwai,Taiwo,Taiwohau,Tinhau,Tinho,Tinking,Tinshuiwai,Tiukengleng,Toishan,Tongfong,Tonglowan,Tsakyoochung,Tsamgong,Tsangshing,Tseungkwano,Tsihing,Tsimshatsui,Tsinggong,Tsingshantsuen,Tsingwun,Tsingyi,Tsingyuen,Tsiuchau,Tsuenshekshan,Tsuenwan,Tuenmun,Tungchung,Waichap,Waichau,Waidong,Wailoi,Waishing,Waiyeung,Wanchai,Wanfau,Wanon,Wanshing,Wingon,Wongchukhang,Wongpo,Wongtaisin,Woping,Wukaisha,Yano,Yaumatei,Yauoi,Yautong,Yenfa,Yeungchun,Yeungdong,Yeunggong,Yeungsai,Yeungshan,Yimtin,Yingdak,Yiuping,Yongshing,Yongyuen,Yuenlong,Yuenshing,Yuetsau,Yuknam,Yunping,Yuyuen"},
-        {name: "Mongolian", i: 31, min: 5, max: 12, d: "aou", m: .3, b: "Adaatsag,Airag,Alag Erdene,Altai,Altanshiree,Altantsogts,Arbulag,Baatsagaan,Batnorov,Batshireet,Battsengel,Bayan Adarga,Bayan Agt,Bayanbulag,Bayandalai,Bayandun,Bayangovi,Bayanjargalan,Bayankhongor,Bayankhutag,Bayanlig,Bayanmonkh,Bayannuur,Bayan Ondor,Bayan Ovoo,Bayantal,Bayantsagaan,Bayantumen,Bayan Uul,Bayanzurkh,Berkh,Biger,Binder,Bogd,Bombogor,Bor Ondor,Bugat,Bulgan,Buregkhangai,Burentogtokh,Buutsagaan,Buyant,Chandmani,Chandmani Ondor,Choibalsan,Chuluunkhoroot,Chuluut,Dadal,Dalanjargalan,Dalanzadgad,Darkhan,Darvi,Dashbalbar,Dashinchilen,Delger,Delgerekh,Delgerkhaan,Delgerkhangai,Delgertsogt,Deluun,Deren,Dorgon,Duut,Erdene,Erdenebulgan,Erdeneburen,Erdenedalai,Erdenemandal,Erdenetsogt,Galshar,Galt,Galuut,Govi Ugtaal,Gurvan,Gurvanbulag,Gurvansaikhan,Gurvanzagal,Ikhkhet,Ikh Tamir,Ikh Uul,Jargalan,Jargalant,Jargaltkhaan,Jinst,Khairkhan,Khalhgol,Khaliun,Khanbogd,Khangai,Khangal,Khankh,Khankhongor,Khashaat,Khatanbulag,Khatgal,Kherlen,Khishig Ondor,Khokh,Kholonbuir,Khongor,Khotont,Khovd,Khovsgol,Khuld,Khureemaral,Khurmen,Khutag Ondor,Luus,Mandakh,Mandal Ovoo,Mankhan,Manlai,Matad,Mogod,Monkhkhairkhan,Moron,Most,Myangad,Nogoonnuur,Nomgon,Norovlin,Noyon,Ogii,Olgii,Olziit,Omnodelger,Ondorkhaan,Ondorshil,Ondor Ulaan,Orgon,Orkhon,Rashaant,Renchinlkhumbe,Sagsai,Saikhan,Saikhandulaan,Saikhan Ovoo,Sainshand,Saintsagaan,Selenge,Sergelen,Sevrei,Sharga,Sharyngol,Shine Ider,Shinejinst,Shiveegovi,Sumber,Taishir,Tarialan,Tariat,Teshig,Togrog,Tolbo,Tomorbulag,Tonkhil,Tosontsengel,Tsagaandelger,Tsagaannuur,Tsagaan Ovoo,Tsagaan Uur,Tsakhir,Tseel,Tsengel,Tsenkher,Tsenkhermandal,Tsetseg,Tsetserleg,Tsogt,Tsogt Ovoo,Tsogttsetsii,Tunel,Tuvshruulekh,Ulaanbadrakh,Ulaankhus,Ulaan Uul,Uyench,Yesonbulag,Zag,Zamyn Uud,Zereg"},
-        // fantasy bases by Dopu:
-        {name: "Human Generic", i: 32, min: 6, max: 11, d: "peolst", m: 0, b: "Grimegrove,Cliffshear,Eaglevein,Basinborn,Whalewich,Faypond,Pondshade,Earthfield,Dustwatch,Houndcall,Oakenbell,Wildwell,Direwallow,Springmire,Bayfrost,Fearwich,Ghostdale,Cursespell,Shadowvein,Freygrave,Freyshell,Tradewick,Grasswallow,Kilshell,Flatwall,Mosswind,Edgehaven,Newfalls,Flathand,Lostcairn,Grimeshore,Littleshade,Millstrand,Snowbay,Quickbell,Crystalrock,Snakewharf,Oldwall,Whitvalley,Stagport,Deadkeep,Claymond,Angelhand,Ebonhold,Shimmerrun,Honeywater,Gloomburn,Arrowburgh,Slyvein,Dawnforest,Dirtshield,Southbreak,Clayband,Oakenrun,Graypost,Deepcairn,Lagoonpass,Cavewharf,Thornhelm,Smoothwallow,Lightfront,Irongrave,Stonespell,Cavemeadow,Millbell,Shimmerwell,Eldermere,Roguehaven,Dogmeadow,Pondside,Springview,Embervault,Dryhost,Bouldermouth,Stormhand,Oakenfall,Clearguard,Lightvale,Freyshear,Flameguard,Bellcairn,Bridgeforest,Scorchwich,Mythgulch,Maplesummit,Mosshand,Iceholde,Knightlight,Dawnwater,Laststar,Westpoint,Goldbreach,Falsevale,Pinegarde,Shroudrock,Whitwharf,Autumnband,Oceanstar,Rosedale,Snowtown,Chillstrand,Saltmouth,Crystalsummit,Redband,Thorncairn,Beargarde,Pearlhaven,Lostward,Northpeak,Sandhill,Cliffgate,Sandminster,Cloudcrest,Mythshear,Dragonward,Coldholde,Knighttide,Boulderharbor,Faybarrow,Dawnpass,Pondtown,Timberside,Madfair,Crystalspire,Shademeadow,Dragonbreak,Castlecross,Dogwell,Caveport,Wildlight,Mudfront,Eldermere,Midholde,Ravenwall,Mosstide,Everborn,Lastmere,Dawncall,Autumnkeep,Oldwatch,Shimmerwood,Eldergate,Deerchill,Fallpoint,Silvergulch,Cavemire,Deerbrook,Pinepond,Ravenside,Thornyard,Scorchstall,Swiftwell,Roguereach,Cloudwood,Smoothtown,Kilhill,Ironhollow,Stillhall,Rustmore,Ragefair,Ghostward,Deadford,Smallmire,Barebreak,Westforest,Bonemouth,Evercoast,Sleekgulch,Neverfront,Lostshield,Icelight,Quickgulch,Brinepeak,Hollowstorm,Limeband,Basinmore,Steepmoor,Blackford,Stormtide,Wildyard,Wolfpass,Houndburn,Pondfalls,Pureshell,Silvercairn,Houndwallow,Dewmere,Fearpeak,Bellstall,Diredale,Crowgrove,Moongulf,Kilholde,Sungulf,Baremore,Bleakwatch,Farrun,Grimeshire,Roseborn,Heartford,Scorchpost,Cloudbay,Whitlight,Timberham,Cloudmouth,Curseminster,Basinfrost,Maplevein,Sungarde,Cloudstar,Bellport,Silkwich,Ragehall,Bellreach,Swampmaw,Snakemere,Highbourne,Goldyard,Lakemond,Shadeville,Mightmouth,Nevercrest,Pinemount,Claymouth,Rosereach,Oldreach,Brittlehelm,Heartfall,Bonegulch,Silkhollow,Crystalgulf,Mutewell,Flameside,Blackwatch,Greenwharf,Moonacre,Beachwick,Littleborough,Castlefair,Stoneguard,Nighthall,Cragbury,Swanwall,Littlehall,Mudford,Shadeforest,Mightglen,Millhand,Easthill,Amberglen,Nighthall,Cragbury,Swanwall,Littlehall,Mudford,Shadeforest,Mightglen,Millhand,Easthill,Amberglen,Smoothcliff,Lakecross,Quicklight,Eaglecall,Silentkeep,Dragonshear,Ebonfront,Oakenmeadow,Cliffshield,Stormhorn,Cavefell,Wildedenn,Earthgate,Brittlecall,Swangarde,Steamwallow,Demonfall,Sleethallow,Mossstar,Dragonhold,Smoothgrove,Sleetrun,Flamewell,Mistvault,Heartvault,Newborough,Deeppoint,Littlehold,Westshell,Caveminster,Swiftshade,Grimwood,Littlemire,Bridgefalls,Lastmere,Fayyard,Madham,Curseguard,Earthpass,Silkbrook,Winterview,Grimeborough,Dustcross,Dogcoast,Dirtstall,Oxlight,Pondstall,Sleetglen,Ghostpeak,Snowshield,Loststar,Chillwharf,Sleettide,Millgulch,Whiteshore,Sunmond,Moonwell,Grassdrift,Westmeadow,Crowvault,Everchill,Bearmire,Bronzegrasp,Oxbrook,Cursefield,Steammouth,Smoothham,Arrowdenn,Stillstrand,Mudwich"},
-        {name: "Elven", i: 33, min: 6, max: 12, d: "lenmsrg", m: 0, b: "Adrindest,Aethel,Afranthemar,Aggar,Aiqua,Alari,Allanar,Allanbelle,Almalian,Alora,Alyanasari,Alyelona,Alyran,Amenalenora,Ammar,Amymabelle,Ancalen,AnhAlora,Anore,Anyndell,Arasari,Aren,Ashesari,Ashletheas,Ashmebel,Asrannore,Athelle,Aymlume,Baethei,Bel-Didhel,Belanore,Borethanil,Brinorion,Caelora,Chaggaust,Chaulssad,Chaundra,ChetarIthlin,Cyhmel,Cyla,Cyonore,Cyrangroth,Doladress,Dolarith,Dolasea,Dolonde,Dorthore,Dorwine,Draethe,Dranzan,Draugaust,Dreghei,Drelhei,Dryndlu,E'ana,E'ebel,Eahil,Edhil,Edraithion,Efho,Efranluma,Efvanore,Einyallond,Elathlume,Eld-Sinnocrin,Elddrinn,Elelthyr,Elheinn,Ellanalin,Ellena,Ellheserin,Ellnlin,Ellorthond,Elralara,Elstyr,Eltaesi,Elunore,Eman,EmneLenora,Emyel,Emyranserine,Enhethyr,Ennore,Entheas,Eriargond,Erranlenor,ErrarIthinn,Esari,Esath,Eserius,Eshsalin,Eshthalas,Esseavad,Esyana,EsyseAiqua,Evraland,Faellenor,Faladhell,Famelenora,Fethalas,Filranlean,Filsaqua,Formarion,Ferdor,Gafetheas,GafSerine,Gansari,Geliene,Gondorwin,Guallu,Haeth,Hanluna,Haulssad,Helatheas,Hellerien,Heloriath,Himlarien,Himliene,Hinnead,Hlaughei,Hlinas,Hloireenil,Hluihei,Hluitar,Hlurthei,Hlynead,Iaenarion,Ifrennoris,IllaAncalen,Illanathaes,Illfanora,Imlarlon,Imyfaluna,Imyse,Imyvelian,Inferius,Inhalon,Inllune,Inlurth,innsshe,Inransera,Iralserin,Irethtalos,Irholona,Ishal,Ishlashara,Isyenshara,Ithelion,Iymerius,Iaron,Iulil,Jaal,Jamkadi,Kaalume,Kaansera,Kalthalas,Karanthanil,Karnosea,Kasethyr,Keatheas,Kelsya,KethAiqua,Kmlon,Kyathlenor,Kyhasera,Lahetheas,Lammydr,Lefdorei,Lelhamelle,Lelon,Lenora,Lilean,Lindoress,Lindeenil,Lirillaquen,Litys,Llaughei,Llurthei,Lya,Lyenalon,Lyfa,Lylharion,Lylmhil,Lynathalas,Lir,Machei,Masenoris,Mathathlona,Mathethil,Mathntheas,Meethalas,Melelume,Menyamar,Menzithl,Minthyr,Mithlonde,Mornetheas,Mytha,Mythnserine,Mythsemelle,Mythsthas,Myvanas,Naahona,Nalore,NasadIlaurth,Nasin,Nathemar,Navethas,Neadar,Neanor,Neilon,Nelalon,Nellean,Nelnetaesi,Nfanor,Nilenathyr,Nionande,Nurtaleewe,Nylm,Nytenanas,Nythanlenor,Nythfelon,Nythodorei,Nytlenor,Nidiel,Noruiben,O'anlenora,O'lalona,Obeth,Ofaenathyr,Oflhone,Ollethlune,Ollmarion,Ollmnaes,Ollsmel,Olranlune,Olyaneas,Olynahil,Omanalon,Omyselon,Onelion,Onelond,Onylanor,Orlormel,Orlynn,Ormrion,Oshana,Oshmahona,Oshvamel,Raethei,Raineas,Rauguall,Rauthe,Rauthei,Reisera,Reslenora,Rrharrvhei,Ryanasera,Rymaserin,Sahnor,Saselune,Sel-Zedraazin,Selananor,Sellerion,Selmaluma,Serin,Serine,Shaeras,Shemnas,Shemserin,Sheosari,Sileltalos,Siriande,Siriathil,Sohona,Srannor,Sshanntyr,Sshaulssin,Sshaulu,Syholume,Sylharius,Sylranbel,Symdorei,Syranbel,Szoberr,Silon,Taesi,Thalas,Thalor,Thalore,Tharenlon,Tharlarast,Thelethlune,Thelhohil,Thelnora,Themar,Thene,Thilfalean,Thilnaenor,Thvethalas,Thylathlond,Tiregul,Tirion,Tlauven,Tlindhe,Ulal,Ullallanar,Ullmatalos,Ullve,Ulmetheas,Ulrenserine,Ulssin,Umnalin,Umye,Umyheserine,Unanneas,Unarith,Undraeth,Unysarion,Vel-Shonidor,Venas,Vinargothr,Waethe,Wasrion,Wlalean,Y'maqua,Yaeluma,Yeelume,Yele,Yethrion,Ymserine,Yueghed,Yuereth,Yuerran,Yuethin,Nandeedil,Olwen,Yridhremben"},
-        {name: "Dark Elven", i: 34, min: 6, max: 14, d: "nrslamg", m: .2, b: "Abaethaggar,Abburth,Afranthemar,Aharasplit,Aidanat,Ald'ruhn,Ashamanu,Ashesari,Ashletheas,Baerario,Baereghel,Baethei,Bahashae,Balmora,Bel-Didhel,Borethanil,Buiyrandyn,Caellagith,Caellathala,Caergroth,Caldras,Chaggar,Chaggaust,Channtar,Charrvhel'raugaust,Chaulssin,Chaundra,ChedNasad,ChetarIthlin,ChethRrhinn,Chymaer,Clarkarond,Cloibbra,Commoragh,Cyrangroth,Cilben,D'eldarc,Daedhrog,Dalkyn,Do'Urden,Doladress,Dolarith,Dolonde,Draethe,Dranzan,Dranzithl,Draugaust,Dreghei,Drelhei,Dryndlu,Dusklyngh,DyonG'ennivalz,Edraithion,Eld-Sinnocrin,Ellorthond,Enhethyr,Entheas,ErrarIthinn,Eryndlyn,Faladhell,Faneadar,Fethalas,Filranlean,Formarion,Ferdor,Gafetheas,Ghrond,Gilranel,Glamordis,Gnaarmok,Gnisis,Golothaer,Gondorwin,Guallidurth,Guallu,Gulshin,Haeth,Haggraef,Harganeth,Harkaldra,Haulssad,Haundrauth,Heloriath,Hlammachar,Hlaughei,Hloireenil,Hluitar,Inferius,innsshe,Ithilaughym,Iz'aiogith,Jaal,Jhachalkhyn,Kaerabrae,Karanthanil,Karondkar,Karsoluthiyl,Kellyth,Khuul,Lahetheas,Lidurth,Lindeenil,Lirillaquen,LithMy'athar,LlurthDreier,Lolth,Lothuial,Luihaulen'tar,Maeralyn,Maerimydra,Mathathlona,Mathethil,Mellodona,Menagith,Menegwen,Menerrendil,Menzithl,Menzoberranzan,Mila-Nipal,Mithryn,Molagmar,Mundor,Myvanas,Naggarond,NasadIlaurth,Nauthor,Navethas,Neadar,Nurtaleewe,Nidiel,Noruiben,O'lalona,Obeth,Ofaenathyr,Orlormel,Orlytlar,Pelagiad,Raethei,Raugaust,Rauguall,Rilauven,Rrharrvhei,Sadrith,Sel-Zedraazin,Seydaneen,Shaz'rir,Skaal,Sschindylryn,Shamath,Shamenz,Shanntur,Sshanntynlan,Sshanntyr,Shaulssin,SzithMorcane,Szithlin,Szobaeth,Sirdhemben,T'lindhet,Tebh'zhor,Telmere,Telnarquel,Tharlarast,Thylathlond,Tlaughe,Trizex,Tyrybblyn,Ugauth,Ughym,Ullmatalos,Ulmetheas,Ulrenserine,Uluitur,Undraeth,Undraurth,Undrek'Thoz,Ungethal,UstNatha,V'elddrinnsshar,Vaajha,Vel-Shonidor,Velddra,Velothi,Venead,Vhalth'vha,Vinargothr,Vojha,Waethe,Waethei,Xaalkis,Yakaridan,Yeelume,Yuethin,Yuethindrynn,Zirnakaynin,Nandeedil,olwen,Uhaelben,Uthaessien,Yridhremben"},
-        {name: "Dwarven", i: 35, min: 4, max: 11, d: "dk", m: 0, b: "Addundad,Ahagzad,Ahazil,Akil,Akzizad,Anumush,Araddush,Arar,Arbhur,Badushund,Baragzig,Baragzund,Barakinb,Barakzig,Barakzinb,Barakzir,Baramunz,Barazinb,Barazir,Bilgabar,Bilgatharb,Bilgathaz,Bilgila,Bilnaragz,Bilnulbar,Bilnulbun,Bizaddum,Bizaddush,Bizanarg,Bizaram,Bizinbiz,Biziram,Bunaram,Bundinar,Bundushol,Bundushund,Bundushur,Buzaram,Buzundab,Buzundush,Gabaragz,Gabaram,Gabilgab,Gabilgath,Gabizir,Gabunal,Gabunul,Gabuzan,Gatharam,Gatharbhur,Gathizdum,Gathuragz,Gathuraz,Gila,Giledzir,Gilukkhath,Gilukkhel,Gunala,Gunargath,Gunargil,Gundumunz,Gundusharb,Gundushizd,Kharbharbiln,Kharbhatharb,Kharbhela,Kharbilgab,Kharbuzadd,Khatharbar,Khathizdin,Khathundush,Khazanar,Khazinbund,Khaziragz,Khaziraz,Khizdabun,Khizdusharbh,Khizdushath,Khizdushel,Khizdushur,Kholedzar,Khundabiln,Khundabuz,Khundinarg,Khundushel,Khuragzig,Khuramunz,Kibarak,Kibilnal,Kibizar,Kibunarg,Kibundin,Kibuzan,Kinbadab,Kinbaragz,Kinbarakz,Kinbaram,Kinbizah,Kinbuzar,Nala,Naledzar,Naledzig,Naledzinb,Naragzah,Naragzar,Naragzig,Narakzah,Narakzar,Naramunz,Narazar,Nargabad,Nargabar,Nargatharb,Nargila,Nargundum,Nargundush,Nargunul,Narukthar,Narukthel,Nula,Nulbadush,Nulbaram,Nulbilnarg,Nulbunal,Nulbundab,Nulbundin,Nulbundum,Nulbuzah,Nuledzah,Nuledzig,Nulukkhaz,Nulukkhund,Nulukkhur,Sharakinb,Sharakzar,Sharamunz,Sharbarukth,Shatharbhizd,Shatharbiz,Shathazah,Shathizdush,Shathola,Shaziragz,Shizdinar,Shizdushund,Sholukkharb,Shundinulb,Shundushund,Shurakzund,Shuramunz,Tumunzadd,Tumunzan,Tumunzar,Tumunzinb,Tumunzir,Ukthad,Ulbirad,Ulbirar,Ulunzar,Ulur,Umunzad,Undalar,Undukkhil,Undun,Undur,Unduzur,Unzar,Unzathun,Usharar,Zaddinarg,Zaddushur,Zaharbad,Zaharbhizd,Zarakib,Zarakzar,Zaramunz,Zarukthel,Zinbarukth,Zirakinb,Zirakzir,Ziramunz,Ziruktharbh,Zirukthur,Zundumunz"},
-        {name: "Goblin", i: 36, min: 4, max: 9, d: "eag", m: 0, b: "Crild,Cielb,Srurd,Fruict,Xurx,Crekork,Strytzakt,Ialsirt,Gnoklig,Kleardeek,Gobbledak,Thelt,Swaxi,Ulm,Shaxi,Thult,Jasheafta,Kleabtong,Bhiagielt,Kuipuinx,Hiszils,Nilbog,Gneabs,Stiolx,Esz,Honk,Veekz,Vohniots,Bratliaq,Slehzit,Diervaq,Zriokots,Buyagh,Treaq,Phax,Ilm,Blus,Srefs,Biokvish,Gigganqi,Watvielx,Katmelt,Slofboif,gobbok,Klilm,Blix,Qosx,Fygsee,Moft,Asinx,Joimtoilm,Styrzangai,Prolkeh,Stioskurt,Mogg,Cel,Far,Rekx,Chalk,Paas,Brybsil,Utiarm,Eebligz,Iahzaarm,Stuikvact,Gobbrin,Ish,Suirx,Utha,Taxai,Onq,Stiaggaltia,Dobruing,Breshass,Cosvil,Traglila,Felhob,Hobgar,Preang,Sios,Wruilt,Chox,Pyreazzi,Glamzofs,Froihiofz,Givzieqee,Vreagaald,Bugbig,Kluirm,Ulb,Driord,Stroir,Croibieq,Bridvelb,Wrogdilk,Slukex,Ozbiard,Gagablin,Heszai,Kass,Chiafzia,Thresxea,Een,Oimzoishai,Enissee,Glernaahx,Qeerags,Phigheldai,Ziggek"},
-        {name: "Orc", i: 37, min: 4, max: 8, d: "gzrcu", m: 0, b: "ModhOdod,BodRugniz,Rildral,Zalbrez,Bebugh,Grurro,Ibruzzed,Goccogmurd,CheganKhed,BedgezGraz,IkhUgnan,NoGolkon,Dhezza,Chuccuz,Dribor,Khezdrugh,Uzdriboz,Nolgazgredh,KrogvurOz,ZrucraBi,ErLigvug,OkhUggekh,Vrobrun,Raggird,Adgoz,Chugga,Ghagrocroz,Khuldrerradh,IrmekhBhor,KuzgrurdDedh,ZunBergrord,AdhKhorkol,Alzokh,Mubror,Bozdra,Brugroz,Nuzecro,Qidzodkakh,GharedKrin,OrkudhBhur,EkhKrerdrugh,KrarZurmurd,Nuccag,Rezegh,Lorgran,Grergran,Nadguggez,Mocculdrer,BrorkrilZrog,RurguzVig,CharRodkeg,UghBhelgag,Zulbriz,Rodrekh,Erbragh,Bhicrur,Arkugzo,Arrordri,MiccolBurd,OddighKrodh,UghVruron,VrughNardrer,Dhoddud,Murmad,Chuzar,Vrazin,Ridgozedh,Lazzogno,MughakhChil,VrolburNur,KrighBhurdin,GhadhDrurzan,Adran,Chazgro,Krorgrug,Grodzakh,Ugrudraz,Iggulzaz,KudrukhLi,QuccuBan,GrighKaggaz,ArdGrughokh,Zolbred,Drozgrir,Agkadh,Zuggedh,Lulkore,Dhulbazzol,DhazonNer,ZrazzuzVaz,BrurKorre,EkhMezred,Vaddog,Drirdradh,Qashnagh,Arad,Zadarord,Khorbriccord,NelzorZroz,DruccoRad,DhodhBrerdrodh,BhakhZradgukh,Qirrer,Uzord,Bulbredh,Khuzdraz,Churgrorgadh,Legvicrodh,GazdrakhVrard,VagordKhod,GidhUcceg,BhogKirgol,Brogved,Aga,Kudzal,Brolzug,Ughudadh,Noshnogradh,ZubodUr,ZrulbukhDekh,ReVurkog,RoghChirzaz,Kharkiz,Bhogug,Bozziz,Vuccidh,Ruddirgrad,Zordrordud,GrirkrunQur,IbulBrad,AdAdzurd,GaghDruzred,Acran,Morbraz,Drurgin,Chogidh,Nogvolkar,Uzaggor,KazzuzZrar,ArrulChukh,DiChudun,GhoUgnud,Uzron,Uzdroz,Gholgard,Zragmukh,Qiddolzog,Reradgri,QiccadChal,NubudId,ZrardKrodog,KrudhKhogzokh,Vizdrun,Orrad,Darmon,Ulkin,Zigmorbredh,Bizzadurd,MuccugGhuz,MabraghBhard,DurKhaddol,BheghGegnod,Qazzudh,Drobagh,Zorrudh,Dodkakh,Gribrabrokh,Quggidkad,DududhAkh,DrizdedhAd,GhordBhozdrokh,ZadEzzedh,Larud,Ashnedh,Gridkog,Qirzodh,Bhirgoshbel,Ghirmarokh,ArizDru,AgzilGhal,DrodhAshnugh,UghErrod,Lugekh,Buccel,Rarurd,Verrugh,Qommorbrord,Bagzildre,NazadLudh,IbaghChol,GrazKhulgag,QigKrorkodh,Rozzez,Koggodh,Ruzgrin,Zrigud,Zragrizgrakh,Irdrelzug,VrurzarMol,KezulBruz,GurGhogkagh,KigRadkodh,Ulgor,Kroddadh,Eldrird,Bozgrun,Digzagkigh,Azrurdrekh,KhuzdordDugh,DhurkighGrer,MeGheggor,KoGerkradh,Bashnud,Nirdrukh,Adog,Egmod,Vruzzegvukh,Nagrubagh,DugkegVuz,MorkirZrudh,NudhKuldra,DhodhGhigin,Graldrodh,Rero,Merkraz,Ummo,Largraragh,Brordeggeg,UldrukhBhudh,DregvekhOg,GughZozgrod,GhidZrogiz,Khebun,Ordol,Ghadag,Dredagh,Bhiccozdur,Chizeril,KarkorZrid,EmmanMaz,LiBogzel,EkhBeccon,Dashnukh,Kacruz,Krummel,Dirdrurd,Khalbammedh,Dhizdrermodh,GharuZrug,BhurkrukhLen,ZuZredzokh,BralLazogh,Velgrudh,Dorgri,Irbraz,Udral,Bigkurel,Zarralkod,DhoggunBhogh,AdgrilGha,DrukhQodgoz,KaNube,Vrurgu,Mazgar,Lalga,Bolkan,Kudgroccukh,Zraldrozzuz,VorordUz,ZacradLe,BrukhZrabrul,GagDrugmag,Kraghird,Bhummagh,Brazadh,Kalbrugh,Brogzozir,Mugmodror,RezgrughErd,UmmughEkh,GuNuccul,VunGaghukh,Ghizgil,Arbran,Bulgragh,Negvidh,Girodgrurd,Ghedgrolbrol,DrogvukhDrodh,DhalgronMog,MulDhazzug,ChazCharard,Drurkuz,Niddeg,Bagguz,Ogkal,Rordrushnokh,Gorkozzil,KorkrirGrar,RigaghZrad"},
-        {name: "Giant", i: 38, min: 5, max: 10, d: "kdtng", m: 0, b: "Kostand,Throtrek,Solfod,Shurakzund,Heimfara,Anumush,Dulkun,Sigbeorn,Velhera,Glumvat,Khundinarg,Shathizdush,Baramunz,Nargunul,Magald,Noluch,Yotane,Tumunzar,Giledzir,Nurkel,Khizdabun,Yudgor,Hartreo,Galfald,Vigkan,Kibarak,Girkun,Gomruch,Guddud,Darnaric,Botharic,Gunargath,Oldstin,Rizen,Marbold,Nargundush,Hargarth,Kengord,Maerdis,Brerstin,Sigbi,Zigez,Umunzad,Nelkun,Yili,Usharar,Ranhera,Mistoch,Nuledzah,Nulbilnarg,Nulukkhur,Tulkug,Kigine,Marbrand,Gagkake,Khathizdin,Geru,Nagu,Grimor,Kaltoch,Koril,Druguk,Khatharbar,Debuch,Eraddam,Neliz,Brozu,Morluch,Enuz,Gatal,Beratira,Gurkale,Gluthmark,Iora,Tozage,Agane,Kegkez,Nuledzig,Bahourg,Jornangar,Kilfond,Dankuc,Rurki,Eldond,Barakzig,Olane,Gostuz,Grimtira,Brildung,Nulbaram,Nargabar,Narazar,Natan,oci,Khaziragz,Gabuzan,Orga,Addundad,Yulkake,Nulukkhaz,Bundushund,Guril,Barakinb,Sadgach,Vylwed,Vozig,Hildlaug,Chergun,Dagdhor,Kibizar,Shundushund,Mornkin,Jaldhor,inez,Lingarth,Churtec,Naragzah,Gabizir,Zugke,Ranava,Minu,Barazinb,Fynwyn,Talkale,Widhyrde,Sidga,Velfirth,Varkud,Shathola,Duhal,Srokvan,Guruge,Lindira,Rannerg,Kilkan,Gudgiz,Baragzund,Aerora,Inginy,Kharbharbiln,Theoddan,Rirkan,Undukkhil,Borgbert,Dina,Gortho,Kinbuzar,Kuzake,Drard,Gorkege,Nargatharb,Diru,Shatharbiz,Sgandrol,Sharakzar,Barakzinb,Dinez,Jarwar,Khizdushel,Wylaeya,Khazanar,Beornelde,Arangrim,Sholukkharb,Stighere,Gulwo,Irkin,Jornmoth,Gundusharb,Gabaram,Shizdinar,Memron,Guzi,Naramunz,Morntaric,Somrud,Norginny,Bremrol,Rurkoc,Zugkan,Vorkige,Kinbadab,Gila,Sulduch,Natil,Idgurth,Gabaragz,Tolkeg,Eradhelm,Dugfast,Froththorn,Galgrim,Theodgrim,Valdhere,Gazin,Tigkiz,Burthug,Chazruc,Kakkek,Toren"},
-        {name: "Draconic", i: 39, min: 6, max: 14, d: "aliuszrox", m: 0, b: "Aaronarra,Adalon,Adamarondor,Aeglyl,Aerosclughpalar,Aghazstamn,Aglaraerose,Agoshyrvor,Alduin,Alhazmabad,Altagos,Ammaratha,Amrennathed,Anaglathos,Andrathanach,Araemra,Araugauthos,Arauthator,Arharzel,Arngalor,Arveiaturace,Athauglas,Augaurath,Auntyrlothtor,Azarvilandral,Azhaq,Balagos,Baratathlaer,Bleucorundum,BrazzPolis,Canthraxis,Capnolithyl,Charvekkanathor,Chellewis,Chelnadatilar,Cirrothamalan,Claugiyliamatar,Cragnortherma,Dargentum,Dendeirmerdammarar,Dheubpurcwenpyl,Domborcojh,Draconobalen,Dragansalor,Dupretiskava,Durnehviir,Eacoathildarandus,Eldrisithain,Enixtryx,Eormennoth,Esmerandanna,Evenaelorathos,Faenphaele,Felgolos,Felrivenser,Firkraag,Fll'Yissetat,Furlinastis,Galadaeros,Galglentor,Garnetallisar,Garthammus,Gaulauntyr,Ghaulantatra,Glouroth,Greshrukk,Guyanothaz,Haerinvureem,Haklashara,Halagaster,Halaglathgar,Havarlan,Heltipyre,Hethcypressarvil,Hoondarrh,Icehauptannarthanyx,Iiurrendeem,Ileuthra,Iltharagh,Ingeloakastimizilian,Irdrithkryn,Ishenalyr,Iymrith,Jaerlethket,Jalanvaloss,Jhannexydofalamarne,Jharakkan,Kasidikal,Kastrandrethilian,Khavalanoth,Khuralosothantar,Kisonraathiisar,Kissethkashaan,Kistarianth,Klauth,Klithalrundrar,Krashos,Kreston,Kriionfanthicus,Krosulhah,Krustalanos,Kruziikrel,Kuldrak,Lareth,Latovenomer,Lhammaruntosz,Llimark,Ma'fel'no'sei'kedeh'naar,MaelestorRex,Magarovallanthanz,Mahatnartorian,Mahrlee,Malaeragoth,Malagarthaul,Malazan,Maldraedior,Maldrithor,MalekSalerno,Maughrysear,Mejas,Meliordianix,Merah,Mikkaalgensis,Mirmulnir,Mistinarperadnacles,Miteach,Mithbarazak,Morueme,Moruharzel,Naaslaarum,Nahagliiv,Nalavarauthatoryl,Naxorlytaalsxar,Nevalarich,Nolalothcaragascint,Nurvureem,Nymmurh,Odahviing,Olothontor,Ormalagos,Otaaryliakkarnos,Paarthurnax,Pelath,Pelendralaar,Praelorisstan,Praxasalandos,Protanther,Qiminstiir,Quelindritar,Ralionate,Rathalylaug,Rathguul,Rauglothgor,Raumorthadar,Relonikiv,Ringreemeralxoth,Roraurim,Ruuthundrarar,Rylatar'ralah'tyma,Rynnarvyx,Sablaxaahl,Sahloknir,Sahrotaar,Samdralyrion,Saryndalaghlothtor,Sawaka,Shalamalauth,Shammagar,Sharndrel,Shianax,Skarlthoon,Skurge,Smergadas,Ssalangan,Sssurist,Sussethilasis,Sylvallitham,Tamarand,Tantlevgithus,Taraunramorlamurla,Tarlacoal,Tenaarlaktor,Thalagyrt,Tharas'kalagram,Thauglorimorgorus,Thoklastees,Thyka,Tsenshivah,Ueurwen,Uinnessivar,Urnalithorgathla,Velcuthimmorhar,Velora,Vendrathdammarar,Venomindhar,Viinturuth,Voaraghamanthar,Voslaarum,Vr'tark,Vrondahorevos,Vuljotnaak,Vulthuryol,Wastirek,Worlathaugh,Xargithorvar,Xavarathimius,Yemere,Ylithargathril,Ylveraasahlisar,Za-Jikku,Zarlandris,Zellenesterex,Zilanthar,Zormapalearath,Zundaerazylym,Zz'Pzora"},
-        {name: "Arachnid", i: 40, min: 4, max: 10, d: "erlsk", m: 0, b: "Aaqok'ser,Acah,Aiced,Aisi,Aizachis,Allinqel,As'taq,Ashrash,Caaqtos,Caq'zux,Ceek'sax,Ceezuq,Cek'siereel,Cen'qi,Ceqru,Ceqzocer,Cezeed,Chachocaq,Charis,Chashar,Chashilieth,Checib,Chen'qal,Chernul,Cherzoq,Chezi,Chiazu,Chikoqal,Chishros,Chixhi,Chizhi,Chizoser,Chollash,Choq'sha,Chouk'rix,Cinchichail,Collul,Ecush'taid,Eenqachal,Ekiqe,El'zos,El'zur,Ellu,Eq'tur,Eqa,Eqas,Er'uria,Erikas,Ertu,Es'tase,Esrub,Evirrot,Exha,Haqsho,Heekath,Hiavheesh,Hitha,Hok'thi,Hossa,Iacid,Iciever,Ik'si,Illuq,Iri,Isicer,Isnir,Ivrid,Kaalzux,Keezut,Kheellavas,Kheizoh,Khellinqesh,Khiachod,Khika,Khinchi,Khirzur,Khivila,Khonrud,Khontid,Khosi,Khrakku,Khraqshis,Khrerrith,Khrethish'ti,Khriashus,Khrika,Khrirni,Khrocoqshesh,Klashirel,Klassa,Kleil'sha,Kliakis,Klishuth,Klith'osha,Krarnit,Kras'tex,Kreelzi,Krivas,Krotieqas,Laco,Lairta,Lais'tid,Laizuh,Lasnoth,Lekkol,Len'qeer,Leqanches,Lezad,Lhezsi,Lhilir,Lhivhath,Lhok'thu,Lialliesed,Liaraq,Liarisriq,Liceva,Lichorro,Lilla,Livorzish,Lokieqib,Nakar,Nakur,Naros,Natha,Necuk'saih,Neerhaca,Neet'er,Neezoh,Nenchiled,Nerhalneth,Nir'ih,Nizus,Noreeqo,Novalsher,On'qix,Qailloncho,Qak'sovo,Qalitho,Qartori,Qas'tor,Qasol,Qavrud,Qavud,Qazar,Qazieveq,Qazru,Qeik'thoth,Qekno,Qeqravee,Qes'tor,Qhaaviq,Qhaik'sal,Qhak'sish,Qhazsakais,Qhechorte,Qheliva,Qhenchaqes,Qherazal,Qhesoh,Qhiallud,Qhon'qos,Qhoshielleed,Qish'tur,Qisih,Qollal,Qorhoci,Qouxet,Qranchiq,Racith,Rak'zes,Ranchis,Rarhie,Rarzi,Rarzisiaq,Ras'tih,Ravosho,Recad,Rekid,Relshacash,Reqishee,Rernee,Rertachis,Rezhokketh,Reziel,Rhacish,Rhail'shel,Rhairhizse,Rhakivex,Rhaqeer,Rhartix,Rheciezsei,Rheevid,Rhel'shir,Rhetovraix,Rhevhie,Rhialzub,Rhiavekot,Rhikkos,Rhiqese,Rhiqi,Rhiqracar,Rhisned,Rhokno,Rhousnateb,Rhouvaqid,Riakeesnex,Rik'sid,Rintachal,Rir'ul,Rorrucis,Rosharhir,Rourk'u,Rouzakri,Sailiqei,Sanchiqed,Sanqad,Saqshu,Sat'ier,Sazi,Seiqas,Shieth'i,Shiqsheh,Shizha,Shrachuvo,Shranqo,Shravhos,Shravuth,Shreerhod,Shrethuh,Shriantieth,Shronqash,Shrovarhir,Shrozih,Siacaqoh,Siezosh,Silrul,Siq'sha,Sirro,Sornosi,Srachussi,Sreqrud,Srirnukaaq,Szaca,Szacih,Szaqova,Szasu,Szazhilos,Szeerrud,Szeezsad,Szeknur,Szesir,Szet'as,Szetirrar,Szezhirros,Szilshith,Szon'qol,Szornuq,Xaax'uq,Xeekke,Xosax,Yaconchi,Yacozses,Yazrer,Yeek'su,Yeeq'zox,Yeqil,Yeqroq,Yeveed,Yevied,Yicaveeh,Yirresh,Yisie,Yithik'thaih,Yorhaqshes,Zacheek'sa,Zakkasa,Zaqi,Zelraq,Zeqo,Zhaivoq,Zharuncho,Zhath'arhish,Zhavirrit,Zhazilraq,Zhazot,Zhazsachiel,Zhek'tha,Zhequ,Zhias'ted,Zhicat,Zhicur,Zhiese,Zhirhacil,Zhizri,Zhochizses,Zhorkir,Ziarih,Zirnib,Zis'teq,Zivezeh"},
-        {name: "Serpents", i: 41, min: 5, max: 11, d: "slrk", m: 0, b: "Aj'ha,Aj'i,Aj'tiss,Ajakess,Aksas,Aksiss,Al'en,An'jeshe,Apjige,Arkkess,Athaz,Atus,Azras,Caji,Cakrasar,Cal'arrun,Capji,Cathras,Cej'han,Ces,Cez'jenta,Cij'te,Cinash,Cizran,Coth'jus,Cothrash,Culzanek,Cunaless,Ej'tesh,Elzazash,Ergek,Eshjuk,Ethris,Gan'jas,Gapja,Gar'thituph,Gopjeguss,Gor'thesh,Gragishaph,Grar'theness,Grath'ji,Gressinas,Grolzesh,Grorjar,Grozrash,Guj'ika,Harji,Hej'hez,Herkush,Horgarrez,Illuph,Ipjar,Ithashin,Kaj'ess,Kar'kash,Kepjusha,Ki'kintus,Kissere,Koph,Kopjess,Kra'kasher,Krak,Krapjez,Krashjuless,Kraz'ji,Krirrigis,Krussin,Ma'lush,Mage,Maj'tak,Mal'a,Mapja,Mar'kash,Mar'kis,Marjin,Mas,Mathan,Men'jas,Meth'jaresh,Mij'hegak,Min'jash,Mith'jas,Monassu,Moss,Naj'hass,Najugash,Nak,Napjiph,Nar'ka,Nar'thuss,Narrusha,Nash,Nashjekez,Nataph,Nij'ass,Nij'tessiph,Nishjiss,Norkkuss,Nus,Olluruss,Or'thi,Or'thuss,Paj'a,Parkka,Pas,Pathujen,Paz'jaz,Pepjerras,Pirkkanar,Pituk,Porjunek,Pu'ke,Ragen,Ran'jess,Rargush,Razjuph,Rilzan,Riss,Rithruz,Rorgiss,Rossez,Rraj'asesh,Rraj'tass,Rrar'kess,Rrar'thuph,Rras,Rrazresh,Rrej'hish,Rrigelash,Rris,Rris,Rroksurrush,Rukrussush,Rurri,Russa,Ruth'jes,Sa'kitesh,Sar'thass,Sarjas,Sazjuzush,Ser'thez,Sezrass,Shajas,Shas,Shashja,Shass,Shetesh,Shijek,Shun'jaler,Shurjarri,Skaler,Skalla,Skallentas,Skaph,Skar'kerriz,Skath'jeruk,Sker'kalas,Skor,Skoz'ji,Sku'lu,Skuph,Skur'thur,Slalli,Slalt'har,Slelziress,Slil'ar,Sloz'jisa,Sojesh,Solle,Sorge,Sral'e,Sran'ji,Srapjess,Srar'thazur,Srash,Srath'jess,Srathrarre,Srerkkash,Srus,Sruss'tugeph,Sun,Suss'tir,Uzrash,Vargush,Vek,Vess'tu,Viph,Vult'ha,Vupjer,Vushjesash,Xagez,Xassa,Xulzessu,Zaj'tiss,Zan'jer,Zarriss,Zassegus,Zirres,Zsor,Zurjass"}
-      ];
-    };
-
-    return {
-      getBase,
-      getCulture,
-      getCultureShort,
-      getBaseShort,
-      getState,
-      updateChain,
-      clearChains,
-      getNameBases,
-      getMapName,
-      calculateChain,
-    };
-  })();
-
   // apply drop-down menu option. If the value is not in options, add it
   applyOption(select, id, name = id) {
     const custom = !Array.from(select.options).some((o: any) => o.value == id);
@@ -2214,28 +1885,30 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
       // console.group("Loaded Map " + seed);
 
-      const settings = data[1].split("|");
+      this.settings = data[1].split("|");
       // if (settings[0]) this.applyOption(this.distanceUnitInput, settings[0]);
-      if (settings[1]) this.distanceScaleInput = settings[1];
+      // if (this.settings[1]) this.distanceScaleInput = this.settings[1];
       // if (settings[2]) this.areaUnit.value = settings[2];
       // if (settings[3]) this.applyOption(this.heightUnit, settings[3]);
-      if (settings[4]) this.heightExponentInput = settings[4];
-      if (settings[5]) this.temperatureScale = settings[5];
-      if (settings[6]) this.barSizeInput = settings[6];
-      if (settings[7] !== undefined) this.barLabel = settings[7];
-      if (settings[8] !== undefined) this.barBackOpacity = settings[8];
-      if (settings[9]) this.barBackColor = settings[9];
+      if (this.settings[4]) this.heightExponentInput = this.settings[4];
+      if (this.settings[5]) this.temperatureScale = this.settings[5];
+      if (this.settings[6]) this.barSizeInput = this.settings[6];
+
+      if (this.settings[7] !== undefined) this.barLabel = this.settings[7];
+      if (this.settings[8] !== undefined)
+        this.barBackOpacity = this.settings[8];
+      if (this.settings[9]) this.barBackColor = this.settings[9];
       // if (settings[10]) this.barPosX = settings[10];
       // if (settings[11]) this.barPosY = settings[11];
-      if (settings[12]) this.populationRate = settings[12];
-      if (settings[13]) this.urbanization = settings[13];
+      if (this.settings[12]) this.populationRate = this.settings[12];
+      if (this.settings[13]) this.urbanization = this.settings[13];
       // if (settings[14]) this.mapSizeInput.value = this.mapSizeOutput.value = Math.max(Math.min(settings[14], 100), 1);
       // if (settings[15]) this.latitudeInput.value = this.latitudeOutput.value = Math.max(Math.min(settings[15], 100), 0);
       // if (settings[16]) this.temperatureEquatorInput.value = this.temperatureEquatorOutput.value = settings[16];
       // if (settings[17]) this.temperaturePoleInput.value = this.temperaturePoleOutput.value = settings[17];
       // if (settings[18]) this.precInput.value = this.precOutput.value = settings[18];
-      if (settings[19]) this.options = JSON.parse(settings[19]);
-      if (settings[20]) this.mapName = settings[20];
+      if (this.settings[19]) this.options = JSON.parse(this.settings[19]);
+      if (this.settings[20]) this.mapName = this.settings[20];
       // if (settings[21]) this.hideLabels.checked = +settings[21];
       // if (settings[22]) this.stylePreset.value = settings[22];
       // if (settings[23]) this.rescaleLabels.checked = settings[23];
@@ -2309,7 +1982,9 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.svg = d3.select("#map");
 
       this.defs = this.svg.select("#deftemp");
-      this.viewbox = this.svg.select("#viewbox");
+      this.viewbox = this.svg
+        .select("#viewbox")
+        .attr("transform", localStorage.getItem("lastView"));
       this.restoreDefaultEvents(); // apply default viewbox events on load
       this.scaleBar = this.svg.select("#scaleBar");
       this.legend = this.svg.select("#legend");
@@ -2385,7 +2060,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.pack.markers = data[35] ? JSON.parse(data[35]) : [];
       this.pack.provinces = data[30] ? JSON.parse(data[30]) : [0];
       this.pack.rivers = data[32] ? JSON.parse(data[32]) : [];
-
       this.cells = this.pack.cells;
 
       this.cells.biome = Uint8Array.from(data[16].split(","));
@@ -2398,6 +2072,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.cells.road = Uint16Array.from(data[23].split(","));
       this.cells.s = Uint16Array.from(data[24].split(","));
       this.cells.state = Uint16Array.from(data[25].split(","));
+      this.cells.temp = Int8Array.from(data[11].split(","));
       this.cells.religion = data[26]
         ? Uint16Array.from(data[26].split(","))
         : new Uint16Array(this.cells.i.length);
@@ -2407,6 +2082,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.cells.crossroad = data[28]
         ? Uint16Array.from(data[28].split(","))
         : new Uint16Array(this.cells.i.length);
+      this.storyService.setData(data, this.cells);
 
       if (data[31]) {
         const namesDL = data[31].split("/");
@@ -2451,7 +2127,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         this.toggleRelief(1);
       // if (hasChildren(this.relig)) turnOn("toggleReligions");
       // if (hasChildren(this.cults)) turnOn("toggleCultures");
-      if (hasChildren(this.statesBody)) this.toggleStates(1);
+      if (hasChildren(this.statesBody)) this.BurgsAndStates.toggle(1);
       // if (hasChildren(this.provs)) turnOn("toggleProvinces");
       // if (hasChildren(this.zones) && notHidden(this.zones)) turnOn("toggleZones");
       if (notHidden(this.borders) && hasChild(this.compass, "use"))
@@ -2474,11 +2150,13 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
       // this.getCurrentPreset();
 
-      // this.scaleBar.on("mousemove", () => tip("Click to open Units Editor")).on("click", () => this.editUnits());
-      // this.legend.on("mousemove", () => tip("Drag to change the position. Click to hide the legend")).on("click", () => this.clearLegend());
+      this.legend
+        .on("mousemove", () =>
+          this.tip("Drag to change the position. Click to hide the legend")
+        )
+        .on("click", () => this.clearLegend());
 
       const version = parseFloat(data[0].split("|")[0]);
-      console.log(version);
       // if (version < 1.64) {
       // v.1.64 change states style
       const opacity = this.regions.attr("opacity");
@@ -2591,7 +2269,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         markerElements.forEach((el) => el.remove());
         if (this.layerIsOn("markers")) this.drawMarkers();
       }
-
+      this.drawMarkers();
       // const cells = this.pack.cells;
 
       if (this.pack.cells.i.length !== this.pack.cells.state.length) {
@@ -2763,6 +2441,17 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         );
         p.removed = true; // remove incorrect province
       });
+      let xys = JSON.parse(localStorage.getItem("lastXYS"));
+      if (xys) this.viewX = xys[0];
+      if (xys) this.viewY = xys[1];
+      if (xys) this.scale = xys[2];
+
+      // this.zoomTo(this.viewX, this.viewY, this.scale, 100);
+      const transform = d3.zoomIdentity
+        .translate(this.viewX, this.viewY)
+        .scale(this.scale);
+
+      this.svg.transition().duration(100).call(this.zoom.transform, transform);
 
       this.changeMapSize();
 
@@ -2812,195 +2501,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       // });
     }
   };
-  Lakes = (() => {
-    let heightExponentInput = this.heightExponentInput;
-    let rn = this.rn;
-    let grid = this.grid;
-    let pack = this.pack;
-
-    const setClimateData = function (h) {
-      const cells = pack.cells;
-      const lakeOutCells = new Uint16Array(cells.i.length);
-
-      pack.features.forEach((f) => {
-        if (f.type !== "lake") return;
-
-        // default flux: sum of precipitation around lake
-        f.flux = f.shoreline.reduce(
-          (acc, c) => acc + grid.cells.prec[cells.g[c]],
-          0
-        );
-
-        // temperature and evaporation to detect closed lakes
-        f.temp =
-          f.cells < 6
-            ? grid.cells.temp[cells.g[f.firstCell]]
-            : rn(
-                d3.mean(f.shoreline.map((c) => grid.cells.temp[cells.g[c]])),
-                1
-              );
-        const height = (f.height - 18) ** heightExponentInput; // height in meters
-        const evaporation =
-          ((700 * (f.temp + 0.006 * height)) / 50 + 75) / (80 - f.temp); // based on Penman formula, [1-11]
-        f.evaporation = rn(evaporation * f.cells);
-
-        // no outlet for lakes in depressed areas
-        if (f.closed) return;
-
-        // lake outlet cell
-        f.outCell = f.shoreline[d3.scan(f.shoreline, (a, b) => h[a] - h[b])];
-        lakeOutCells[f.outCell] = f.i;
-      });
-
-      return lakeOutCells;
-    };
-
-    // get array of land cells aroound lake
-    const getShoreline = function (lake) {
-      const uniqueCells = new Set();
-      lake.vertices.forEach((v) =>
-        pack.vertices.c[v].forEach(
-          (c) => pack.cells.h[c] >= 20 && uniqueCells.add(c)
-        )
-      );
-      lake.shoreline = [...uniqueCells];
-    };
-
-    const prepareLakeData = (h) => {
-      const cells = pack.cells;
-      const ELEVATION_LIMIT = +(<HTMLInputElement>(
-        document.getElementById("lakeElevationLimitOutput")
-      )).value;
-
-      pack.features.forEach((f) => {
-        if (f.type !== "lake") return;
-        delete f.flux;
-        delete f.inlets;
-        delete f.outlet;
-        delete f.height;
-        delete f.closed;
-        !f.shoreline && this.Lakes.getShoreline(f);
-
-        // lake surface height is as lowest land cells around
-        const min = f.shoreline.sort((a, b) => h[a] - h[b])[0];
-        f.height = h[min] - 0.1;
-
-        // check if lake can be open (not in deep depression)
-        if (ELEVATION_LIMIT === 80) {
-          f.closed = false;
-          return;
-        }
-
-        let deep = true;
-        const threshold = f.height + ELEVATION_LIMIT;
-        const queue = [min];
-        const checked = [];
-        checked[min] = true;
-
-        // check if elevated lake can potentially pour to another water body
-        while (deep && queue.length) {
-          const q = queue.pop();
-
-          for (const n of cells.c[q]) {
-            if (checked[n]) continue;
-            if (h[n] >= threshold) continue;
-
-            if (h[n] < 20) {
-              const nFeature = pack.features[cells.f[n]];
-              if (nFeature.type === "ocean" || f.height > nFeature.height) {
-                deep = false;
-                break;
-              }
-            }
-
-            checked[n] = true;
-            queue.push(n);
-          }
-        }
-
-        f.closed = deep;
-      });
-    };
-
-    const cleanupLakeData = function () {
-      for (const feature of pack.features) {
-        if (feature.type !== "lake") continue;
-        delete feature.river;
-        delete feature.enteringFlux;
-        delete feature.outCell;
-        delete feature.closed;
-        feature.height = rn(feature.height, 3);
-
-        const inlets = feature.inlets?.filter((r) =>
-          pack.rivers.find((river) => river.i === r)
-        );
-        if (!inlets || !inlets.length) delete feature.inlets;
-        else feature.inlets = inlets;
-
-        const outlet =
-          feature.outlet &&
-          pack.rivers.find((river) => river.i === feature.outlet);
-        if (!outlet) delete feature.outlet;
-      }
-    };
-
-    const defineGroup = function () {
-      for (const feature of pack.features) {
-        if (feature.type !== "lake") continue;
-        const lakeEl = this.lakes.select(`[data-f="${feature.i}"]`).node();
-        if (!lakeEl) continue;
-
-        feature.group = getGroup(feature);
-        document.getElementById(feature.group).appendChild(lakeEl);
-      }
-    };
-
-    const generateName = function () {
-      Math.random = this.aleaPRNG(this.seed);
-      for (const feature of pack.features) {
-        if (feature.type !== "lake") continue;
-        feature.name = getName(feature);
-      }
-    };
-
-    const getName = function (feature) {
-      const landCell = pack.cells.c[feature.firstCell].find(
-        (c) => pack.cells.h[c] >= 20
-      );
-      const culture = pack.cells.culture[landCell];
-      return this.Names.getCulture(culture);
-    };
-
-    function getGroup(feature) {
-      if (feature.temp < -3) return "frozen";
-      if (
-        feature.height > 60 &&
-        feature.cells < 10 &&
-        feature.firstCell % 10 === 0
-      )
-        return "lava";
-
-      if (!feature.inlets && !feature.outlet) {
-        if (feature.evaporation > feature.flux * 4) return "dry";
-        if (feature.cells < 3 && feature.firstCell % 10 === 0)
-          return "sinkhole";
-      }
-
-      if (!feature.outlet && feature.evaporation > feature.flux) return "salt";
-
-      return "freshwater";
-    }
-
-    return {
-      setClimateData,
-      cleanupLakeData,
-      prepareLakeData,
-      defineGroup,
-      generateName,
-      getName,
-      getShoreline,
-    };
-  })();
 
   declareFont = (font) => {
     const { family, src, ...rest } = font;
@@ -3160,1322 +2660,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     this.changeFont();
   };
 
-  COArenderer = (() => {
-    const draw = async function (id, coa) {
-      const { shield, division, ordinaries = [], charges = [] } = coa;
-
-      const ordinariesRegular = ordinaries.filter((o) => !o.above);
-      const ordinariesAboveCharges = ordinaries.filter((o) => o.above);
-      const shieldPath = shieldPaths[shield];
-      const tDiv = division
-        ? division.t.includes("-")
-          ? division.t.split("-")[1]
-          : division.t
-        : null;
-      const positions = shieldPositions[shield];
-      const sizeModifier = shieldSize[shield] || 1;
-      const viewBox = shieldBox[shield] || "0 0 200 200";
-
-      const shieldClip = `<clipPath id="${shield}_${id}"><path d="${shieldPath}"/></clipPath>`;
-      const divisionClip = division
-        ? `<clipPath id="divisionClip_${id}">${getTemplate(
-            division.division,
-            division.line
-          )}</clipPath>`
-        : "";
-      const loadedCharges = await getCharges(coa, id, shieldPath);
-      const loadedPatterns = getPatterns(coa, id);
-      const blacklight = `<radialGradient id="backlight_${id}" cx="100%" cy="100%" r="150%"><stop stop-color="#fff" stop-opacity=".3" offset="0"/><stop stop-color="#fff" stop-opacity=".15" offset=".25"/><stop stop-color="#000" stop-opacity="0" offset="1"/></radialGradient>`;
-      const field = `<rect x="0" y="0" width="200" height="200" fill="${clr(
-        coa.t1
-      )}"/>`;
-      const divisionGroup = division ? templateDivision() : "";
-      const overlay = `<path d="${shieldPath}" fill="url(#backlight_${id})" stroke="#333"/>`;
-
-      const svg = `<svg id="${id}" width="200" height="200" viewBox="${viewBox}">
-          <defs>${shieldClip}${divisionClip}${loadedCharges}${loadedPatterns}${blacklight}</defs>
-          <g clip-path="url(#${shield}_${id})">${field}${divisionGroup}${templateAboveAll()}</g>
-          ${overlay}</svg>`;
-
-      // insert coa svg to defs
-      document.getElementById("coas").insertAdjacentHTML("beforeend", svg);
-      return true;
-
-      function templateDivision() {
-        let svg = "";
-
-        // In field part
-        for (const ordinary of ordinariesRegular) {
-          if (ordinary.divided === "field")
-            svg += templateOrdinary(ordinary, ordinary.t);
-          else if (ordinary.divided === "counter")
-            svg += templateOrdinary(ordinary, tDiv);
-        }
-
-        for (const charge of charges) {
-          if (charge.divided === "field")
-            svg += templateCharge(charge, charge.t);
-          else if (charge.divided === "counter")
-            svg += templateCharge(charge, tDiv);
-        }
-
-        for (const ordinary of ordinariesAboveCharges) {
-          if (ordinary.divided === "field")
-            svg += templateOrdinary(ordinary, ordinary.t);
-          else if (ordinary.divided === "counter")
-            svg += templateOrdinary(ordinary, tDiv);
-        }
-
-        // In division part
-        svg += `<g clip-path="url(#divisionClip_${id})"><rect x="0" y="0" width="200" height="200" fill="${clr(
-          division.t
-        )}"/>`;
-
-        for (const ordinary of ordinariesRegular) {
-          if (ordinary.divided === "division")
-            svg += templateOrdinary(ordinary, ordinary.t);
-          else if (ordinary.divided === "counter")
-            svg += templateOrdinary(ordinary, coa.t1);
-        }
-
-        for (const charge of charges) {
-          if (charge.divided === "division")
-            svg += templateCharge(charge, charge.t);
-          else if (charge.divided === "counter")
-            svg += templateCharge(charge, coa.t1);
-        }
-
-        for (const ordinary of ordinariesAboveCharges) {
-          if (ordinary.divided === "division")
-            svg += templateOrdinary(ordinary, ordinary.t);
-          else if (ordinary.divided === "counter")
-            svg += templateOrdinary(ordinary, coa.t1);
-        }
-
-        return (svg += `</g>`);
-      }
-
-      function templateAboveAll() {
-        let svg = "";
-
-        ordinariesRegular
-          .filter((o) => !o.divided)
-          .forEach((ordinary) => {
-            svg += templateOrdinary(ordinary, ordinary.t);
-          });
-
-        charges
-          .filter((o) => !o.divided || !division)
-          .forEach((charge) => {
-            svg += templateCharge(charge, charge.t);
-          });
-
-        ordinariesAboveCharges
-          .filter((o) => !o.divided)
-          .forEach((ordinary) => {
-            svg += templateOrdinary(ordinary, ordinary.t);
-          });
-
-        return svg;
-      }
-
-      function templateOrdinary(ordinary, tincture) {
-        const fill = clr(tincture);
-        let svg = `<g fill="${fill}" stroke="none">`;
-        if (ordinary.ordinary === "bordure")
-          svg += `<path d="${shieldPath}" fill="none" stroke="${fill}" stroke-width="16.7%"/>`;
-        else if (ordinary.ordinary === "orle")
-          svg += `<path d="${shieldPath}" fill="none" stroke="${fill}" stroke-width="5%" transform="scale(.85)" transform-origin="center">`;
-        else svg += getTemplate(ordinary.ordinary, ordinary.line);
-        return svg + `</g>`;
-      }
-
-      function templateCharge(charge, tincture) {
-        const fill = clr(tincture);
-        const chargePositions = [...new Set(charge.p)].filter(
-          (position) => positions[position]
-        );
-
-        let svg = "";
-        svg += `<g fill="${fill}" stroke="#000">`;
-        for (const p of chargePositions) {
-          const transform = getElTransform(charge, p);
-          svg += `<use href="#${charge.charge}_${id}" transform="${transform}"></use>`;
-        }
-        return svg + `</g>`;
-
-        function getElTransform(c, p) {
-          const s = (c.size || 1) * sizeModifier;
-          const sx = c.sinister ? -s : s;
-          const sy = c.reversed ? -s : s;
-          let [x, y] = positions[p];
-          x = x - 100 * (sx - 1);
-          y = y - 100 * (sy - 1);
-          const scale = c.sinister || c.reversed ? `${sx} ${sy}` : s;
-          return `translate(${x} ${y}) scale(${scale})`;
-        }
-      }
-    };
-
-    async function getCharges(coa, id, shieldPath) {
-      let charges = coa.charges
-        ? coa.charges.map((charge) => charge.charge)
-        : []; // add charges
-      if (semy(coa.t1)) charges.push(semy(coa.t1)); // add field semy charge
-      if (semy(coa.division?.t)) charges.push(semy(coa.division.t)); // add division semy charge
-
-      const uniqueCharges = [...new Set(charges)];
-      const fetchedCharges = await Promise.all(
-        uniqueCharges.map(async (charge) => {
-          if (charge === "inescutcheon")
-            return `<g id="inescutcheon_${id}"><path transform="translate(66 66) scale(.34)" d="${shieldPath}"/></g>`;
-          const fetched = await fetchCharge(charge, id);
-          return fetched;
-        })
-      );
-      return fetchedCharges.join("");
-    }
-
-    const url = location.hostname
-      ? "./charges/"
-      : "http://armoria.herokuapp.com/charges/"; // on local machine fetch files from server
-    async function fetchCharge(charge, id) {
-      const fetched = fetch(url + charge + ".svg")
-        .then((res) => {
-          if (res.ok) return res.text();
-          else throw new Error("Cannot fetch charge");
-        })
-        .then((text) => {
-          const html = document.createElement("html");
-          html.innerHTML = text;
-          const g = html.querySelector("g");
-          g.setAttribute("id", charge + "_" + id);
-          return g.outerHTML;
-        })
-        .catch((err) => console.error(err));
-      return fetched;
-    }
-
-    function getPatterns(coa, id) {
-      const isPattern = (string) => string.includes("-");
-      let patternsToAdd = [];
-      if (coa.t1.includes("-")) patternsToAdd.push(coa.t1); // add field pattern
-      if (coa.division && isPattern(coa.division.t))
-        patternsToAdd.push(coa.division.t); // add division pattern
-      if (ordinaries)
-        ordinaries
-          .filter((ordinary) => isPattern(ordinary.t))
-          .forEach((ordinary) => patternsToAdd.push(ordinary.t)); // add ordinaries pattern
-      if (coa.charges)
-        coa.charges
-          .filter((charge) => isPattern(charge.t))
-          .forEach((charge) => patternsToAdd.push(charge.t)); // add charges pattern
-      if (!patternsToAdd.length) return "";
-
-      return [...new Set(patternsToAdd)]
-        .map((patternString) => {
-          const [pattern, t1, t2, size] = patternString.split("-");
-          const charge = semy(patternString);
-          if (charge)
-            return patterns.semy(
-              patternString,
-              clr(t1),
-              clr(t2),
-              getSizeMod(size),
-              charge + "_" + id
-            );
-          return patterns[pattern](
-            patternString,
-            clr(t1),
-            clr(t2),
-            getSizeMod(size),
-            charge
-          );
-        })
-        .join("");
-    }
-
-    function getSizeMod(size) {
-      if (size === "small") return 0.8;
-      if (size === "smaller") return 0.5;
-      if (size === "smallest") return 0.25;
-      if (size === "big") return 1.6;
-      return 1;
-    }
-
-    function getTemplate(id, line) {
-      const linedId = id + "Lined";
-      if (!line || line === "straight" || !templates[linedId])
-        return templates[id];
-      const linePath = shieldLines[line];
-      return templates[linedId](linePath);
-    }
-
-    // get color or link to pattern
-    function clr(tincture) {
-      if (shieldColors[tincture]) return shieldColors[tincture];
-      return `url(#${tincture})`;
-    }
-
-    // get charge is string starts with "semy"
-    function semy(string) {
-      const isSemy = /^semy/.test(string);
-      if (!isSemy) return false;
-      return string.match(/semy_of_(.*?)-/)[1];
-    }
-
-    // render coa if does not exist
-    const trigger = async function (id, coa) {
-      if (coa === "custom") {
-        console.warn("Cannot render custom emblem", coa);
-        return;
-      }
-      if (!coa) {
-        console.warn(`Emblem ${id} is undefined`);
-        return;
-      }
-      if (!document.getElementById(id)) return draw(id, coa);
-    };
-
-    const add = (type, i, coa, x, y) => {
-      const id = type + "COA" + i;
-      const g = document.getElementById(type + "Emblems");
-
-      if (this.emblems.selectAll("use").size()) {
-        const size = +g.getAttribute("font-size") || 50;
-        const use = `<use data-i="${i}" x="${x - size / 2}" y="${
-          y - size / 2
-        }" width="1em" height="1em" href="#${id}"/>`;
-        g.insertAdjacentHTML("beforeend", use);
-      }
-    };
-
-    return { trigger, add, shieldPaths };
-  })();
-
-  Routes = (() => {
-    const draw = (main, small, water) => {
-      console.time("drawRoutes");
-      const { cells, burgs } = this.pack;
-      const { burg, p } = cells;
-
-      const getBurgCoords = (b) => [burgs[b].x, burgs[b].y];
-      const getPathPoints = (cells) =>
-        cells.map((i) =>
-          Array.isArray(i) ? i : burg[i] ? getBurgCoords(burg[i]) : p[i]
-        );
-      const getPath = (segment) =>
-        Math.round(this.lineGen(getPathPoints(segment)));
-      const getPathsHTML = (paths, type) =>
-        paths
-          .map((path, i) => `<path id="${type}${i}" d="${getPath(path)}" />`)
-          .join("");
-
-      this.lineGen.curve(d3.curveCatmullRom.alpha(0.1));
-      this.roads.html(getPathsHTML(main, "road"));
-      this.trails.html(getPathsHTML(small, "trail"));
-
-      this.lineGen.curve(d3.curveBundle.beta(1));
-      this.searoutes.html(getPathsHTML(water, "searoute"));
-
-      console.timeEnd("drawRoutes");
-    };
-    return { draw };
-  })();
-
-  BurgsAndStates = (() => {
-    let gauss = this.gauss;
-    let getMiddlePoint = this.getMiddlePoint;
-    let grid = this.grid;
-    let rn = this.rn;
-    let graphWidth = this.graphWidth;
-    let graphHeight = this.graphHeight;
-    let manorsInput = this.manorsInput;
-    let pack = this.pack;
-    let COA = this.COA;
-    let P = this.P;
-    let burgIcons = this.burgIcons;
-    let burgLabels = this.burgLabels;
-    let icons = this.icons;
-    let anchors = this.anchors;
-    let biomesData = this.biomesData;
-    let findCell = this.findCell;
-    let common = this.common;
-    let defs = this.defs;
-    let labels = this.labels;
-    let toggleLabels = this.toggleLabels;
-    let splitInTwo = this.splitInTwo;
-    let getRandomColor = this.getRandomColor;
-    let getMixedColor = this.getMixedColor;
-    let Names = this.Names;
-    let getAdjective = this.getAdjective;
-    let options = this.options;
-    let rw = this.rw;
-    let trimVowels = this.trimVowels;
-    let ra = this.ra;
-
-    const getType = function (i, port) {
-      const cells = pack.cells;
-      if (port) return "Naval";
-      if (
-        cells.haven[i] &&
-        pack.features[cells.f[cells.haven[i]]].type === "lake"
-      )
-        return "Lake";
-      if (cells.h[i] > 60) return "Highland";
-      if (
-        cells.r[i] &&
-        cells.r[i].length > 100 &&
-        cells.r[i].length >= pack.rivers[0].length
-      )
-        return "River";
-
-      if (!cells.burg[i] || pack.burgs[cells.burg[i]].population < 6) {
-        if (this.population < 5 && [1, 2, 3, 4].includes(cells.biome[i]))
-          return "Nomadic";
-        if (cells.biome[i] > 4 && cells.biome[i] < 10) return "Hunting";
-      }
-
-      return "Generic";
-    };
-
-    const defineBurgFeatures = function (newburg) {
-      const cells = pack.cells;
-      pack.burgs
-        .filter((b) => (newburg ? b.i == newburg.i : b.i && !b.removed))
-        .forEach((b) => {
-          const pop = b.population;
-          b.citadel = b.capital || (pop > 50 && P(0.75)) || P(0.5) ? 1 : 0;
-          b.plaza =
-            pop > 50 || (pop > 30 && P(0.75)) || (pop > 10 && P(0.5)) || P(0.25)
-              ? 1
-              : 0;
-          b.walls =
-            b.capital ||
-            pop > 30 ||
-            (pop > 20 && P(0.75)) ||
-            (pop > 10 && P(0.5)) ||
-            P(0.2)
-              ? 1
-              : 0;
-          b.shanty =
-            pop > 30 || (pop > 20 && P(0.75)) || (b.walls && P(0.75)) ? 1 : 0;
-          const religion = cells.religion[b.cell];
-          const theocracy = pack.states[b.state].form === "Theocracy";
-          b.temple =
-            (religion && theocracy) ||
-            pop > 50 ||
-            (pop > 35 && P(0.75)) ||
-            (pop > 20 && P(0.5))
-              ? 1
-              : 0;
-        });
-    };
-
-    const drawBurgs = function () {
-      console.time("drawBurgs");
-
-      // remove old data
-      burgIcons.selectAll("circle").remove();
-      burgLabels.selectAll("text").remove();
-      icons.selectAll("use").remove();
-
-      // capitals
-      const capitals = pack.burgs.filter((b) => b.capital);
-      const capitalIcons = burgIcons.select("#cities");
-      const capitalLabels = burgLabels.select("#cities");
-      const capitalSize = capitalIcons.attr("size") || 1;
-      const capitalAnchors = anchors.selectAll("#cities");
-      const caSize = capitalAnchors.attr("size") || 2;
-
-      capitalIcons
-        .selectAll("circle")
-        .data(capitals)
-        .enter()
-        .append("circle")
-        .attr("id", (d) => "burg" + d.i)
-        .attr("data-id", (d) => d.i)
-        .attr("cx", (d) => d.x)
-        .attr("cy", (d) => d.y)
-        .attr("r", capitalSize);
-
-      capitalLabels
-        .selectAll("text")
-        .data(capitals)
-        .enter()
-        .append("text")
-        .attr("id", (d) => "burgLabel" + d.i)
-        .attr("data-id", (d) => d.i)
-        .attr("x", (d) => d.x)
-        .attr("y", (d) => d.y)
-        .attr("dy", `${capitalSize * -1.5}px`)
-        .text((d) => d.name);
-
-      capitalAnchors
-        .selectAll("use")
-        .data(capitals.filter((c) => c.port))
-        .enter()
-        .append("use")
-        .attr("xlink:href", "#icon-anchor")
-        .attr("data-id", (d) => d.i)
-        .attr("x", (d) => rn(d.x - caSize * 0.47, 2))
-        .attr("y", (d) => rn(d.y - caSize * 0.47, 2))
-        .attr("width", caSize)
-        .attr("height", caSize);
-
-      // towns
-      const towns = pack.burgs.filter((b) => b.i && !b.capital);
-      const townIcons = burgIcons.select("#towns");
-      const townLabels = burgLabels.select("#towns");
-      const townSize = townIcons.attr("size") || 0.5;
-      const townsAnchors = anchors.selectAll("#towns");
-      const taSize = townsAnchors.attr("size") || 1;
-
-      townIcons
-        .selectAll("circle")
-        .data(towns)
-        .enter()
-        .append("circle")
-        .attr("id", (d) => "burg" + d.i)
-        .attr("data-id", (d) => d.i)
-        .attr("cx", (d) => d.x)
-        .attr("cy", (d) => d.y)
-        .attr("r", townSize);
-
-      townLabels
-        .selectAll("text")
-        .data(towns)
-        .enter()
-        .append("text")
-        .attr("id", (d) => "burgLabel" + d.i)
-        .attr("data-id", (d) => d.i)
-        .attr("x", (d) => d.x)
-        .attr("y", (d) => d.y)
-        .attr("dy", `${townSize * -1.5}px`)
-        .text((d) => d.name);
-
-      townsAnchors
-        .selectAll("use")
-        .data(towns.filter((c) => c.port))
-        .enter()
-        .append("use")
-        .attr("xlink:href", "#icon-anchor")
-        .attr("data-id", (d) => d.i)
-        .attr("x", (d) => rn(d.x - taSize * 0.47, 2))
-        .attr("y", (d) => rn(d.y - taSize * 0.47, 2))
-        .attr("width", taSize)
-        .attr("height", taSize);
-
-      console.timeEnd("drawBurgs");
-    };
-
-    // growth algorithm to assign cells to states like we did for cultures
-    const expandStates = function () {
-      console.time("expandStates");
-      const { cells, states, cultures, burgs } = pack;
-
-      cells.state = new Uint16Array(cells.i.length);
-      const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
-      const cost = [];
-      const neutral =
-        (cells.i.length / 5000) *
-        2500 *
-        this.neutralInput.value *
-        this.statesNeutral.value; // limit cost for state growth
-
-      states
-        .filter((s) => s.i && !s.removed)
-        .forEach((s) => {
-          const capitalCell = burgs[s.capital].cell;
-          cells.state[capitalCell] = s.i;
-          const cultureCenter = cultures[s.culture].center;
-          const b = cells.biome[cultureCenter]; // state native biome
-          queue.queue({ e: s.center, p: 0, s: s.i, b });
-          cost[s.center] = 1;
-        });
-
-      while (queue.length) {
-        const next = queue.dequeue();
-        const { e, p, s, b } = next;
-        const { type, culture } = states[s];
-
-        cells.c[e].forEach((e) => {
-          if (cells.state[e] && e === states[cells.state[e]].center) return; // do not overwrite capital cells
-
-          const cultureCost = culture === cells.culture[e] ? -9 : 100;
-          const populationCost =
-            cells.h[e] < 20
-              ? 0
-              : cells.s[e]
-              ? Math.max(20 - cells.s[e], 0)
-              : 5000;
-          const biomeCost = getBiomeCost(b, cells.biome[e], type);
-          const heightCost = getHeightCost(
-            pack.features[cells.f[e]],
-            cells.h[e],
-            type
-          );
-          const riverCost = getRiverCost(cells.r[e], e, type);
-          const typeCost = getTypeCost(cells.t[e], type);
-          const cellCost = Math.max(
-            cultureCost +
-              populationCost +
-              biomeCost +
-              heightCost +
-              riverCost +
-              typeCost,
-            0
-          );
-          const totalCost = p + 10 + cellCost / states[s].expansionism;
-
-          if (totalCost > neutral) return;
-
-          if (!cost[e] || totalCost < cost[e]) {
-            if (cells.h[e] >= 20) cells.state[e] = s; // assign state to cell
-            cost[e] = totalCost;
-            queue.queue({ e, p: totalCost, s, b });
-          }
-        });
-      }
-
-      burgs
-        .filter((b) => b.i && !b.removed)
-        .forEach((b) => (b.state = cells.state[b.cell])); // assign state to burgs
-
-      function getBiomeCost(b, biome, type) {
-        if (b === biome) return 10; // tiny penalty for native biome
-        if (type === "Hunting") return biomesData.cost[biome] * 2; // non-native biome penalty for hunters
-        if (type === "Nomadic" && biome > 4 && biome < 10)
-          return biomesData.cost[biome] * 3; // forest biome penalty for nomads
-        return biomesData.cost[biome]; // general non-native biome penalty
-      }
-
-      function getHeightCost(f, h, type) {
-        if (type === "Lake" && f.type === "lake") return 10; // low lake crossing penalty for Lake cultures
-        if (type === "Naval" && h < 20) return 300; // low sea crossing penalty for Navals
-        if (type === "Nomadic" && h < 20) return 10000; // giant sea crossing penalty for Nomads
-        if (h < 20) return 1000; // general sea crossing penalty
-        if (type === "Highland" && h < 62) return 1100; // penalty for highlanders on lowlands
-        if (type === "Highland") return 0; // no penalty for highlanders on highlands
-        if (h >= 67) return 2200; // general mountains crossing penalty
-        if (h >= 44) return 300; // general hills crossing penalty
-        return 0;
-      }
-
-      function getRiverCost(r, i, type) {
-        if (type === "River") return r ? 0 : 100; // penalty for river cultures
-        if (!r) return 0; // no penalty for others if there is no river
-        return Math.min(Math.max(cells.fl[i] / 10, 20), 100); // river penalty from 20 to 100 based on flux
-      }
-
-      function getTypeCost(t, type) {
-        if (t === 1)
-          return type === "Naval" || type === "Lake"
-            ? 0
-            : type === "Nomadic"
-            ? 60
-            : 20; // penalty for coastline
-        if (t === 2) return type === "Naval" || type === "Nomadic" ? 30 : 0; // low penalty for land level 2 for Navals and nomads
-        if (t !== -1) return type === "Naval" || type === "Lake" ? 100 : 0; // penalty for mainland for navals
-        return 0;
-      }
-
-      console.timeEnd("expandStates");
-    };
-
-    const normalizeStates = function () {
-      console.time("normalizeStates");
-      const cells = pack.cells,
-        burgs = pack.burgs;
-
-      for (const i of cells.i) {
-        if (cells.h[i] < 20 || cells.burg[i]) continue; // do not overwrite burgs
-        if (cells.c[i].some((c) => burgs[cells.burg[c]].capital)) continue; // do not overwrite near capital
-        const neibs = cells.c[i].filter((c) => cells.h[c] >= 20);
-        const adversaries = neibs.filter(
-          (c) => cells.state[c] !== cells.state[i]
-        );
-        if (adversaries.length < 2) continue;
-        const buddies = neibs.filter((c) => cells.state[c] === cells.state[i]);
-        if (buddies.length > 2) continue;
-        if (adversaries.length <= buddies.length) continue;
-        cells.state[i] = cells.state[adversaries[0]];
-      }
-      console.timeEnd("normalizeStates");
-    };
-
-    // Resets the cultures of all burgs and states to their
-    // cell or center cell's (respectively) culture.
-    const updateCultures = function () {
-      console.time("updateCulturesForBurgsAndStates");
-
-      // Assign the culture associated with the burgs cell.
-      pack.burgs = pack.burgs.map((burg, index) => {
-        // Ignore metadata burg
-        if (index === 0) {
-          return burg;
-        }
-        return { ...burg, culture: pack.cells.culture[burg.cell] };
-      });
-
-      // Assign the culture associated with the states' center cell.
-      pack.states = pack.states.map((state, index) => {
-        // Ignore neutrals state
-        if (index === 0) {
-          return state;
-        }
-        return { ...state, culture: pack.cells.culture[state.center] };
-      });
-
-      console.timeEnd("updateCulturesForBurgsAndStates");
-    };
-
-    // calculate and draw curved state labels for a list of states
-    const drawStateLabels = (list) => {
-      console.time("drawStateLabels");
-      const { cells, features, states } = pack;
-      const paths = []; // text paths
-      let lineGen = this.lineGen;
-      let round = this.round;
-      this.lineGen.curve(d3.curveBundle.beta(1));
-
-      for (const s of states) {
-        if (!s.i || s.removed || !s.cells || (list && !list.includes(s.i)))
-          continue;
-        const used = [];
-        const visualCenter = findCell(s.pole[0], s.pole[1]);
-        const start =
-          cells.state[visualCenter] === s.i ? visualCenter : s.center;
-        const hull = getHull(start, s.i, s.cells / 10);
-        const points = [...hull].map((v: number) => pack.vertices.p[v]);
-        const delaunay = Delaunator.from(points);
-        const voronoi = new Voronoi(delaunay, points, points.length);
-        const chain = connectCenters(voronoi.vertices, s.pole[1]);
-        const relaxed = chain
-          .map((i) => voronoi.vertices.p[i])
-          .filter((p, i) => i % 15 === 0 || i + 1 === chain.length);
-        paths.push([s.i, relaxed]);
-
-        function getHull(start, state, maxLake) {
-          const queue = [start],
-            hull = new Set();
-
-          while (queue.length) {
-            const q = queue.pop();
-            const nQ = cells.c[q].filter((c) => cells.state[c] === state);
-
-            cells.c[q].forEach(function (c, d) {
-              const passableLake =
-                features[cells.f[c]].type === "lake" &&
-                features[cells.f[c]].cells < maxLake;
-              if (cells.b[c] || (cells.state[c] !== state && !passableLake)) {
-                hull.add(cells.v[q][d]);
-                return;
-              }
-              const nC = cells.c[c].filter((n) => cells.state[n] === state);
-              const intersected = common(nQ, nC).length;
-              if (hull.size > 20 && !intersected && !passableLake) {
-                hull.add(cells.v[q][d]);
-                return;
-              }
-              if (used[c]) return;
-              used[c] = 1;
-              queue.push(c);
-            });
-          }
-
-          return hull;
-        }
-
-        function connectCenters(c, y) {
-          // check if vertex is inside the area
-          const inside = c.p.map(function (p) {
-            if (
-              p[0] <= 0 ||
-              p[1] <= 0 ||
-              p[0] >= graphWidth ||
-              p[1] >= graphHeight
-            )
-              return false; // out of the screen
-            return used[findCell(p[0], p[1])];
-          });
-
-          const pointsInside = d3
-            .range(c.p.length)
-            .filter((i: number) => inside[i]);
-          if (!pointsInside.length) return [0];
-          const h = c.p.length < 200 ? 0 : c.p.length < 600 ? 0.5 : 1; // power of horyzontality shift
-          const end =
-            pointsInside[
-              d3.scan(
-                pointsInside,
-                (a, b) =>
-                  c.p[a][0] -
-                  c.p[b][0] +
-                  (Math.abs(c.p[a][1] - y) - Math.abs(c.p[b][1] - y)) * h
-              )
-            ]; // left point
-          const start =
-            pointsInside[
-              d3.scan(
-                pointsInside,
-                (a, b) =>
-                  c.p[b][0] -
-                  c.p[a][0] -
-                  (Math.abs(c.p[b][1] - y) - Math.abs(c.p[a][1] - y)) * h
-              )
-            ]; // right point
-
-          // connect leftmost and rightmost points with shortest path
-          const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
-          const cost = [],
-            from = [];
-          queue.queue({ e: start, p: 0 });
-
-          while (queue.length) {
-            const next = queue.dequeue(),
-              n = next.e,
-              p = next.p;
-            if (n === end) break;
-
-            for (const v of c.v[n]) {
-              if (v === -1) continue;
-              const totalCost = p + (inside[v] ? 1 : 100);
-              if (from[v] || totalCost >= cost[v]) continue;
-              cost[v] = totalCost;
-              from[v] = n;
-              queue.queue({ e: v, p: totalCost });
-            }
-          }
-
-          // restore path
-          const chain = [end];
-          let cur = end;
-          while (cur !== start) {
-            cur = from[cur];
-            if (inside[cur]) chain.push(cur);
-          }
-          return chain;
-        }
-      }
-
-      void (function drawLabels() {
-        const g = labels.select("#states");
-        const t = defs.select("#textPaths");
-
-        if (!list) {
-          // remove all labels and textpaths
-          g.selectAll("text").remove();
-          t.selectAll("path[id*='stateLabel']").remove();
-        }
-
-        const example = g
-          .append("text")
-          .attr("x", 0)
-          .attr("x", 0)
-          .text("Average");
-        const letterLength = example.node().getComputedTextLength() / 7; // average length of 1 letter
-
-        paths.forEach((p) => {
-          const id = p[0];
-          const s = states[p[0]];
-
-          if (list) {
-            t.select("#textPath_stateLabel" + id).remove();
-            g.select("#stateLabel" + id).remove();
-          }
-
-          const path =
-            p[1].length > 1
-              ? lineGen(p[1])
-              : `M${p[1][0][0] - 50},${p[1][0][1]}h${100}`;
-          const textPath = t
-            .append("path")
-            .attr("d", path)
-            .attr("id", "textPath_stateLabel" + id);
-          const pathLength =
-            p[1].length > 1
-              ? textPath.node().getTotalLength() / letterLength
-              : 0; // path length in letters
-
-          let lines = [];
-          let ratio = 100;
-
-          if (pathLength < s.name.length) {
-            // only short name will fit
-            lines = splitInTwo(s.name);
-            ratio = Math.max(
-              Math.min(rn((pathLength / lines[0].length) * 60), 150),
-              50
-            );
-          } else if (pathLength > s.fullName.length * 2.5) {
-            // full name will fit in one line
-            lines = [s.fullName];
-            ratio = Math.max(
-              Math.min(rn((pathLength / lines[0].length) * 70), 170),
-              70
-            );
-          } else {
-            // try miltilined label
-            lines = splitInTwo(s.fullName);
-            ratio = Math.max(
-              Math.min(rn((pathLength / lines[0].length) * 60), 150),
-              70
-            );
-          }
-
-          // prolongate path if it's too short
-          if (pathLength && pathLength < lines[0].length) {
-            const points = p[1];
-            const f = points[0];
-            const l = points[points.length - 1];
-            const [dx, dy] = [l[0] - f[0], l[1] - f[1]];
-            const mod = Math.abs((letterLength * lines[0].length) / dx) / 2;
-            points[0] = [rn(f[0] - dx * mod), rn(f[1] - dy * mod)];
-            points[points.length - 1] = [
-              rn(l[0] + dx * mod),
-              rn(l[1] + dy * mod),
-            ];
-            textPath.attr("d", round(lineGen(points)));
-          }
-
-          example.attr("font-size", ratio + "%");
-          const top = (lines.length - 1) / -2; // y offset
-          const spans = lines.map((l, d) => {
-            example.text(l);
-            const left = example.node().getBBox().width / -2; // x offset
-            return `<tspan x="${left}px" dy="${d ? 1 : top}em">${l}</tspan>`;
-          });
-
-          const el = g
-            .append("text")
-            .attr("id", "stateLabel" + id)
-            .append("textPath")
-            .attr("xlink:href", "#textPath_stateLabel" + id)
-            .attr("startOffset", "50%")
-            .attr("font-size", ratio + "%")
-            .node();
-
-          el.insertAdjacentHTML("afterbegin", spans.join(""));
-          if (lines.length < 2) return;
-
-          // check whether multilined label is generally inside the state. If no, replace with short name label
-          const cs = pack.cells.state;
-          const b = el.parentNode.getBBox();
-          const c1 = (): any => +cs[findCell(b.x, b.y)] === id;
-          const c2 = (): any => +cs[findCell(b.x + b.width / 2, b.y)] === id;
-          const c3 = () => +cs[findCell(b.x + b.width, b.y)] === id;
-          const c4 = () => +cs[findCell(b.x + b.width, b.y + b.height)] === id;
-          const c5 = () =>
-            +cs[findCell(b.x + b.width / 2, b.y + b.height)] === id;
-          const c6 = () => +cs[findCell(b.x, b.y + b.height)] === id;
-          if (c1() + c2() + c3() + c4() + c5() + c6() > 3) return; // generally inside
-
-          // use one-line name
-          const name =
-            pathLength > s.fullName.length * 1.8 ? s.fullName : s.name;
-          example.text(name);
-          const left = example.node().getBBox().width / -2; // x offset
-          el.innerHTML = `<tspan x="${left}px">${name}</tspan>`;
-          ratio = Math.max(
-            Math.min(rn((pathLength / name.length) * 60), 130),
-            40
-          );
-          el.setAttribute("font-size", ratio + "%");
-        });
-
-        example.remove();
-        // if (!displayed) toggleLabels();
-      })();
-
-      console.timeEnd("drawStateLabels");
-    };
-
-    // calculate states data like area, population etc.
-    const collectStatistics = function () {
-      console.time("collectStatistics");
-      const cells = pack.cells,
-        states = pack.states;
-      states.forEach((s) => {
-        if (s.removed) return;
-        s.cells = s.area = s.burgs = s.rural = s.urban = 0;
-        s.neighbors = new Set();
-      });
-
-      for (const i of cells.i) {
-        if (cells.h[i] < 20) continue;
-        const s = cells.state[i];
-
-        // check for neighboring states
-        cells.c[i]
-          .filter((c) => cells.h[c] >= 20 && cells.state[c] !== s)
-          .forEach((c) => states[s].neighbors.add(cells.state[c]));
-
-        // collect stats
-        states[s].cells += 1;
-        states[s].area += cells.area[i];
-        states[s].rural += cells.pop[i];
-        if (cells.burg[i]) {
-          states[s].urban += pack.burgs[cells.burg[i]].population;
-          states[s].burgs++;
-        }
-      }
-
-      // convert neighbors Set object into array
-      states.forEach((s) => {
-        if (!s.neighbors) return;
-        s.neighbors = Array.from(s.neighbors);
-      });
-
-      console.timeEnd("collectStatistics");
-    };
-
-    const assignColors = function () {
-      console.time("assignColors");
-      const colors = [
-        "#66c2a5",
-        "#fc8d62",
-        "#8da0cb",
-        "#e78ac3",
-        "#a6d854",
-        "#ffd92f",
-      ]; // d3.schemeSet2;
-
-      // assin basic color using greedy coloring algorithm
-      pack.states.forEach((s) => {
-        if (!s.i || s.removed) return;
-        const neibs = s.neighbors;
-        s.color = colors.find((c) =>
-          neibs.every((n) => pack.states[n].color !== c)
-        );
-        if (!s.color) s.color = getRandomColor();
-        colors.push(colors.shift());
-      });
-
-      // randomize each already used color a bit
-      colors.forEach((c) => {
-        const sameColored = pack.states.filter((s) => s.color === c);
-        sameColored.forEach((s, d) => {
-          if (!d) return;
-          s.color = getMixedColor(s.color);
-        });
-      });
-
-      console.timeEnd("assignColors");
-    };
-
-    // generate historical conflicts of each state
-    const generateCampaigns = function () {
-      const wars = {
-        War: 6,
-        Conflict: 2,
-        Campaign: 4,
-        Invasion: 2,
-        Rebellion: 2,
-        Conquest: 2,
-        Intervention: 1,
-        Expedition: 1,
-        Crusade: 1,
-      };
-
-      pack.states.forEach((s) => {
-        if (!s.i || s.removed) return;
-        const n = s.neighbors.length ? s.neighbors : [0];
-        s.campaigns = n
-          .map((i) => {
-            const name =
-              i && P(0.8)
-                ? pack.states[i].name
-                : Names.getCultureShort(s.culture);
-            const start = gauss(options.year - 100, 150, 1, options.year - 6);
-            const end = start + gauss(4, 5, 1, options.year - start - 1);
-            return { name: getAdjective(name) + " " + rw(wars), start, end };
-          })
-          .sort((a, b) => a.start - b.start);
-      });
-    };
-
-    // generate Diplomatic Relationships
-    const generateDiplomacy = function () {
-      console.time("generateDiplomacy");
-      const cells = pack.cells,
-        states = pack.states;
-      const chronicle = (states[0].diplomacy = []);
-      const valid = states.filter((s) => s.i && !states.removed);
-
-      const neibs = {
-        Ally: 1,
-        Friendly: 2,
-        Neutral: 1,
-        Suspicion: 10,
-        Rival: 9,
-      }; // relations to neighbors
-      const neibsOfNeibs = { Ally: 10, Friendly: 8, Neutral: 5, Suspicion: 1 }; // relations to neighbors of neighbors
-      const far = { Friendly: 1, Neutral: 12, Suspicion: 2, Unknown: 6 }; // relations to other
-      const navals = { Neutral: 1, Suspicion: 2, Rival: 1, Unknown: 1 }; // relations of naval powers
-
-      valid.forEach((s) => (s.diplomacy = new Array(states.length).fill("x"))); // clear all relationships
-      if (valid.length < 2) return; // no states to renerate relations with
-      const areaMean = d3.mean(valid.map((s) => s.area)); // avarage state area
-
-      // generic relations
-      for (let f = 1; f < states.length; f++) {
-        if (states[f].removed) continue;
-
-        if (states[f].diplomacy.includes("Vassal")) {
-          // Vassals copy relations from their Suzerains
-          const suzerain = states[f].diplomacy.indexOf("Vassal");
-
-          for (let i = 1; i < states.length; i++) {
-            if (i === f || i === suzerain) continue;
-            states[f].diplomacy[i] = states[suzerain].diplomacy[i];
-            if (states[suzerain].diplomacy[i] === "Suzerain")
-              states[f].diplomacy[i] = "Ally";
-            for (let e = 1; e < states.length; e++) {
-              if (e === f || e === suzerain) continue;
-              if (
-                states[e].diplomacy[suzerain] === "Suzerain" ||
-                states[e].diplomacy[suzerain] === "Vassal"
-              )
-                continue;
-              states[e].diplomacy[f] = states[e].diplomacy[suzerain];
-            }
-          }
-          continue;
-        }
-
-        for (let t = f + 1; t < states.length; t++) {
-          if (states[t].removed) continue;
-
-          if (states[t].diplomacy.includes("Vassal")) {
-            const suzerain = states[t].diplomacy.indexOf("Vassal");
-            states[f].diplomacy[t] = states[f].diplomacy[suzerain];
-            continue;
-          }
-
-          const naval =
-            states[f].type === "Naval" &&
-            states[t].type === "Naval" &&
-            cells.f[states[f].center] !== cells.f[states[t].center];
-          const neib = naval ? false : states[f].neighbors.includes(t);
-          const neibOfNeib =
-            naval || neib
-              ? false
-              : states[f].neighbors
-                  .map((n) => states[n].neighbors)
-                  .join("")
-                  .includes(t);
-
-          let status = naval
-            ? rw(navals)
-            : neib
-            ? rw(neibs)
-            : neibOfNeib
-            ? rw(neibsOfNeibs)
-            : rw(far);
-
-          // add Vassal
-          if (
-            neib &&
-            P(0.8) &&
-            states[f].area > areaMean &&
-            states[t].area < areaMean &&
-            states[f].area / states[t].area > 2
-          )
-            status = "Vassal";
-          states[f].diplomacy[t] = status === "Vassal" ? "Suzerain" : status;
-          states[t].diplomacy[f] = status;
-        }
-      }
-
-      // declare wars
-      for (let attacker = 1; attacker < states.length; attacker++) {
-        const ad = states[attacker].diplomacy; // attacker relations;
-        if (states[attacker].removed) continue;
-        if (!ad.includes("Rival")) continue; // no rivals to attack
-        if (ad.includes("Vassal")) continue; // not independent
-        if (ad.includes("Enemy")) continue; // already at war
-
-        // random independent rival
-        const defender = ra(
-          ad
-            .map((r, d) =>
-              r === "Rival" && !states[d].diplomacy.includes("Vassal") ? d : 0
-            )
-            .filter((d) => d)
-        );
-        let ap = states[attacker].area * states[attacker].expansionism,
-          dp = states[defender].area * states[defender].expansionism;
-        if (ap < dp * gauss(1.6, 0.8, 0, 10, 2)) continue; // defender is too strong
-        const an = states[attacker].name,
-          dn = states[defender].name; // names
-        const attackers = [attacker],
-          defenders = [defender]; // attackers and defenders array
-        const dd = states[defender].diplomacy; // defender relations;
-
-        // start a war
-        const war = [
-          `${an}-${trimVowels(dn)}ian War`,
-          `${an} declared a war on its rival ${dn}`,
-        ];
-        const end = options.year;
-        const start = end - gauss(2, 2, 0, 5);
-        states[attacker].campaigns.push({
-          name: `${trimVowels(dn)}ian War`,
-          start,
-          end,
-        });
-        states[defender].campaigns.push({
-          name: `${trimVowels(an)}ian War`,
-          start,
-          end,
-        });
-
-        // attacker vassals join the war
-        ad.forEach((r, d) => {
-          if (r === "Suzerain") {
-            attackers.push(d);
-            war.push(
-              `${an}'s vassal ${states[d].name} joined the war on attackers side`
-            );
-          }
-        });
-
-        // defender vassals join the war
-        dd.forEach((r, d) => {
-          if (r === "Suzerain") {
-            defenders.push(d);
-            war.push(
-              `${dn}'s vassal ${states[d].name} joined the war on defenders side`
-            );
-          }
-        });
-
-        ap = d3.sum(
-          attackers.map((a) => states[a].area * states[a].expansionism)
-        ); // attackers joined power
-        dp = d3.sum(
-          defenders.map((d) => states[d].area * states[d].expansionism)
-        ); // defender joined power
-
-        // defender allies join
-        dd.forEach((r, d) => {
-          if (r !== "Ally" || states[d].diplomacy.includes("Vassal")) return;
-          if (
-            states[d].diplomacy[attacker] !== "Rival" &&
-            ap / dp > 2 * gauss(1.6, 0.8, 0, 10, 2)
-          ) {
-            const reason = states[d].diplomacy.includes("Enemy")
-              ? `Being already at war,`
-              : `Frightened by ${an},`;
-            war.push(
-              `${reason} ${states[d].name} severed the defense pact with ${dn}`
-            );
-            dd[d] = states[d].diplomacy[defender] = "Suspicion";
-            return;
-          }
-          defenders.push(d);
-          dp += states[d].area * states[d].expansionism;
-          war.push(
-            `${dn}'s ally ${states[d].name} joined the war on defenders side`
-          );
-
-          // ally vassals join
-          states[d].diplomacy
-            .map((r, d) => (r === "Suzerain" ? d : 0))
-            .filter((d) => d)
-            .forEach((v) => {
-              defenders.push(v);
-              dp += states[v].area * states[v].expansionism;
-              war.push(
-                `${states[d].name}'s vassal ${states[v].name} joined the war on defenders side`
-              );
-            });
-        });
-
-        // attacker allies join if the defender is their rival or joined power > defenders power and defender is not an ally
-        ad.forEach((r, d) => {
-          if (
-            r !== "Ally" ||
-            states[d].diplomacy.includes("Vassal") ||
-            defenders.includes(d)
-          )
-            return;
-          const name = states[d].name;
-          if (
-            states[d].diplomacy[defender] !== "Rival" &&
-            (P(0.2) || ap <= dp * 1.2)
-          ) {
-            war.push(`${an}'s ally ${name} avoided entering the war`);
-            return;
-          }
-          const allies = states[d].diplomacy
-            .map((r, d) => (r === "Ally" ? d : 0))
-            .filter((d) => d);
-          if (allies.some((ally) => defenders.includes(ally))) {
-            war.push(
-              `${an}'s ally ${name} did not join the war as its allies are in war on both sides`
-            );
-            return;
-          }
-
-          attackers.push(d);
-          ap += states[d].area * states[d].expansionism;
-          war.push(`${an}'s ally ${name} joined the war on attackers side`);
-
-          // ally vassals join
-          states[d].diplomacy
-            .map((r, d) => (r === "Suzerain" ? d : 0))
-            .filter((d) => d)
-            .forEach((v) => {
-              attackers.push(v);
-              dp += states[v].area * states[v].expansionism;
-              war.push(
-                `${states[d].name}'s vassal ${states[v].name} joined the war on attackers side`
-              );
-            });
-        });
-
-        // change relations to Enemy for all participants
-        attackers.forEach((a) =>
-          defenders.forEach(
-            (d) => (states[a].diplomacy[d] = states[d].diplomacy[a] = "Enemy")
-          )
-        );
-        chronicle.push(war); // add a record to diplomatical history
-      }
-
-      console.timeEnd("generateDiplomacy");
-      //console.table(states.map(s => s.diplomacy));
-    };
-    let rand = this.rand;
-
-    // state forms requiring Adjective + Name, all other forms use scheme Form + Of + Name
-
-    const getFullName = function (s) {
-      if (!s.formName) return s.name;
-      if (!s.name && s.formName) return "The " + s.formName;
-      const adjName = adjForms.includes(s.formName) && !/-| /.test(s.name);
-      return adjName
-        ? `${getAdjective(s.name)} ${s.formName}`
-        : `${s.formName} of ${s.name}`;
-    };
-    let seed = this.seed;
-
-    return {
-      expandStates,
-      normalizeStates,
-      assignColors,
-      drawBurgs,
-      defineBurgFeatures,
-      getType,
-      drawStateLabels,
-      collectStatistics,
-      getFullName,
-      updateCultures,
-    };
-  })();
-
   changeZoomExtent = (value) => {
     const min = Math.max(+this.zoomExtentMin.value, 0.01),
       max = Math.min(+this.zoomExtentMax.value, 200);
@@ -4489,7 +2673,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     if (this.scaleBar.style("display") === "none") return; // no need to re-draw hidden element
     this.scaleBar.selectAll("*").remove(); // fully redraw every time
 
-    const dScale = this.distanceScaleInput;
+    const dScale = this.settings[1];
     const unit = "mi";
 
     // calculate size
@@ -4994,12 +3178,23 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     console.timeEnd("drawTemp");
   }
 
-  toggleBiomes(bool) {
-    if (!this.biomes.selectAll("path").size() && bool) {
+  toggleBiomes(bool = null) {
+    if (bool == null) this.biomesToggle = !this.biomesToggle;
+    else this.biomesToggle = bool;
+    if (this.biomesToggle) {
+      this.Religions.toggle(0);
+      this.Cultures.toggle(0);
+      this.BurgsAndStates.toggle(0);
+    }
+    if (!this.biomes.selectAll("path").size() && this.biomesToggle) {
       this.drawBiomes();
+      localStorage.setItem("activeLayer", "4");
     } else {
       this.biomes.selectAll("path").remove();
+      if (this.activeLayer == 4) this.activeLayer = null;
     }
+    localStorage.setItem("biomesToggle", this.biomesToggle);
+    this.updateSVG();
   }
 
   drawBiomes() {
@@ -5230,16 +3425,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     }
   }
 
-  toggleCultures(bool) {
-    const cultures = this.pack.cultures.filter((c) => c.i && !c.removed);
-    const empty = !this.cults.selectAll("path").size();
-    if (empty && cultures.length && bool) {
-      this.drawCultures();
-    } else {
-      this.cults.selectAll("path").remove();
-    }
-  }
-
   drawCultures() {
     console.time("drawCultures");
 
@@ -5250,6 +3435,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       n = cells.i.length;
     const used = new Uint8Array(cells.i.length);
     const paths = new Array(cultures.length).fill("");
+    const vArray = new Array(cultures.length); // store vertices array
 
     for (const i of cells.i) {
       if (!cells.culture[i]) continue;
@@ -5265,8 +3451,17 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       if (chain.length < 3) continue;
       const points = chain.map((v) => vertices.p[v]);
       paths[c] += "M" + points.join("L") + "Z";
+      // get path around the state
+      if (!vArray[cells.culture[i]]) vArray[cells.culture[i]] = [];
+      vArray[cells.culture[i]].push(points);
     }
 
+    this.Cultures.collectStatistics();
+    // find state visual center
+    vArray.forEach((ar, i) => {
+      const sorted = ar.sort((a, b) => b.length - a.length); // sort by points number
+      cultures[i].pole = polylabel(sorted, 1.0); // pole of inaccessibility
+    });
     const data = paths.map((p, i) => [p, i]).filter((d) => d[0].length > 10);
     this.cults
       .selectAll("path")
@@ -5303,143 +3498,275 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       }
       return chain;
     }
+    this.drawCultureLabels();
     console.timeEnd("drawCultures");
   }
 
-  toggleReligions(bool) {
-    const religions = this.pack.religions.filter((r) => r.i && !r.removed);
-    if (!this.relig.selectAll("path").size() && religions.length && bool) {
-      this.drawReligions();
-    } else {
-      this.relig.selectAll("path").remove();
+  // calculate and draw curved state labels for a list of cultures
+  drawCultureLabels = () => {
+    const { cells, features, cultures } = this.pack;
+    const common = this.common;
+    let graphWidth = this.graphWidth;
+    let graphHeight = this.graphHeight;
+    let findCell = this.findCell;
+    const paths = []; // text paths
+    this.lineGen.curve(d3.curveBundle.beta(1));
+    for (const culture of cultures) {
+      if (!culture.i) continue;
+      const used = [];
+      const visualCenter = this.findCell(culture.pole[0], culture.pole[1]);
+      const start =
+        cells.culture[visualCenter] === culture.i
+          ? visualCenter
+          : culture.center;
+      const hull = getHull(start, culture.i, culture.cells / 10);
+      const points = [...hull].map((v: any) => this.pack.vertices.p[v]);
+      const delaunay = Delaunator.from(points);
+      const voronoi = new Voronoi(delaunay, points, points.length);
+      const chain = connectCenters(voronoi.vertices, culture.pole[1]);
+      const relaxed = chain
+        .map((i) => voronoi.vertices.p[i])
+        .filter((p, i) => i % 15 === 0 || i + 1 === chain.length);
+      paths.push([culture.i, relaxed]);
+
+      function getHull(start, culture, maxLake) {
+        const queue = [start],
+          hull = new Set();
+
+        while (queue.length) {
+          const q = queue.pop();
+          const nQ = cells.c[q].filter((c) => cells.culture[c] === culture);
+
+          cells.c[q].forEach(function (c, d) {
+            const passableLake =
+              features[cells.f[c]].type === "lake" &&
+              features[cells.f[c]].cells < maxLake;
+            if (cells.b[c] || (cells.culture[c] !== culture && !passableLake)) {
+              hull.add(cells.v[q][d]);
+              return;
+            }
+            const nC = cells.c[c].filter((n) => cells.culture[n] === culture);
+            const intersected = common(nQ, nC).length;
+            if (hull.size > 20 && !intersected && !passableLake) {
+              hull.add(cells.v[q][d]);
+              return;
+            }
+            if (used[c]) return;
+            used[c] = 1;
+            queue.push(c);
+          });
+        }
+
+        return hull;
+      }
+      function connectCenters(c, y) {
+        // check if vertex is inside the area
+        const inside = c.p.map(function (p) {
+          if (
+            p[0] <= 0 ||
+            p[1] <= 0 ||
+            p[0] >= graphWidth ||
+            p[1] >= graphHeight
+          )
+            return false; // out of the screen
+          return used[findCell(p[0], p[1])];
+        });
+
+        const pointsInside = d3.range(c.p.length).filter((i) => inside[i]);
+        if (!pointsInside.length) return [0];
+        const h = c.p.length < 200 ? 0 : c.p.length < 600 ? 0.5 : 1; // power of horyzontality shift
+        const end =
+          pointsInside[
+            d3.scan(
+              pointsInside,
+              (a, b) =>
+                c.p[a][0] -
+                c.p[b][0] +
+                (Math.abs(c.p[a][1] - y) - Math.abs(c.p[b][1] - y)) * h
+            )
+          ]; // left point
+        const start =
+          pointsInside[
+            d3.scan(
+              pointsInside,
+              (a, b) =>
+                c.p[b][0] -
+                c.p[a][0] -
+                (Math.abs(c.p[b][1] - y) - Math.abs(c.p[a][1] - y)) * h
+            )
+          ]; // right point
+
+        // connect leftmost and rightmost points with shortest path
+        const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
+        const cost = [],
+          from = [];
+        queue.queue({ e: start, p: 0 });
+
+        while (queue.length) {
+          const next = queue.dequeue(),
+            n = next.e,
+            p = next.p;
+          if (n === end) break;
+
+          for (const v of c.v[n]) {
+            if (v === -1) continue;
+            const totalCost = p + (inside[v] ? 1 : 100);
+            if (from[v] || totalCost >= cost[v]) continue;
+            cost[v] = totalCost;
+            from[v] = n;
+            queue.queue({ e: v, p: totalCost });
+          }
+        }
+
+        // restore path
+        const chain = [end];
+        let cur = end;
+        while (cur !== start) {
+          cur = from[cur];
+          if (inside[cur]) chain.push(cur);
+        }
+        return chain;
+      }
     }
+    let that = this;
+    void (function drawLabels() {
+      let g = that.labels.select("#cultures");
+      const t = that.defs.select("#textPaths");
+      // const displayed = layerIsOn("toggleLabels");
+      // if (!displayed)
+      that.toggleLabels(1);
+      // remove all labels and textpaths
+      g.selectAll("text").remove();
+      t.selectAll("path[id*='cultureLabel']").remove();
+      that.labels.select("#states").selectAll("text").remove();
+      t.selectAll("path[id*='stateLabel']").remove();
+      that.labels.select("#religions").selectAll("text").remove();
+      t.selectAll("path[id*='religionLabel']").remove();
+
+      if (typeof g._groups[0][0] == "undefined") {
+        g = that.labels.append("g").attr("id", "cultures");
+      }
+      const example = g
+        .append("text")
+        .attr("x", 0)
+        .attr("x", 0)
+        .text("Average");
+      const letterLength = example.node().getComputedTextLength() / 7; // average length of 1 letter
+      paths.forEach((p) => {
+        const id = p[0];
+        const s = cultures[p[0]];
+        let short = false;
+
+        const path =
+          p[1].length > 1
+            ? that.lineGen(p[1])
+            : `M${p[1][0][0] - 50},${p[1][0][1]}h${100}`;
+        const textPath = t
+          .append("path")
+          .attr("d", path)
+          .attr("id", "textPath_cultureLabel" + id);
+        const pathLength =
+          p[1].length > 1 ? textPath.node().getTotalLength() / letterLength : 0; // path length in letters
+
+        let lines = [];
+        let ratio = 100;
+
+        if (pathLength < s.name.length) {
+          // only short name will fit
+          lines = that.splitInTwo(s.name);
+          ratio = that.minmax(
+            that.rn((pathLength / lines[0].length) * 60),
+            50,
+            150
+          );
+        } else if (pathLength > s.name.length * 2.5) {
+          // full name will fit in one line
+          lines = [s.name];
+          ratio = that.minmax(
+            that.rn((pathLength / lines[0].length) * 70),
+            70,
+            170
+          );
+        } else {
+          // try miltilined label
+          lines = that.splitInTwo(s.name);
+          ratio = that.minmax(
+            that.rn((pathLength / lines[0].length) * 60),
+            70,
+            150
+          );
+        }
+
+        // prolongate path if it's too short
+        if (pathLength && pathLength < lines[0].length) {
+          const points = p[1];
+          const f = points[0];
+          const l = points[points.length - 1];
+          const [dx, dy] = [l[0] - f[0], l[1] - f[1]];
+          const mod = Math.abs((letterLength * lines[0].length) / dx) / 2;
+          points[0] = [that.rn(f[0] - dx * mod), that.rn(f[1] - dy * mod)];
+          points[points.length - 1] = [
+            that.rn(l[0] + dx * mod),
+            that.rn(l[1] + dy * mod),
+          ];
+          textPath.attr("d", that.round(that.lineGen(points)));
+          short = true;
+        }
+
+        example.attr("font-size", ratio + "%");
+        const top = (lines.length - 1) / -2; // y offset
+        const spans = lines.map((l, d) => {
+          example.text(l);
+          const left = example.node().getBBox().width / -2; // x offset
+          return `<tspan x="${left}px" dy="${d ? 1 : top}em">${l}</tspan>`;
+        });
+
+        const el = g
+          .append("text")
+          .attr("id", "cultureLabel" + id)
+          .append("textPath")
+          .attr("xlink:href", "#textPath_cultureLabel" + id)
+          .attr("startOffset", "50%")
+          .attr("font-size", ratio + "%")
+          .node();
+
+        el.insertAdjacentHTML("afterbegin", spans.join(""));
+        if (lines.length < 2) return;
+
+        // check whether multilined label is generally inside the culture. If no, replace with short name label
+        const cs = that.pack.cells.culture;
+        const b = el.parentNode.getBBox();
+        const c1: any = () => +cs[that.findCell(b.x, b.y)] === id;
+        const c2: any = () => +cs[that.findCell(b.x + b.width / 2, b.y)] === id;
+        const c3: any = () => +cs[that.findCell(b.x + b.width, b.y)] === id;
+        const c4: any = () =>
+          +cs[that.findCell(b.x + b.width, b.y + b.height)] === id;
+        const c5: any = () =>
+          +cs[that.findCell(b.x + b.width / 2, b.y + b.height)] === id;
+        const c6 = () => +cs[that.findCell(b.x, b.y + b.height)] === id;
+        if (c1() + c2() + c3() + c4() + c5() + c6() > 3) return; // generally inside
+
+        // use one-line name
+        const name = s.name;
+        example.text(name);
+        const left = example.node().getBBox().width / -2; // x offset
+        el.innerHTML = `<tspan x="${left}px">${name}</tspan>`;
+        ratio = that.minmax(that.rn((pathLength / name.length) * 60), 40, 130);
+        el.setAttribute("font-size", ratio + "%");
+      });
+
+      example.remove();
+      that.toggleLabels(1);
+    })();
+  };
+
+  minmax(value, min, max) {
+    return Math.min(Math.max(value, min), max);
   }
 
-  drawReligions() {
-    console.time("drawReligions");
-
-    this.relig.selectAll("path").remove();
-    const cells = this.pack.cells,
-      vertices = this.pack.vertices,
-      religions = this.pack.religions,
-      features = this.pack.features,
-      n = cells.i.length;
-    const used = new Uint8Array(cells.i.length);
-    const vArray = new Array(religions.length); // store vertices array
-    const body = new Array(religions.length).fill(""); // store path around each religion
-    const gap = new Array(religions.length).fill(""); // store path along water for each religion to fill the gaps
-
-    for (const i of cells.i) {
-      if (!cells.religion[i]) continue;
-      if (used[i]) continue;
-      used[i] = 1;
-      const r = cells.religion[i];
-      const onborder = cells.c[i].filter((n) => cells.religion[n] !== r);
-      if (!onborder.length) continue;
-      const borderWith = cells.c[i]
-        .map((c) => cells.religion[c])
-        .find((n) => n !== r);
-      const vertex = cells.v[i].find((v) =>
-        vertices.c[v].some((i) => cells.religion[i] === borderWith)
-      );
-      const chain = connectVertices(vertex, r, borderWith);
-      if (chain.length < 3) continue;
-      const points = chain.map((v) => vertices.p[v[0]]);
-      if (!vArray[r]) vArray[r] = [];
-      vArray[r].push(points);
-      body[r] += "M" + points.join("L");
-      gap[r] +=
-        "M" +
-        vertices.p[chain[0][0]] +
-        chain.reduce(
-          (r2, v, i, d) =>
-            !i
-              ? r2
-              : !v[2]
-              ? r2 + "L" + vertices.p[v[0]]
-              : d[i + 1] && !d[i + 1][2]
-              ? r2 + "M" + vertices.p[v[0]]
-              : r2,
-          ""
-        );
-    }
-
-    const bodyData = body
-      .map((p, i) => [p.length > 10 ? p : null, i, religions[i].color])
-      .filter((d) => d[0]);
-    this.relig
-      .selectAll("path")
-      .data(bodyData)
-      .enter()
-      .append("path")
-      .attr("d", (d) => d[0])
-      .attr("fill", (d) => d[2])
-      .attr("id", (d) => "religion" + d[1]);
-    const gapData = gap
-      .map((p, i) => [p.length > 10 ? p : null, i, religions[i].color])
-      .filter((d) => d[0]);
-    this.relig
-      .selectAll(".path")
-      .data(gapData)
-      .enter()
-      .append("path")
-      .attr("d", (d) => d[0])
-      .attr("fill", "none")
-      .attr("stroke", (d) => d[2])
-      .attr("id", (d) => "religion-gap" + d[1])
-      .attr("stroke-width", "10px");
-
-    // connect vertices to chain
-    function connectVertices(start, t, religion) {
-      const chain = []; // vertices chain to form a path
-      let land = vertices.c[start].some(
-        (c) => cells.h[c] >= 20 && cells.religion[c] !== t
-      );
-      function check(i) {
-        religion = cells.religion[i];
-        land = cells.h[i] >= 20;
-      }
-
-      for (
-        let i = 0, current = start;
-        i === 0 || (current !== start && i < 20000);
-        i++
-      ) {
-        const prev = chain[chain.length - 1] ? chain[chain.length - 1][0] : -1; // previous vertex in chain
-        chain.push([current, religion, land]); // add current vertex to sequence
-        const c = vertices.c[current]; // cells adjacent to vertex
-        c.filter((c) => cells.religion[c] === t).forEach((c) => (used[c] = 1));
-        const c0 = c[0] >= n || cells.religion[c[0]] !== t;
-        const c1 = c[1] >= n || cells.religion[c[1]] !== t;
-        const c2 = c[2] >= n || cells.religion[c[2]] !== t;
-        const v = vertices.v[current]; // neighboring vertices
-        if (v[0] !== prev && c0 !== c1) {
-          current = v[0];
-          check(c0 ? c[0] : c[1]);
-        } else if (v[1] !== prev && c1 !== c2) {
-          current = v[1];
-          check(c1 ? c[1] : c[2]);
-        } else if (v[2] !== prev && c0 !== c2) {
-          current = v[2];
-          check(c2 ? c[2] : c[0]);
-        }
-        if (current === chain[chain.length - 1][0]) {
-          console.error("Next vertex is not found");
-          break;
-        }
-      }
-      return chain;
-    }
-    console.timeEnd("drawReligions");
-  }
-
-  toggleStates(bool) {
-    if (bool) {
-      this.regions.style("display", null);
-      this.drawStates();
-    } else {
-      this.regions.style("display", "none").selectAll("path").remove();
-    }
+  // normalization function
+  normalize(val, min, max) {
+    return this.minmax((val - min) / (max - min), 0, 1);
   }
 
   drawStates() {
@@ -5526,6 +3853,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     vArray.forEach((ar, i) => {
       const sorted = ar.sort((a, b) => b.length - a.length); // sort by points number
       states[i].pole = polylabel(sorted, 1.0); // pole of inaccessibility
+      console.log("assignPole");
     });
 
     const bodyData = body
@@ -6045,12 +4373,15 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   toggleRelief(bool) {
+    localStorage.setItem("terrainsToggle", bool);
+    this.terrainsToggle = bool;
     if (bool) {
       if (!this.terrain.selectAll("*").size()) this.ReliefIcons();
       $("#terrain").fadeIn();
     } else {
       $("#terrain").fadeOut();
     }
+    this.updateSVG();
   }
 
   toggleTexture(bool) {
@@ -6125,6 +4456,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   toggleMarkers(bool) {
+    localStorage.setItem("markersToggle", bool);
+    this.markersToggle = bool;
     if (bool) {
       $("#markers").fadeIn();
     } else {
@@ -6570,6 +4903,10 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   drawStatesLegend() {
+    if (this.legend.selectAll("*").size()) {
+      this.clearLegend();
+      return;
+    } // hide legend
     const data = this.pack.states
       .filter((s) => s.i && !s.removed && s.cells)
       .sort((a, b) => b.area - a.area)
@@ -6578,17 +4915,26 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   drawReligionsLegend() {
+    if (this.legend.selectAll("*").size()) {
+      this.clearLegend();
+      return;
+    } // hide legend
     const data = this.pack.religions.map((r) => [r.i, r.color, r.name]);
     this.drawLegend("Religions", data);
   }
 
   drawCulturesLegend() {
+    if (this.legend.selectAll("*").size()) {
+      this.clearLegend();
+      return;
+    } // hide legend
     const data = this.pack.cultures.map((c) => [c.i, c.color, c.name]);
     this.drawLegend("Cultures", data);
   }
 
   // draw legend box
   drawLegend(name, data) {
+    return;
     if (this.legend.selectAll("*").size() && this.activeLegend == name) {
       this.clearLegend();
       return;
@@ -6700,10 +5046,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   dragLegendBox = (event) => {
-    console.log("dragLegendBox");
-    console.log(event.target);
-    console.log(d3);
-    console.log(d3.event);
     const tr = this.parseTransform(event.target.getAttribute("transform"));
     const x = +tr[0] - d3.event.x,
       y = +tr[1] - d3.event.y;
@@ -6759,6 +5101,12 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     }
   }
 
+  toggleFog(state, cl) {
+    const path = this.statesBody.select("#state" + state).attr("d"),
+      id = "focusState" + state;
+    cl.contains("inactive") ? this.fog(id, path) : this.unfog(id);
+    cl.toggle("inactive");
+  }
   // remove fogging
   unfog(id) {
     let el = this.defs.select("#fog #" + id);
@@ -6798,19 +5146,19 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   // apply default biomes data
   applyDefaultBiomesSystem() {
     const name = [
-      "Marine",
-      "Hot desert",
-      "Cold desert",
-      "Savanna",
-      "Grassland",
-      "Tropical seasonal forest",
-      "Temperate deciduous forest",
-      "Tropical rainforest",
-      "Temperate rainforest",
-      "Taiga",
-      "Tundra",
-      "Glacier",
-      "Wetland",
+      "Marine", // -15 | +10
+      "Hot desert", // -20 | 20
+      "Cold desert", // -25 | 25
+      "Savanna", // -15 | 15
+      "Grassland", // -15 | 15
+      "Tropical seasonal forest", // -20 | 15
+      "Temperate deciduous forest", // -15 | 15
+      "Tropical rainforest", // -20 | 15
+      "Temperate rainforest", // -15 | 15
+      "Taiga", // -15 | 15
+      "Tundra", // -25 | 25
+      "Glacier", // -25 | 25
+      "Wetland", // -15 | +10
     ];
     const color = [
       "#466eab",
@@ -7029,7 +5377,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     let rn = this.rn;
     let scale = this.scale;
     // rescale lables on zoom
-    if (this.labels.style("display") !== "none") {
+    if (this.labels != null && this.labels.style("display") !== "none") {
       this.labels.selectAll("g").each(function () {
         if (this.id === "burgLabels") return;
         const desired = +this.dataset.size;
@@ -7041,25 +5389,25 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
         else this.classList.remove("hidden");
       });
     }
-    let COArenderer = this.COArenderer;
+    // let COArenderer = this.COArenderer;
     let hideEmblems = this.hideEmblems;
     let renderGroupCOAs = this.renderGroupCOAs;
     // rescale emblems on zoom
-    if (this.emblems.style("display") !== "none") {
-      this.emblems.selectAll("g").each(function () {
-        const size = this.getAttribute("font-size") * scale;
-        const hidden = hideEmblems.checked && (size < 25 || size > 300);
-        if (hidden) this.classList.add("hidden");
-        else this.classList.remove("hidden");
-        if (
-          !hidden &&
-          COArenderer &&
-          this.children.length &&
-          !this.children[0].getAttribute("href")
-        )
-          renderGroupCOAs(this);
-      });
-    }
+    // if (this.emblems && this.emblems.style("display") !== "none") {
+    //   this.emblems.selectAll("g").each(function () {
+    //     const size = this.getAttribute("font-size") * scale;
+    //     const hidden = hideEmblems.checked && (size < 25 || size > 300);
+    //     if (hidden) this.classList.add("hidden");
+    //     else this.classList.remove("hidden");
+    //     if (
+    //       !hidden &&
+    //       COArenderer &&
+    //       this.children.length &&
+    //       !this.children[0].getAttribute("href")
+    //     )
+    //       renderGroupCOAs(this);
+    //   });
+    // }
 
     // turn off ocean pattern if scale is big (improves performance)
     this.oceanPattern
@@ -7100,9 +5448,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
       this.pack.markers?.forEach((marker) => {
         const { i, x, y, size = 40, hidden } = marker;
-        console.log(marker);
         const el = !hidden && document.getElementById(`marker${i}`);
-        console.log(el);
         if (!el) return;
 
         const zoomedSize = Math.max(rn(size / 5 + 24 / this.scale, 2), 1);
@@ -7124,6 +5470,14 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     this.viewbox.attr(
       "transform",
       `translate(${this.viewX} ${this.viewY}) scale(${this.scale})`
+    );
+    localStorage.setItem(
+      "lastView",
+      `translate(${this.viewX} ${this.viewY}) scale(${this.scale})`
+    );
+    localStorage.setItem(
+      "lastXYS",
+      JSON.stringify([this.viewX, this.viewY, this.scale])
     );
 
     // if (isPositionChanged) this.drawCoordinates();
@@ -7148,132 +5502,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     }
   }
 
-  Cultures = (() => {
-    let cells = this.cells;
-    let pack = this.pack;
-    let rand = this.rand;
-    let P = this.P;
-
-    // expand cultures across the map (Dijkstra-like algorithm)
-    const expand = () => {
-      console.time("expandCultures");
-      cells = this.pack.cells;
-
-      const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
-      this.pack.cultures.forEach(function (c) {
-        if (!c.i || c.removed) return;
-        queue.queue({ e: c.center, p: 0, c: c.i });
-      });
-
-      const neutral = (cells.i.length / 5000) * 3000 * this.neutralInput.value; // limit cost for culture growth
-      const cost = [];
-      while (queue.length) {
-        const next = queue.dequeue(),
-          n = next.e,
-          p = next.p,
-          c = next.c;
-        const type = this.pack.cultures[c].type;
-        cells.c[n].forEach(function (e) {
-          const biome = cells.biome[e];
-          const biomeCost = getBiomeCost(c, biome, type);
-          const biomeChangeCost = biome === cells.biome[n] ? 0 : 20; // penalty on biome change
-          const heightCost = getHeightCost(e, cells.h[e], type);
-          const riverCost = getRiverCost(cells.r[e], e, type);
-          const typeCost = getTypeCost(cells.t[e], type);
-          const totalCost =
-            p +
-            (biomeCost + biomeChangeCost + heightCost + riverCost + typeCost) /
-              pack.cultures[c].expansionism;
-
-          if (totalCost > neutral) return;
-
-          if (!cost[e] || totalCost < cost[e]) {
-            if (cells.s[e] > 0) cells.culture[e] = c; // assign culture to populated cell
-            cost[e] = totalCost;
-            queue.queue({ e, p: totalCost, c });
-          }
-        });
-      }
-
-      console.timeEnd("expandCultures");
-    };
-
-    const getBiomeCost = (c, biome, type) => {
-      if (cells.biome[pack.cultures[c].center] === biome) return 10; // tiny penalty for native biome
-      if (type === "Hunting") return this.biomesData.cost[biome] * 5; // non-native biome penalty for hunters
-      if (type === "Nomadic" && biome > 4 && biome < 10)
-        return this.biomesData.cost[biome] * 10; // forest biome penalty for nomads
-      return this.biomesData.cost[biome] * 2; // general non-native biome penalty
-    };
-
-    function getHeightCost(i, h, type) {
-      const f = pack.features[cells.f[i]],
-        a = cells.area[i];
-      if (type === "Lake" && f.type === "lake") return 10; // no lake crossing penalty for Lake cultures
-      if (type === "Naval" && h < 20) return a * 2; // low sea/lake crossing penalty for Naval cultures
-      if (type === "Nomadic" && h < 20) return a * 50; // giant sea/lake crossing penalty for Nomads
-      if (h < 20) return a * 6; // general sea/lake crossing penalty
-      if (type === "Highland" && h < 44) return 3000; // giant penalty for highlanders on lowlands
-      if (type === "Highland" && h < 62) return 200; // giant penalty for highlanders on lowhills
-      if (type === "Highland") return 0; // no penalty for highlanders on highlands
-      if (h >= 67) return 200; // general mountains crossing penalty
-      if (h >= 44) return 30; // general hills crossing penalty
-      return 0;
-    }
-
-    function getRiverCost(r, i, type) {
-      if (type === "River") return r ? 0 : 100; // penalty for river cultures
-      if (!r) return 0; // no penalty for others if there is no river
-      return Math.min(Math.max(cells.fl[i] / 10, 20), 100); // river penalty from 20 to 100 based on flux
-    }
-
-    function getTypeCost(t, type) {
-      if (t === 1)
-        return type === "Naval" || type === "Lake"
-          ? 0
-          : type === "Nomadic"
-          ? 60
-          : 20; // penalty for coastline
-      if (t === 2) return type === "Naval" || type === "Nomadic" ? 30 : 0; // low penalty for land level 2 for Navals and nomads
-      if (t !== -1) return type === "Naval" || type === "Lake" ? 100 : 0; // penalty for mainland for navals
-      return 0;
-    }
-
-    const getRandomShield = () => {
-      const type = this.rw(this.COA.shields.types);
-      return this.rw(this.COA.shields[type]);
-    };
-
-    return { expand, getRandomShield };
-  })();
-
-  COA = (() => {
-    const getShield = (culture, state) => {
-      const emblemShape = <HTMLSelectElement>(
-        document.getElementById("emblemShape")
-      );
-      const shapeGroup =
-        (<any>emblemShape.selectedOptions[0]?.parentNode).label ||
-        "Diversiform";
-      if (shapeGroup !== "Diversiform") return emblemShape.value;
-
-      if (emblemShape.value === "state" && state && this.pack.states[state].coa)
-        return this.pack.states[state].coa.shield;
-      if (this.pack.cultures[culture].shield)
-        return this.pack.cultures[culture].shield;
-      console.error(
-        "Shield shape is not defined on culture level",
-        this.pack.cultures[culture]
-      );
-      return "heater";
-    };
-
-    const toString = (coa) => JSON.stringify(coa).replaceAll("#", "%23");
-    const copy = (coa) => JSON.parse(JSON.stringify(coa));
-
-    return { toString, copy, getShield, shields };
-  })();
-
   renderGroupCOAs = async (g) => {
     const [group, type] =
       g.id === "burgEmblems"
@@ -7284,7 +5512,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     for (let use of g.children) {
       const i = +use.dataset.i;
       const id = type + "COA" + i;
-      this.COArenderer.trigger(id, group[i].coa);
+      // this.COArenderer.trigger(id, group[i].coa);
       use.setAttribute("href", "#" + id);
     }
   };
@@ -7294,14 +5522,14 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     console.log("Change Map Size");
     let mapWrapper = document.getElementById("map-wrapper");
     this.svgWidth = mapWrapper.clientWidth; //Math.min(+this.mapWidthInput.value, window.innerWidth);
-    this.svgHeight = mapWrapper.clientHeight; //Math.min(+this.mapHeightInput.value, window.innerHeight);
+    this.svgHeight = mapWrapper.clientHeight * 0.95; //Math.min(+this.mapHeightInput.value, window.innerHeight);
     this.svg.attr("width", this.svgWidth).attr("height", this.svgHeight);
 
     const maxWidth = 2000; //Math.max(+this.mapWidthInput.value, this.graphWidth);
     const maxHeight = 2000; //Math.max(+this.mapHeightInput.value, this.graphHeight);
     this.zoom.translateExtent([
-      [0, 0],
-      [maxWidth, maxHeight],
+      [0 - this.svgWidth * 0.5, 0 - this.svgHeight * 0.5],
+      [maxWidth + this.svgWidth * 0.5, maxHeight + this.svgHeight * 0.5],
     ]);
     this.landmass
       .select("rect")
@@ -7393,7 +5621,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   // Zoom to a specific point
   zoomTo(x, y, z = 8, d = 2000) {
     const transform = d3.zoomIdentity
-      .translate(x * -z + this.graphWidth / 2, y * -z + this.graphHeight / 2)
+      .translate(x * -z + this.svgWidth / 2, y * -z + this.svgHeight / 2)
       .scale(z);
     this.svg.transition().duration(d).call(this.zoom.transform, transform);
   }
@@ -7405,286 +5633,105 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     // if (styleElementSelect.value === "legend") this.redrawLegend();
   }
-
-  Rivers = (() => {
-    let seed = this.seed;
-    let pack = this.pack;
-    let grid = this.grid;
-
-    // add points at 1/3 and 2/3 of a line between adjacents river cells
-    const addMeandering = (
-      riverCells,
-      riverPoints = null,
-      meandering = 0.5
-    ) => {
-      const { fl, conf, h } = this.pack.cells;
-      const meandered = [];
-      const lastStep = riverCells.length - 1;
-      const points = getRiverPoints(riverCells, riverPoints);
-      let step = h[riverCells[0]] < 20 ? 1 : 10;
-
-      let fluxPrev = 0;
-      const getFlux = (step, flux) => (step === lastStep ? fluxPrev : flux);
-
-      for (let i = 0; i <= lastStep; i++, step++) {
-        const cell = riverCells[i];
-        const isLastCell = i === lastStep;
-
-        const [x1, y1] = points[i];
-        const flux1 = getFlux(i, fl[cell]);
-        fluxPrev = flux1;
-
-        meandered.push([x1, y1, flux1]);
-        if (isLastCell) break;
-
-        const nextCell = riverCells[i + 1];
-        const [x2, y2] = points[i + 1];
-
-        if (nextCell === -1) {
-          meandered.push([x2, y2, fluxPrev]);
-          break;
-        }
-
-        const dist2 = (x2 - x1) ** 2 + (y2 - y1) ** 2; // square distance between cells
-        if (dist2 <= 25 && riverCells.length >= 6) continue;
-
-        const flux2 = getFlux(i + 1, fl[nextCell]);
-        const keepInitialFlux = conf[nextCell] || flux1 === flux2;
-
-        const meander =
-          meandering + 1 / step + Math.max(meandering - step / 100, 0);
-        const angle = Math.atan2(y2 - y1, x2 - x1);
-        const sinMeander = Math.sin(angle) * meander;
-        const cosMeander = Math.cos(angle) * meander;
-
-        if (
-          step < 10 &&
-          (dist2 > 64 || (dist2 > 36 && riverCells.length < 5))
-        ) {
-          // if dist2 is big or river is small add extra points at 1/3 and 2/3 of segment
-          const p1x = (x1 * 2 + x2) / 3 + -sinMeander;
-          const p1y = (y1 * 2 + y2) / 3 + cosMeander;
-          const p2x = (x1 + x2 * 2) / 3 + sinMeander / 2;
-          const p2y = (y1 + y2 * 2) / 3 - cosMeander / 2;
-          const [p1fl, p2fl] = keepInitialFlux
-            ? [flux1, flux1]
-            : [(flux1 * 2 + flux2) / 3, (flux1 + flux2 * 2) / 3];
-          meandered.push([p1x, p1y, p1fl], [p2x, p2y, p2fl]);
-        } else if (dist2 > 25 || riverCells.length < 6) {
-          // if dist is medium or river is small add 1 extra middlepoint
-          const p1x = (x1 + x2) / 2 + -sinMeander;
-          const p1y = (y1 + y2) / 2 + cosMeander;
-          const p1fl = keepInitialFlux ? flux1 : (flux1 + flux2) / 2;
-          meandered.push([p1x, p1y, p1fl]);
-        }
-      }
-
-      return meandered;
-    };
-
-    const getRiverPoints = (riverCells, riverPoints) => {
-      if (riverPoints) return riverPoints;
-      const { p } = this.pack.cells;
-      return riverCells.map((cell, i) => {
-        if (cell === -1) return getBorderPoint(riverCells[i - 1]);
-        return p[cell];
-      });
-    };
-
-    const getBorderPoint = (i) => {
-      const [x, y] = this.pack.cells.p[i];
-      const min = Math.min(y, this.graphHeight - y, x, this.graphWidth - x);
-      if (min === y) return [x, 0];
-      else if (min === this.graphHeight - y) return [x, this.graphHeight];
-      else if (min === x) return [0, y];
-      return [this.graphWidth, y];
-    };
-
-    const FLUX_FACTOR = 500;
-    const MAX_FLUX_WIDTH = 2;
-    const LENGTH_FACTOR = 200;
-    const STEP_WIDTH = 1 / LENGTH_FACTOR;
-    const LENGTH_PROGRESSION = [1, 1, 2, 3, 5, 8, 13, 21, 34].map(
-      (n) => n / LENGTH_FACTOR
+  selectBurg(i) {
+    this.removeAllRulers();
+    this.selectedBurg = this.pack.burgs[i];
+    this.selectedBurg.elevation = this.getHeight(
+      this.pack.cells.h[this.selectedBurg.cell]
     );
-    const MAX_PROGRESSION = this.last(LENGTH_PROGRESSION);
 
-    const getOffset = (
-      flux,
-      pointNumber,
-      widthFactor = 1,
-      startingWidth = 0
-    ) => {
-      const fluxWidth = Math.min(flux ** 0.9 / FLUX_FACTOR, MAX_FLUX_WIDTH);
-      const lengthWidth =
-        pointNumber * STEP_WIDTH +
-        (LENGTH_PROGRESSION[pointNumber] || MAX_PROGRESSION);
-      return widthFactor * (lengthWidth + fluxWidth) + startingWidth;
-    };
+    this.selectedBurg.populationRate = this.populationRate;
+    this.selectedBurg.cObject = this.pack.cultures[this.selectedBurg.culture];
+    this.selectedBurg.urbanization = this.urbanization;
+    const temperature =
+      this.grid.cells.temp[this.pack.cells.g[this.selectedBurg.cell]];
+    this.selectedBurg.temperature = this.convertTemperature(temperature);
+    this.selectedBurg;
+    this.selectedBurg.biome = this.cells.biome[this.selectedBurg.cell];
+  }
+  selectMarker(i) {
+    const note = this.notes.find((note) => note.id === i);
+    this.selectedMarker = this.pack.markers[i.replace("marker", "")];
 
-    // build polygon from a list of points and calculated offset (width)
-    const getRiverPath = (points, widthFactor = 1, startingWidth = 0) => {
-      const riverPointsLeft = [];
-      const riverPointsRight = [];
+    if (this.selectedBurg?.npcs)
+      this.selectedMarker.npcs = this.selectedBurg.npcs;
+    this.selectedMarker.biome = this.cells.biome[this.selectedMarker.cell];
+    this.clickedEmitter.emit();
 
-      for (let p = 0; p < points.length; p++) {
-        const [x0, y0] = points[p - 1] || points[p];
-        const [x1, y1, flux] = points[p];
-        const [x2, y2] = points[p + 1] || points[p];
+    const [element, marker] = this.getElement(this.selectedMarker.i, d3.event);
+    if (!marker || !element) return;
+    this.elSelected = d3.select(element);
+    this.elSelected
+      .raise()
+      .call(d3.drag().on("start", this.dragMarker))
+      .classed("draggable", true);
+    if (marker.type == "party") {
+      this.togglePartyMoveRoute(marker);
+      this.selectedParty.marker = marker;
+    }
+  }
+  moveParty(travelEndpoint) {
+    let partyEl = document.getElementById(
+      "marker" + this.selectedParty.marker.i
+    );
+    this.selectedParty.marker.x =
+      travelEndpoint.getAttribute("cx") -
+      parseInt(partyEl.getAttribute("width"), 10) / 2;
+    partyEl.setAttribute("x", this.selectedParty.marker.x.toString());
+    this.selectedParty.marker.y =
+      travelEndpoint.getAttribute("cy") -
+      parseInt(partyEl.getAttribute("height"), 10) / 2;
+    partyEl.setAttribute("y", this.selectedParty.marker.y.toString());
 
-        const offset = getOffset(flux, p, widthFactor, startingWidth);
-        const angle = Math.atan2(y0 - y2, x0 - x2);
-        const sinOffset = Math.sin(angle) * offset;
-        const cosOffset = Math.cos(angle) * offset;
+    this.updateSVG();
+    this.worldService.updatePOI(this.selectedParty.marker, this.selectedRegion);
+  }
+  updateSVG() {
+    // save svg
+    const cloneEl = <HTMLElement>document.getElementById("map").cloneNode(true);
 
-        riverPointsLeft.push([x1 - sinOffset, y1 + cosOffset]);
-        riverPointsRight.push([x1 + sinOffset, y1 - cosOffset]);
-      }
+    // reset transform values to default
+    cloneEl.setAttribute("width", this.graphWidth);
+    cloneEl.setAttribute("height", this.graphHeight);
+    cloneEl.querySelector("#viewbox").removeAttribute("transform");
 
-      const right = this.lineGen(riverPointsRight.reverse());
-      let left = this.lineGen(riverPointsLeft);
-      left = left.substring(left.indexOf("C"));
+    cloneEl.querySelector("#ruler").innerHTML = ""; // always remove rulers
 
-      return this.round(right + left, 1);
-    };
-
-    const specify = function () {
-      const rivers = pack.rivers;
-      if (!rivers.length) return;
-
-      for (const river of rivers) {
-        river.basin = getBasin(river.i);
-        river.name = getName(river.mouth);
-        river.type = getType(river);
-      }
-    };
-    let Names = this.Names;
-    const getName = function (cell) {
-      return Names.getCulture(pack.cells.culture[cell]);
-    };
-
-    // weighted arrays of river type names
-    const riverTypes = {
-      main: {
-        big: { River: 1 },
-        small: { Creek: 9, River: 3, Brook: 3, Stream: 1 },
-      },
-      fork: {
-        big: { Fork: 1 },
-        small: { Branch: 1 },
-      },
-    };
-
-    let smallLength = null;
-    const getType = ({ i, length, parent }) => {
-      if (smallLength === null) {
-        const threshold = Math.ceil(pack.rivers.length * 0.15);
-        smallLength = pack.rivers
-          .map((r) => r.length || 0)
-          .sort((a, b) => a - b)[threshold];
-      }
-
-      const isSmall = length < smallLength;
-      const isFork = this.each(3)(i) && parent && parent !== i;
-      return this.rw(
-        riverTypes[isFork ? "fork" : "main"][isSmall ? "small" : "big"]
-      );
-    };
-
-    const getApproximateLength = (points) => {
-      const length = points.reduce(
-        (s, v, i, p) =>
-          s + (i ? Math.hypot(v[0] - p[i - 1][0], v[1] - p[i - 1][1]) : 0),
-        0
-      );
-      return this.rn(length, 2);
-    };
-
-    // Real mouth width examples: Amazon 6000m, Volga 6000m, Dniepr 3000m, Mississippi 1300m, Themes 900m,
-    // Danube 800m, Daugava 600m, Neva 500m, Nile 450m, Don 400m, Wisla 300m, Pripyat 150m, Bug 140m, Muchavets 40m
-    const getWidth = (offset) => this.rn((offset / 1.5) ** 1.8, 2); // mouth width in km
-
-    const getBasin = function (r) {
-      const parent = pack.rivers.find((river) => river.i === r)?.parent;
-      if (!parent || r === parent) return r;
-      return getBasin(parent);
-    };
-
-    return {
-      addMeandering,
-      getRiverPath,
-      specify,
-      getName,
-      getType,
-      getBasin,
-      getWidth,
-      getOffset,
-      getApproximateLength,
-      getRiverPoints,
-    };
-  })();
-
+    const serializedSVG = new XMLSerializer().serializeToString(cloneEl);
+    this.worldService.updateSVG(serializedSVG, this.selectedRegion);
+  }
   // on viewbox click event - run function based on target
   clicked = (event) => {
-    console.log(event);
-    console.log(d3.event);
     const el = event ? event.target : d3.event.target;
     if (!el || !el.parentElement || !el.parentElement.parentElement) return;
     const parent = el.parentElement;
     const grand = parent.parentElement;
     const great = grand.parentElement;
-    console.log(el);
-    console.log(parent);
-    console.log(grand);
-    console.log(grand.class);
-    console.log(grand.className);
-    console.log(grand.className.baseVal);
-    console.log(grand.id);
 
     // else if (el.tagName === "tspan" && grand.parentNode.parentNode.id === "labels") editLabel();
     if (grand.id === "burgLabels" || grand.id === "burgIcons") {
       this.removeAllRulers();
-      this.selectedBurg = this.pack.burgs[el.dataset.id];
-      this.selectedBurg.elevation = this.getHeight(
-        this.pack.cells.h[this.selectedBurg.cell]
-      );
-      console.log(this.selectedBurg);
-      this.selectedBurg.populationRate = this.populationRate;
-      this.selectedBurg.cObject = this.pack.cultures[this.selectedBurg.culture];
-      this.selectedBurg.urbanization = this.urbanization;
-      const temperature =
-        this.grid.cells.temp[this.pack.cells.g[this.selectedBurg.cell]];
-      this.selectedBurg.temperature = this.convertTemperature(temperature);
-      this.selectedBurg;
-      this.clickedEmitter.emit(this.selectedBurg);
+      this.storyService.select(el.dataset.id, "burg");
+      this.clickedEmitter.emit();
     } else if (grand.id === "markers" || great.id === "markers") {
       this.removeAllRulers();
-      const note = this.notes.find((note) => note.id === parent.id);
-      this.selectedMarker = this.pack.markers[parent.id.replace("marker", "")];
-      console.log(this.selectedMarker);
-      if (this.selectedBurg?.npcs)
-        this.selectedMarker.npcs = this.selectedBurg.npcs;
-      this.clickedEmitter.emit({ ...this.selectedMarker, ...note });
-      this.editMarker(this.selectedMarker.i);
+
+      this.storyService.select(parent.id, "marker");
+      this.clickedEmitter.emit();
+      const [element, marker] = this.getElement(parent.id, d3.event);
+      if (!marker || !element) return;
+      this.selectedMarker = marker;
+      this.elSelected = d3.select(element);
+      this.elSelected
+        .raise()
+        .call(d3.drag().on("start", this.dragMarker))
+        .classed("draggable", true);
+      if (marker.type == "party") {
+        this.togglePartyMoveRoute(marker);
+        this.selectedParty.marker = marker;
+      }
     } else if (grand.className.baseVal == "opisometer" && this.selectedMarker) {
-      console.log(this.selectedMarker);
-      let partyEl = document.getElementById(
-        "marker" + this.selectedParty.marker.i
-      );
-      partyEl.setAttribute(
-        "x",
-        (
-          el.getAttribute("cx") -
-          parseInt(partyEl.getAttribute("width"), 10) / 2
-        ).toString()
-      );
-      partyEl.setAttribute(
-        "y",
-        (
-          el.getAttribute("cy") -
-          parseInt(partyEl.getAttribute("height"), 10) / 2
-        ).toString()
-      );
+      this.moveParty(el);
       this.removeAllRulers();
       this.restoreDefaultEvents();
     }
@@ -7768,7 +5815,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
       // set emlem image
       const coaID = "burgCOA" + id;
-      this.COArenderer.trigger(coaID, b.coa);
+      // this.COArenderer.trigger(coaID, b.coa);
       document.getElementById("burgEmblem").setAttribute("href", "#" + coaID);
     };
 
@@ -7868,12 +5915,12 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
     this.BurgsAndStates.expandStates();
     // this.BurgsAndStates.generateProvinces();
-    if (!this.layerIsOn("toggleStates")) this.toggleStates(null);
-    else this.drawStates();
+    this.BurgsAndStates.toggle(1);
+    this.drawStates();
     if (!this.layerIsOn("toggleBorders")) this.toggleBorders(null);
     else this.drawBorders();
     if (this.layerIsOn("toggleProvinces")) this.drawProvinces();
-    this.BurgsAndStates.drawStateLabels(null);
+    this.BurgsAndStates.drawStateLabels();
   };
 
   layerIsOn(el) {
@@ -7885,8 +5932,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    this.populationRate = 1000;
-    this.urbanization = 1;
+    // this.populationRate = 1000;
+    // this.urbanization = 1;
     this.moved = this.debounce(this.mouseMove, 300);
 
     // applyStoredOptions();
@@ -8060,244 +6107,88 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     ];
 
     this.modules.editors = true;
-    this.loadMapFromURL("region/1/map", false);
   }
 
-  Markers = (() => {
-    let config = [];
-    let occupied = [];
-
-    const getMarkerCoordinates = (cell) => {
-      const { cells, burgs } = this.pack;
-      const burgId = cells.burg[cell];
-
-      if (burgId) {
-        const { x, y } = burgs[burgId];
-        return [x, y];
-      }
-
-      return cells.p[cell];
-    };
-
-    const addMarker = (cell, type, icon, dx = null, dy = null, px = null) => {
-      const i = this.pack.markers.length;
-      const [x, y] = getMarkerCoordinates(cell);
-      const marker: any = { i, icon, type, x, y, cell };
-      if (dx) marker.dx = dx;
-      if (dy) marker.dy = dy;
-      if (px) marker.px = px;
-      this.pack.markers.push(marker);
-      occupied[cell] = true;
-      return "marker" + i;
-    };
-
-    // return { generate, regenerate, getConfig, setConfig };
-  })();
-
-  editMarker = (markerI) => {
-    let rn = this.rn;
-    let findCell = this.findCell;
-    let scale = this.scale;
-    let pack = this.pack;
-
-    const [element, marker] = getElement(markerI, d3.event);
-    if (!marker || !element) return;
-    console.log(marker.type);
-    this.elSelected = d3
-      .select(element)
-      .raise()
-      .call(d3.drag().on("start", dragMarker))
-      .classed("draggable", true);
-    if (marker.type == "party") {
-      this.toggleRouteOpisometerMode(marker);
-      this.selectedParty.marker = marker;
-    }
-
-    function getElement(markerI, event) {
-      if (event) {
-        const element = event.target?.closest("svg");
-        const marker = pack.markers.find(
-          ({ i }) => Number(element.id.slice(6)) === i
-        );
-        return [element, marker];
-      }
-
-      const element = document.getElementById(`marker${markerI}`);
-      const marker = pack.markers.find(({ i }) => i === markerI);
+  getElement(markerI, event) {
+    if (event) {
+      const element = event.target?.closest("svg");
+      const marker = this.pack.markers.find(
+        ({ i }) => Number(element.id.slice(6)) === i
+      );
       return [element, marker];
     }
 
-    function getSameTypeMarkers() {
-      const currentType = marker.type;
-      if (!currentType) return [marker];
-      return pack.markers.filter(({ type }) => type === currentType);
-    }
-    function dragMarker() {
-      if (this.getAttribute("data-type") == "party") return;
-      const dx = +this.getAttribute("x") - d3.event.x;
-      const dy = +this.getAttribute("y") - d3.event.y;
+    const element = document.getElementById(`marker${markerI}`);
+    const marker = this.pack.markers.find(({ i }) => i === markerI);
+    return [element, marker];
+  }
 
-      d3.event.on("drag", function () {
-        const { x, y } = d3.event;
-        this.setAttribute("x", dx + x);
-        this.setAttribute("y", dy + y);
-      });
+  getSameTypeMarkers() {
+    const currentType = this.selectedMarker.type;
+    if (!currentType) return [this.selectedMarker];
+    return this.pack.markers.filter(({ type }) => type === currentType);
+  }
+  dragMarker = () => {
+    if (this.elSelected.attr("data-type") == "party") return;
+    const dx = +this.elSelected.attr("x") - d3.event.x;
+    const dy = +this.elSelected.attr("y") - d3.event.y;
 
-      d3.event.on("end", function () {
-        const { x, y } = d3.event;
-        this.setAttribute("x", rn(dx + x, 2));
-        this.setAttribute("y", rn(dy + y, 2));
+    d3.event.on("drag", function () {
+      const { x, y } = d3.event;
+      this.setAttribute("x", dx + x);
+      this.setAttribute("y", dy + y);
+    });
+    d3.event.on("end", () => {
+      const { x, y } = d3.event;
+      this.elSelected.attr("x", this.rn(dx + x, 2));
+      this.elSelected.attr("y", this.rn(dy + y, 2));
 
-        const size = marker.size || 30;
-        const zoomSize = Math.max(rn(size / 5 + 24 / scale, 2), 1);
+      const size = this.selectedMarker.size || 30;
+      const zoomSize = Math.max(this.rn(size / 5 + 24 / this.scale, 2), 1);
+      this.selectedMarker.x = this.rn(x + dx + zoomSize / 2, 1);
+      this.selectedMarker.y = this.rn(y + dy + zoomSize, 1);
+      this.selectedMarker.cell = this.findCell(
+        this.selectedMarker.x,
+        this.selectedMarker.y
+      );
 
-        marker.x = rn(x + dx + zoomSize / 2, 1);
-        marker.y = rn(y + dy + zoomSize, 1);
-        marker.cell = findCell(marker.x, marker.y);
-      });
-    }
-
-    function changeMarkerType() {
-      marker.type = this.value;
-    }
-
-    function changeMarkerIcon() {
-      const icon = this.value;
-      getSameTypeMarkers().forEach((marker) => {
-        marker.icon = icon;
-        redrawIcon(marker);
-      });
-    }
-
-    const selectMarkerIcon = () => {
-      this.selectIcon(marker.icon, (icon) => {
-        // markerIcon.value = icon;
-        getSameTypeMarkers().forEach((marker) => {
-          marker.icon = icon;
-          redrawIcon(marker);
-        });
-      });
-    };
-
-    function changeIconSize() {
-      const px = +this.value;
-      getSameTypeMarkers().forEach((marker) => {
-        marker.px = px;
-        redrawIcon(marker);
-      });
-    }
-
-    function changeMarkerSize() {
-      const size = +this.value;
-      const rescale = +1;
-
-      getSameTypeMarkers().forEach((marker) => {
-        marker.size = size;
-        const { i, x, y, hidden } = marker;
-        const el = !hidden && document.getElementById(`marker${i}`);
-        if (!el) return;
-
-        // const zoomedSize = rescale ? Math.max(rn(size / 5 + 24 / scale, 2), 1) : size;
-        // el.setAttribute("width", zoomedSize);
-        // el.setAttribute("height", zoomedSize);
-        // el.setAttribute("x", rn(x - zoomedSize / 2, 1));
-        // el.setAttribute("y", rn(y - zoomedSize, 1));
-      });
-    }
-
-    function redrawIcon({ i, hidden, icon, dx = 50, dy = 50, px = 12 }) {
-      const iconElement =
-        !hidden && document.querySelector(`#marker${i} > text`);
-      if (iconElement) {
-        iconElement.innerHTML = icon;
-        iconElement.setAttribute("x", dx + "%");
-        iconElement.setAttribute("y", dy + "%");
-        iconElement.setAttribute("font-size", px + "px");
-      }
-    }
-
-    function redrawPin({
-      i,
-      hidden,
-      pin = "bubble",
-      fill = "#fff",
-      stroke = "#000",
-    }) {
-      const pinGroup = !hidden && document.querySelector(`#marker${i} > g`);
-      // if (pinGroup) pinGroup.innerHTML = getPin(pin, fill, stroke);
-    }
-
-    // function toggleAddMarker() {
-    //   markerAdd.classList.toggle("pressed");
-    //   addMarker.click();
-    // }
-
-    function confirmMarkerDeletion() {
-      // confirmationDialog({
-      //   title: "Remove marker",
-      //   message:
-      //     "Are you sure you want to remove this marker? The action cannot be reverted",
-      //   confirm: "Remove",
-      //   onConfirm: deleteMarker,
-      // });
-    }
-
-    const deleteMarker = () => {
-      // notes = notes.filter((note) => note.id !== element.id);
-      this.pack.markers = this.pack.markers.filter((m) => m.i !== marker.i);
-      element.remove();
-      $("#markerEditor").dialog("close");
-      // if (document.getElementById("markersOverviewRefresh").offsetParent)
-      // markersOverviewRefresh.click();
-    };
+      this.updateSVG();
+      this.worldService.updatePOI(this.selectedMarker, this.selectedRegion);
+    });
   };
 
-  drawIcons = () => {
-    const table: HTMLTableElement = <HTMLTableElement>(
-      document.getElementById("newMarkerTable")
+  confirmMarkerDeletion() {
+    // confirmationDialog({
+    //   title: "Remove marker",
+    //   message:
+    //     "Are you sure you want to remove this marker? The action cannot be reverted",
+    //   confirm: "Remove",
+    //   onConfirm: deleteMarker,
+    // });
+  }
+
+  deleteMarker = () => {
+    // notes = notes.filter((note) => note.id !== element.id);
+    this.pack.markers = this.pack.markers.filter(
+      (m) => m.i !== this.selectedMarker.i
     );
-    const input = document.getElementById("addIconInput");
-    let customIcons = JSON.parse(localStorage.getItem("customIcons"));
-    if (typeof customIcons != "object") customIcons = [];
-    table.innerHTML = "";
-
-    let row: HTMLTableRowElement;
-    for (let i = 0; i < icons.length; i++) {
-      if (i % 10 === 0) row = table.insertRow((i / 10) | 0);
-      const cell = row.insertCell(i % 10);
-      cell.innerHTML = icons[i];
-    }
-    console.log(table);
-
-    table.onclick = (e) => {
-      if ((<HTMLElement>e.target).tagName === "TD") {
-        if (this.selectedMarker) {
-          $("#newMarkerTable tr").each(function () {
-            $(this)
-              .find("td")
-              .each(function () {
-                console.log(this.className);
-                this.className = "";
-              });
-          });
-        }
-        (<HTMLElement>e.target).className = "selected-icon";
-        this.selectedMarker = (<HTMLElement>e.target).innerHTML;
-        this.toggleAddMarkerCustom();
-      }
-    };
+    // element.remove();
+    // $("#markerEditor").dialog("close");
+    // if (document.getElementById("markersOverviewRefresh").offsetParent)
+    // markersOverviewRefresh.click();
   };
 
-  toggleAddMarkerCustom = () => {
+  toggleAddMarkerCustom = (icon) => {
+    this.selectedIcon = icon;
     this.viewbox
       .style("cursor", "crosshair")
       .on("click", this.addMarkerOnClickCustom);
     this.tip(
       "Click on map to add a marker. Hold Shift to add multiple " +
-        this.selectedMarker,
+        this.selectedIcon,
       true
     );
-    if (!this.layerIsOn("toggleMarkers")) this.toggleMarkers(null);
+    if (!this.layerIsOn("toggleMarkers")) this.toggleMarkers(true);
   };
 
   isLake() {
@@ -8311,7 +6202,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
 
   drawMarker(marker, rescale = 1) {
-    console.log(marker.size);
     const {
       i,
       icon,
@@ -8326,9 +6216,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       fill,
       stroke,
     } = marker;
-    console.log(marker);
-    console.log(size);
-    console.log(marker.size);
     const id = `marker${i}`;
     const zoomSize = rescale
       ? Math.max(this.rn(size / 5 + 24 / this.scale, 2), 1)
@@ -8343,60 +6230,86 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
   }
   addMarkerOnClickCustom = () => {
     const { markers } = this.pack;
-    const point = d3.mouse(this);
+    const point = d3.mouse(document.getElementById("viewbox"));
     const cell = this.findCell(point[0], point[1]);
     const x = this.rn(point[0], 2);
     const y = this.rn(point[1], 2);
     const i = this.last(markers).i + 1;
     const marker = {
-      icon: this.selectedMarker ? this.selectedMarker : "❓",
+      icon: this.selectedIcon ? this.selectedIcon : "❓",
       i,
       x,
       y,
       type: "",
       name: "",
+      notes: "",
     };
 
-    if (["🏇", "🎎", "👥"].indexOf(this.selectedMarker) + 1) {
+    if (["🏇", "🎎", "👥"].indexOf(this.selectedIcon) + 1) {
       marker.type = "party";
       marker.name = "Adventuring Party";
       this.addParty("Adventuring Party");
     }
-    if (["🍻", "🍺"].indexOf(this.selectedMarker) + 1) {
+    if (["🍻", "🍺"].indexOf(this.selectedIcon) + 1) {
+      marker.type = "tavern";
       this.addInnHook(i, cell, "tavern");
     }
-    if (this.selectedMarker == "🛌") {
+    if (this.selectedIcon == "🛌") {
+      marker.type = "inn";
       this.addInnHook(i, cell, "inn");
     }
-    if (["⚔️", "🏹"].indexOf(this.selectedMarker) + 1) {
+    if (["⚔️", "🏹"].indexOf(this.selectedIcon) + 1) {
+      marker.type = "brigand";
       this.addBrigandHook(i, cell);
     }
-    if (this.selectedMarker == "⛏️") {
+    if (this.selectedIcon == "⛏️") {
+      marker.type = "mine";
       this.addMineHook(i);
     }
-    if (this.selectedMarker == "🌋") {
+    if (this.selectedIcon == "🌋") {
+      marker.type = "volcano";
       this.addVolcanoeHook(i, cell);
     }
-    if (this.selectedMarker == "🕸️") {
+    if (this.selectedIcon == "🕸️") {
       // addSpiderHook(i, cell);
     }
-    if (this.selectedMarker == "🏴‍☠️") {
+    if (this.selectedIcon == "🏴‍☠️") {
+      marker.type = "pirate";
       this.addPirateHook(i);
     }
-    if (["🏴", "☠️", "💀", "🦑", "🐉"].indexOf(this.selectedMarker) + 1) {
+    if (["🏴", "☠️", "💀", "🦑", "🐉"].indexOf(this.selectedIcon) + 1) {
       if (this.isLake()) this.addLakeMonsterHook(i);
       else if (this.isWater(cell)) this.addSeaMonsterHook(i);
       else this.addLandMonsterHook(i, cell);
     }
-    if (["☣️", "☢️"].indexOf(this.selectedMarker) + 1) {
+    if (["☣️", "☢️"].indexOf(this.selectedIcon) + 1) {
     }
-    if (["🏛️", "🕳️", "🏺", "🗝️"].indexOf(this.selectedMarker) + 1) {
+    if (["🏛️", "🕳️", "🏺", "🗝️"].indexOf(this.selectedIcon) + 1) {
+      marker.type = "ruins";
       this.addDungeonHook(i, cell);
     }
-
+    if (!marker.type) marker.type = "marker";
+    if (this.notes[this.notes.length - 1].id == "marker" + marker.i) {
+      marker.name = this.notes[this.notes.length - 1].name;
+      marker.notes = this.notes[this.notes.length - 1].legend;
+    }
     markers.push(marker);
     const markersElement = document.getElementById("markers");
     markersElement.insertAdjacentHTML("beforeend", this.drawMarker(marker, 1));
+    // save svg
+    const cloneEl = <HTMLElement>document.getElementById("map").cloneNode(true);
+
+    // reset transform values to default
+    cloneEl.setAttribute("width", this.graphWidth);
+    cloneEl.setAttribute("height", this.graphHeight);
+    cloneEl.querySelector("#viewbox").removeAttribute("transform");
+
+    cloneEl.querySelector("#ruler").innerHTML = ""; // always remove rulers
+
+    const serializedSVG = new XMLSerializer().serializeToString(cloneEl);
+
+    this.worldService.createPOI(marker, serializedSVG, this.selectedRegion);
+    this.clickedEmitter.emit(marker);
 
     if (d3.event.shiftKey === false) {
       this.restoreDefaultEvents();
@@ -8409,21 +6322,8 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
           });
       });
     }
+    // this.saveToServer();
   };
-
-  addIcon() {
-    let customIcons = [];
-    if (localStorage.getItem("customIcons"))
-      customIcons = JSON.parse(localStorage.getItem("customIcons"));
-    let newIcon = (<HTMLInputElement>document.getElementById("addIconInput"))
-      .value;
-    if (newIcon) {
-      customIcons.push(newIcon);
-      localStorage.setItem("customIcons", JSON.stringify(customIcons));
-      this.drawIcons();
-    }
-    console.log(customIcons);
-  }
 
   addVolcanoeHook(id, cell) {
     const proper = this.Names.getCulture(this.cells.culture[cell]);
@@ -8819,6 +6719,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
           d3.event.on("end", () => {
             restoreDefaultEvents();
             clearMainTip();
+
             // addRouteOpisometer.classList.remove("pressed");
             if (routeOpisometer.points.length < 2) {
               rulers.remove(routeOpisometer.id);
@@ -8835,8 +6736,86 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
     // }
   };
 
+  togglePartyMoveRoute = (marker = null) => {
+    // if (this.classList.contains("pressed")) {
+    //   restoreDefaultEvents();
+    //   clearMainTip();
+    //   this.classList.remove("pressed");
+    // } else {
+    //   if (!layerIsOn("toggleRulers")) toggleRulers();
+    this.tip(
+      "Drag the party to measure distance.  Click the yellow dot to move. <br>Click the party to cancel. Hold Shift to measure away from roads.",
+      true,
+      null,
+      6000
+    );
+    // unitsBottom.querySelectorAll(".pressed").forEach(button => button.classList.remove("pressed"));
+    // this.classList.add("pressed");
+    let pack = this.pack;
+    let rulers = this.rulers;
+    let scale = this.scale;
+    let findCell = this.findCell;
+    this.toggleRulers(1);
+    let restoreDefaultEvents = this.restoreDefaultEvents;
+    let clearMainTip = this.clearMainTip;
+    let viewbox;
+    viewbox = document.getElementById("viewbox");
+
+    if (!marker) return;
+    d3.select("#marker" + marker.i).call(
+      d3.drag().on("start", () => {
+        const cells = pack.cells;
+        const burgs = pack.burgs;
+        const point = d3.mouse(viewbox);
+        // if (this.selectedMarker == null) {
+        //   const note = this.notes.find(
+        //     (note) => note.id === "marker" + marker.i
+        //   );
+        //   this.selectedMarker = this.pack.markers[marker.i];
+        //   console.log(this.selectedMarker);
+        //   if (this.selectedBurg?.npcs)
+        //     this.selectedMarker.npcs = this.selectedBurg.npcs;
+        //   this.clickedEmitter.emit({ ...this.selectedMarker, ...note });
+        //   this.editMarker(this.selectedMarker.i);
+        // }
+
+        const c = findCell(point[0], point[1]);
+        // if (cells.road[c] || d3.event.sourceEvent.shiftKey) {
+        const b = cells.burg[c];
+        const x = b ? burgs[b].x : cells.p[c][0];
+        const y = b ? burgs[b].y : cells.p[c][1];
+        const routeOpisometer = rulers
+          .create(RouteOpisometer, [[x, y]], scale, pack)
+          .draw(false);
+
+        d3.event.on("drag", function () {
+          const point = d3.mouse(viewbox);
+          const c = findCell(point[0], point[1]);
+          if (cells.road[c] || d3.event.sourceEvent.shiftKey) {
+            routeOpisometer.trackCell(c, true);
+          }
+        });
+
+        d3.event.on("end", () => {
+          restoreDefaultEvents();
+          clearMainTip();
+          // addRouteOpisometer.classList.remove("pressed");
+          if (routeOpisometer.points.length < 2) {
+            rulers.remove(routeOpisometer.id);
+          }
+        });
+        // } else {
+        //   restoreDefaultEvents();
+        //   clearMainTip();
+        //   addRouteOpisometer.classList.remove("pressed");
+        //   tip("Must start in a cell with a route in it", false, "error");
+        // }
+      })
+    );
+    // }
+  };
+
   removeAllRulers() {
-    console.log(this.rulers.data);
     if (!this.rulers.data.length) return;
     this.rulers.undraw();
     this.rulers.data = [];
@@ -8895,7 +6874,6 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
 
   // show tip at the bottom of the screen, consider possible translation
   showDataTip = (e) => {
-    console.log(e.target);
     if (!e.target) return;
     let dataTip = e.target.dataset.tip;
     if (!dataTip && e.target.parentNode.dataset.tip)
@@ -9021,7 +6999,7 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       const lakeId = +e.target.dataset.f;
       const name = this.pack.features[lakeId]?.name;
       const fullName = subgroup === "freshwater" ? name : name + " " + subgroup;
-      this.tip(`${fullName} lake. Click to edit`);
+      this.tip(`${fullName} lake`);
       return;
     }
     // if (group === "coastline") return this.tip("Click to edit the coastline");
@@ -9044,24 +7022,18 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       this.tip(
         "Temperature: " + this.convertTemperature(this.grid.cells.temp[g])
       );
-    else if (this.layerIsOn("toggleBiomes") && this.pack.cells.biome[i]) {
+    else if (this.biomesToggle && this.pack.cells.biome[i]) {
       const biome = this.pack.cells.biome[i];
       this.tip("Biome: " + this.biomesData.name[biome]);
       // if (biomesEditor.offsetParent) highlightEditorLine(biomesEditor, biome);
-    } else if (
-      this.layerIsOn("toggleReligions") &&
-      this.pack.cells.religion[i]
-    ) {
+    } else if (this.activeLayer == 3 && this.pack.cells.religion[i]) {
       const religion = this.pack.cells.religion[i];
       const r = this.pack.religions[religion];
       const type =
         r.type === "Cult" || r.type == "Heresy" ? r.type : r.type + " religion";
       this.tip(type + ": " + r.name);
       // if (religionsEditor.offsetParent) highlightEditorLine(religionsEditor, religion);
-    } else if (
-      this.pack.cells.state[i] &&
-      (this.layerIsOn("toggleProvinces") || this.layerIsOn("toggleStates"))
-    ) {
+    } else if (this.pack.cells.state[i] && this.activeLayer == 1) {
       const state = this.pack.cells.state[i];
       const stateName = this.pack.states[state].fullName;
       const province = this.pack.cells.province[i];
@@ -9073,12 +7045,3211 @@ export class StoryMapComponent implements OnInit, AfterViewInit {
       // if (diplomacyEditor.offsetParent) highlightEditorLine(diplomacyEditor, state);
       // if (militaryOverview.offsetParent) highlightEditorLine(militaryOverview, state);
       // if (provincesEditor.offsetParent) highlightEditorLine(provincesEditor, province);
-    } else if (this.layerIsOn("toggleCultures") && this.pack.cells.culture[i]) {
+    } else if (this.activeLayer == 2 && this.pack.cells.culture[i]) {
       const culture = this.pack.cells.culture[i];
       this.tip("Culture: " + this.pack.cultures[culture].name);
       // if (culturesEditor.offsetParent) highlightEditorLine(culturesEditor, culture);
     } else if (this.layerIsOn("toggleHeight"))
       this.tip("Height: " + this.getFriendlyHeight(point));
   };
-  // Scale bar
+  async saveToServer() {
+    console.time("saveToServer");
+    const pngurl = await this.getMapURL("png");
+    console.timeEnd("saveToServer1");
+
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = 260;
+    canvas.height = 260;
+
+    let data = {
+      map: this.getMapData(),
+      url: null,
+    };
+
+    const img = new Image();
+
+    img.src = pngurl;
+    let selectedRegion = this.selectedRegion;
+    img.onload = function () {
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      data.url = canvas.toDataURL("image/png");
+
+      window.setTimeout(function () {
+        canvas.remove();
+      }, 5000);
+
+      $.ajax({
+        type: "POST",
+        url: "/api/region/" + selectedRegion.id + "/upload-map",
+        data: data,
+        success: () => {
+          console.timeEnd("saveToServer");
+          console.log("success");
+        },
+      });
+    };
+    // link.click();
+
+    // tip(`${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`, true, "success", 5000);
+  }
+  // parse map svg to object url
+  async getMapURL(
+    type,
+    options = { debug: false, globe: false, noLabels: false, noWater: false }
+  ) {
+    let toServer = false;
+    if (type == "svgToServer") {
+      type = "svg";
+      toServer = true;
+    }
+    const {
+      debug = false,
+      globe = false,
+      noLabels = false,
+      noWater = false,
+    } = options;
+    const cloneEl = <HTMLElement>document.getElementById("map").cloneNode(true); // clone svg
+    cloneEl.id = "fantasyMap";
+    document.body.appendChild(cloneEl);
+    const clone = d3.select(cloneEl);
+    if (!debug) clone.select("#debug")?.remove();
+
+    const cloneDefs = cloneEl.getElementsByTagName("defs")[0];
+    const svgDefs = document.getElementById("defElements");
+    const isFirefox = navigator.userAgent.toLowerCase().indexOf("firefox") > -1;
+    if (isFirefox && type === "mesh") clone.select("#oceanPattern")?.remove();
+    if (globe) clone.select("#scaleBar")?.remove();
+    if (noLabels) {
+      clone.select("#labels #states")?.remove();
+      clone.select("#labels #burgLabels")?.remove();
+      clone.select("#icons #burgIcons")?.remove();
+    }
+    if (noWater) {
+      clone.select("#oceanBase").attr("opacity", 0);
+      clone.select("#oceanPattern").attr("opacity", 0);
+    }
+    // if (type !== "png") {
+    // reset transform to show the whole map
+    clone.attr("width", this.graphWidth).attr("height", this.graphHeight);
+    clone.select("#viewbox").attr("transform", null);
+    // }
+    console.time("t11");
+
+    if (type === "svg") this.removeUnusedElements(clone);
+    if (this.customization && type === "mesh") this.updateMeshCells(clone);
+    this.inlineStyle(clone);
+    console.timeEnd("t11");
+
+    // remove unused filters
+    const filters = cloneEl.querySelectorAll("filter");
+    for (let i = 0; i < filters.length; i++) {
+      const id = filters[i].id;
+      if (cloneEl.querySelector("[filter='url(#" + id + ")']")) continue;
+      if (cloneEl.getAttribute("filter") === "url(#" + id + ")") continue;
+      filters[i].remove();
+    }
+
+    // remove unused patterns
+    const patterns = cloneEl.querySelectorAll("pattern");
+    for (let i = 0; i < patterns.length; i++) {
+      const id = patterns[i].id;
+      if (cloneEl.querySelector("[fill='url(#" + id + ")']")) continue;
+      patterns[i].remove();
+    }
+
+    // remove unused symbols
+    const symbols = cloneEl.querySelectorAll("symbol");
+    for (let i = 0; i < symbols.length; i++) {
+      const id = symbols[i].id;
+      if (cloneEl.querySelector("use[*|href='#" + id + "']")) continue;
+      symbols[i].remove();
+    }
+
+    // add displayed emblems
+    if (
+      this.layerIsOn("toggleEmblems") &&
+      this.emblems.selectAll("use").size()
+    ) {
+      cloneEl
+        .querySelector("#emblems")
+        ?.querySelectorAll("use")
+        .forEach((el) => {
+          const href = el.getAttribute("href") || el.getAttribute("xlink:href");
+          if (!href) return;
+          const emblem = document.getElementById(href.slice(1));
+          if (emblem) cloneDefs.append(emblem.cloneNode(true));
+        });
+    } else {
+      cloneDefs.querySelector("#defs-emblems")?.remove();
+    }
+    console.time("t16");
+
+    // replace ocean pattern href to base64
+    if (location.hostname && cloneEl.querySelector("#oceanicPattern")) {
+      const el = cloneEl.querySelector("#oceanicPattern");
+      const url = el.getAttribute("href");
+      await new Promise((resolve) => {
+        this.getBase64(url, (base64) => {
+          el.setAttribute("href", base64);
+          resolve(el);
+        });
+      });
+    }
+    console.timeEnd("t16");
+
+    // add relief icons
+    if (cloneEl.querySelector("#terrain")) {
+      const uniqueElements = new Set();
+      const terrainNodes = cloneEl.querySelector("#terrain").childNodes;
+      for (let i = 0; i < terrainNodes.length; i++) {
+        const href =
+          (<HTMLElement>terrainNodes[i]).getAttribute("href") ||
+          (<HTMLElement>terrainNodes[i]).getAttribute("xlink:href");
+        uniqueElements.add(href);
+      }
+
+      const defsRelief = svgDefs.querySelector("#defs-relief");
+      for (const terrain of [...uniqueElements]) {
+        const element = defsRelief.querySelector(<string>terrain);
+        if (element) cloneDefs.appendChild(element.cloneNode(true));
+      }
+    }
+
+    // add wind rose
+    if (cloneEl.querySelector("#compass")) {
+      const rose = svgDefs.querySelector("#rose");
+      if (rose) cloneDefs.appendChild(rose.cloneNode(true));
+    }
+
+    // add port icon
+    if (cloneEl.querySelector("#anchors")) {
+      const anchor = svgDefs.querySelector("#icon-anchor");
+      if (anchor) cloneDefs.appendChild(anchor.cloneNode(true));
+    }
+
+    // add grid pattern
+    if (cloneEl.querySelector("#gridOverlay")?.hasChildNodes()) {
+      const type = cloneEl.querySelector("#gridOverlay").getAttribute("type");
+      const pattern = svgDefs.querySelector("#pattern_" + type);
+      if (pattern) cloneDefs.appendChild(pattern.cloneNode(true));
+    }
+
+    if (!cloneEl.querySelector("#hatching").children.length)
+      cloneEl.querySelector("#hatching")?.remove(); // remove unused hatching group
+    if (!cloneEl.querySelector("#fogging-cont"))
+      cloneEl.querySelector("#fog")?.remove(); // remove unused fog
+    if (!cloneEl.querySelector("#regions"))
+      cloneEl.querySelector("#statePaths")?.remove(); // removed unused statePaths
+    if (!cloneEl.querySelector("#labels"))
+      cloneEl.querySelector("#textPaths")?.remove(); // removed unused textPaths
+
+    // add armies style
+    if (cloneEl.querySelector("#armies"))
+      cloneEl.insertAdjacentHTML(
+        "afterbegin",
+        "<style>#armies text {stroke: none; fill: #fff; text-shadow: 0 0 4px #000; dominant-baseline: central; text-anchor: middle; font-family: Helvetica; fill-opacity: 1;}#armies text.regimentIcon {font-size: .8em;}</style>"
+      );
+
+    // add xlink: for href to support svg1.1
+    if (type === "svg") {
+      cloneEl.querySelectorAll("[href]").forEach((el) => {
+        const href = el.getAttribute("href");
+        el.removeAttribute("href");
+        el.setAttribute("xlink:href", href);
+      });
+    }
+
+    // TODO: add dataURL for all used fonts
+    // const usedFonts = getUsedFonts(cloneEl);
+    // const fontsToLoad = usedFonts.filter((font) => font.src);
+
+    // console.time("t26");
+    // if (!fontsToLoad.length) {
+    //   const dataURLfonts = await loadFontsAsDataURI(fontsToLoad);
+    //   console.timeEnd("t26");
+
+    //   const fontFaces = dataURLfonts
+    //     .map(({ family, src, unicodeRange = "", variant = "normal" }) => {
+    //       return `@font-face {font-family: "${family}"; src: ${src}; unicode-range: ${unicodeRange}; font-variant: ${variant};}`;
+    //     })
+    //     .join("\n");
+
+    //   const style = document.createElement("style");
+    //   style.setAttribute("type", "text/css");
+    //   style.innerHTML = fontFaces;
+    //   cloneEl.querySelector("defs").appendChild(style);
+    // }
+
+    clone.remove();
+
+    const serialized =
+      `<?xml version="1.0" encoding="UTF-8" standalone="no"?>` +
+      new XMLSerializer().serializeToString(cloneEl);
+    if (toServer) return serialized;
+    const blob = new Blob([serialized], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const url = window.URL.createObjectURL(blob);
+    window.setTimeout(() => window.URL.revokeObjectURL(url), 5000);
+    return url;
+  }
+
+  // prepare map data for saving
+  getMapData() {
+    console.time("createMapData");
+
+    const date = new Date();
+    const dateString =
+      date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+    const license =
+      "File can be loaded in azgaar.github.io/Fantasy-Map-Generator";
+    const params = [
+      1.71,
+      license,
+      dateString,
+      this.seed,
+      this.graphWidth,
+      this.graphHeight,
+      this.mapId,
+    ].join("|");
+    const settings = this.settings;
+    //   [
+    //   this.distanceUnitInput.value,
+    //   this.distanceScaleInput,
+    //   this.areaUnit.value,
+    //   this.heightUnit.value,
+    //   this.heightExponentInput.value,
+    //   this.temperatureScale.value,
+    //   this.barSizeInput.value,
+    //   this.barLabel.value,
+    //   this.barBackOpacity.value,
+    //   this.barBackColor.value,
+    //   this.barPosX.value,
+    //   this.barPosY.value,
+    //   this.populationRate,
+    //   this.urbanization,
+    //   this.mapSizeOutput.value,
+    //   this.latitudeOutput.value,
+    //   this.temperatureEquatorOutput.value,
+    //   this.temperaturePoleOutput.value,
+    //   this.precOutput.value,
+    //   JSON.stringify(this.options),
+    //   this.mapName.value,
+    //   +this.hideLabels.checked,
+    //   this.stylePreset.value,
+    //   +this.rescaleLabels.checked,
+    // ].join("|");
+    const coords = JSON.stringify(this.mapCoordinates);
+    const biomes = [
+      this.biomesData.color,
+      this.biomesData.habitability,
+      this.biomesData.name,
+    ].join("|");
+    const notesData = JSON.stringify(this.notes);
+    const rulersString = this.rulers.toString();
+    const fonts = JSON.stringify(this.getUsedFonts(this.svg.node()));
+
+    // save svg
+    const cloneEl = <HTMLElement>document.getElementById("map").cloneNode(true);
+
+    // reset transform values to default
+    cloneEl.setAttribute("width", this.graphWidth);
+    cloneEl.setAttribute("height", this.graphHeight);
+    cloneEl.querySelector("#viewbox").removeAttribute("transform");
+
+    cloneEl.querySelector("#ruler").innerHTML = ""; // always remove rulers
+
+    const serializedSVG = new XMLSerializer().serializeToString(cloneEl);
+
+    const { spacing, cellsX, cellsY, boundary, points, features } = this.grid;
+    const gridGeneral = JSON.stringify({
+      spacing,
+      cellsX,
+      cellsY,
+      boundary,
+      points,
+      features,
+    });
+    const packFeatures = JSON.stringify(this.pack.features);
+    const cultures = JSON.stringify(this.pack.cultures);
+    const states = JSON.stringify(this.pack.states);
+    const burgs = JSON.stringify(this.pack.burgs);
+    const religions = JSON.stringify(this.pack.religions);
+    const provinces = JSON.stringify(this.pack.provinces);
+    const rivers = JSON.stringify(this.pack.rivers);
+    const markers = JSON.stringify(this.pack.markers);
+
+    // store name array only if not the same as default
+    const defaultNB = this.Names.getNameBases();
+    const namesData = this.nameBases
+      .map((b, i) => {
+        const names = defaultNB[i] && defaultNB[i].b === b.b ? "" : b.b;
+        return `${b.name}|${b.min}|${b.max}|${b.d}|${b.m}|${names}`;
+      })
+      .join("/");
+
+    // round population to save space
+    const pop = Array.from(this.pack.cells.pop).map((p) => this.rn(p, 4));
+
+    // data format as below
+    const mapData = [
+      params,
+      settings,
+      coords,
+      biomes,
+      notesData,
+      serializedSVG,
+      gridGeneral,
+      this.grid.cells.h,
+      this.grid.cells.prec,
+      this.grid.cells.f,
+      this.grid.cells.t,
+      this.grid.cells.temp,
+      packFeatures,
+      cultures,
+      states,
+      burgs,
+      this.pack.cells.biome,
+      this.pack.cells.burg,
+      this.pack.cells.conf,
+      this.pack.cells.culture,
+      this.pack.cells.fl,
+      pop,
+      this.pack.cells.r,
+      this.pack.cells.road,
+      this.pack.cells.s,
+      this.pack.cells.state,
+      this.pack.cells.religion,
+      this.pack.cells.province,
+      this.pack.cells.crossroad,
+      religions,
+      provinces,
+      namesData,
+      rivers,
+      rulersString,
+      fonts,
+      markers,
+    ].join("\r\n");
+    console.timeEnd("createMapData");
+    return mapData;
+  }
+  // remove hidden g elements and g elements without children to make downloaded svg smaller in size
+  removeUnusedElements(clone) {
+    if (!this.terrain.selectAll("use").size())
+      clone.select("#defs-relief")?.remove();
+    if (this.markers.style("display") === "none")
+      clone.select("#defs-markers")?.remove();
+
+    for (let empty = 1; empty; ) {
+      empty = 0;
+      clone.selectAll("g").each(function () {
+        if (
+          !this.hasChildNodes() ||
+          this.style.display === "none" ||
+          this.classList.contains("hidden")
+        ) {
+          empty++;
+          this.remove();
+        }
+        if (this.hasAttribute("display") && this.style.display === "inline")
+          this.removeAttribute("display");
+      });
+    }
+  }
+
+  updateMeshCells(clone) {
+    const data = this.grid.cells.i;
+    const scheme = this.getColorScheme();
+    clone.select("#heights").attr("filter", "url(#blur1)");
+    clone
+      .select("#heights")
+      .selectAll("polygon")
+      .data(data)
+      .join("polygon")
+      .attr("points", (d) => this.getGridPolygon(d))
+      .attr("id", (d) => "cell" + d)
+      .attr("stroke", (d) => this.getColor(this.grid.cells.h[d], scheme));
+  }
+
+  // for each g element get inline style
+  inlineStyle(clone) {
+    const emptyG = clone.append("g").node();
+    const defaultStyles = window.getComputedStyle(emptyG);
+
+    clone.selectAll("g, #ruler *, #scaleBar > text").each(function () {
+      const compStyle = window.getComputedStyle(this);
+      let style = "";
+
+      for (let i = 0; i < compStyle.length; i++) {
+        const key = compStyle[i];
+        const value = compStyle.getPropertyValue(key);
+
+        // Firefox mask hack
+        if (
+          key === "mask-image" &&
+          value !== defaultStyles.getPropertyValue(key)
+        ) {
+          style += "mask-image: url('#land');";
+          continue;
+        }
+
+        if (key === "cursor") continue; // cursor should be default
+        if (this.hasAttribute(key)) continue; // don't add style if there is the same attribute
+        if (value === defaultStyles.getPropertyValue(key)) continue;
+        style += key + ":" + value + ";";
+      }
+
+      for (const key in compStyle) {
+        const value = compStyle.getPropertyValue(key);
+
+        if (key === "cursor") continue; // cursor should be default
+        if (this.hasAttribute(key)) continue; // don't add style if there is the same attribute
+        if (value === defaultStyles.getPropertyValue(key)) continue;
+        style += key + ":" + value + ";";
+      }
+
+      if (style != "") this.setAttribute("style", style);
+    });
+
+    emptyG.remove();
+  }
+
+  ReliefIcons = (() => {
+    const ReliefIcons = () => {
+      this.terrain.selectAll("*").remove();
+
+      const cells = this.pack.cells;
+      const density = this.terrain.attr("density") || 0.4;
+      const size = 2 * (this.terrain.attr("size") || 1);
+      const mod = 0.2 * size; // size modifier
+      const relief = [];
+
+      for (const i of cells.i) {
+        const height = cells.h[i];
+        if (height < 20) continue; // no icons on water
+        if (cells.r[i]) continue; // no icons on rivers
+        const biome = cells.biome[i];
+        if (height < 50 && this.biomesData.iconsDensity[biome] === 0) continue; // no icons for this biome
+
+        const polygon = this.getPackPolygon(i);
+        const [minX, maxX] = d3.extent(polygon, (p) => p[0]);
+        const [minY, maxY] = d3.extent(polygon, (p) => p[1]);
+
+        const placeBiomeIcons = () => {
+          const iconsDensity = this.biomesData.iconsDensity[biome] / 100;
+          const radius = 2 / iconsDensity / density;
+          if (Math.random() > iconsDensity * 10) return;
+
+          for (const [cx, cy] of this.poissonDiscSampler(
+            minX,
+            minY,
+            maxX,
+            maxY,
+            radius
+          )) {
+            if (!d3.polygonContains(polygon, [cx, cy])) continue;
+            let h = (4 + Math.random()) * size;
+            const icon = getBiomeIcon(i, this.biomesData.icons[biome]);
+            if (icon === "#relief-grass-1") h *= 1.2;
+            relief.push({
+              i: icon,
+              x: this.rn(cx - h, 2),
+              y: this.rn(cy - h, 2),
+              s: this.rn(h * 2, 2),
+            });
+          }
+        };
+
+        const placeReliefIcons = (i) => {
+          const radius = 2 / density;
+          const [icon, h] = getReliefIcon(i, height);
+
+          for (const [cx, cy] of this.poissonDiscSampler(
+            minX,
+            minY,
+            maxX,
+            maxY,
+            radius
+          )) {
+            if (!d3.polygonContains(polygon, [cx, cy])) continue;
+            relief.push({
+              i: icon,
+              x: this.rn(cx - <number>h, 2),
+              y: this.rn(cy - <number>h, 2),
+              s: this.rn(<number>h * 2, 2),
+            });
+          }
+        };
+
+        const getReliefIcon = (i, h) => {
+          const temp = this.grid.cells.temp[this.pack.cells.g[i]];
+          const type =
+            h > 70 && temp < 0 ? "mountSnow" : h > 70 ? "mount" : "hill";
+          const size =
+            h > 70 ? (h - 45) * mod : Math.min(Math.max((h - 40) * mod, 3), 6);
+          return [getIcon(type), size];
+        };
+        // if (height < 50) placeBiomeIcons(i,biome );
+        if (height < 50) placeBiomeIcons();
+        else placeReliefIcons(i);
+      }
+
+      // sort relief icons by y+size
+      relief.sort((a, b) => a.y + a.s - (b.y + b.s));
+
+      let reliefHTML = "";
+      for (const r of relief) {
+        reliefHTML += `<use href="${r.i}" x="${r.x}" y="${r.y}" width="${r.s}" height="${r.s}"/>`;
+      }
+      this.terrain.html(reliefHTML);
+    };
+
+    const getBiomeIcon = (i, b) => {
+      let type = b[Math.floor(Math.random() * b.length)];
+      const temp = this.grid.cells.temp[this.pack.cells.g[i]];
+      if (type === "conifer" && temp < 0) type = "coniferSnow";
+      return getIcon(type);
+    };
+
+    const getVariant = (type) => {
+      switch (type) {
+        case "mount":
+          return this.rand(2, 7);
+        case "mountSnow":
+          return this.rand(1, 6);
+        case "hill":
+          return this.rand(2, 5);
+        case "conifer":
+          return 2;
+        case "coniferSnow":
+          return 1;
+        case "swamp":
+          return this.rand(2, 3);
+        case "cactus":
+          return this.rand(1, 3);
+        case "deadTree":
+          return this.rand(1, 2);
+        default:
+          return 2;
+      }
+    };
+
+    function getOldIcon(type) {
+      switch (type) {
+        case "mountSnow":
+          return "mount";
+        case "vulcan":
+          return "mount";
+        case "coniferSnow":
+          return "conifer";
+        case "cactus":
+          return "dune";
+        case "deadTree":
+          return "dune";
+        default:
+          return type;
+      }
+    }
+
+    const getIcon = (type) => {
+      const set = this.terrain.attr("set") || "simple";
+      if (set === "simple") return "#relief-" + getOldIcon(type) + "-1";
+      if (set === "colored") return "#relief-" + type + "-" + getVariant(type);
+      if (set === "gray")
+        return "#relief-" + type + "-" + getVariant(type) + "-bw";
+      return "#relief-" + getOldIcon(type) + "-1"; // simple
+    };
+
+    return ReliefIcons;
+  })();
+
+  Names = (() => {
+    let chains = [];
+    let vowel = this.vowel;
+    let nameBases = this.nameBases;
+    let ra = this.ra;
+    let last = this.last;
+    let pack = this.pack;
+    let capitalize = this.capitalize;
+    // let locked = this.locked;
+    let rand = this.rand;
+    let P = this.P;
+    // let unlock = this.unlock;
+    let mapName = this.mapName;
+    // calculate Markov chain for a namesbase
+    const calculateChain = function (string) {
+      const chain = [];
+      const array = string.split(",");
+
+      for (const n of array) {
+        let name = n.trim().toLowerCase();
+        const basic = !/[^\u0000-\u007f]/.test(name); // basic chars and English rules can be applied
+
+        // split word into pseudo-syllables
+        for (
+          let i = -1, syllable = "";
+          i < name.length;
+          i += syllable.length || 1, syllable = ""
+        ) {
+          let prev = name[i] || ""; // pre-onset letter
+          let v = 0; // 0 if no vowels in syllable
+
+          for (let c = i + 1; name[c] && syllable.length < 5; c++) {
+            const that = name[c],
+              next = name[c + 1]; // next char
+            syllable += that;
+            if (syllable === " " || syllable === "-") break; // syllable starts with space or hyphen
+            if (!next || next === " " || next === "-") break; // no need to check
+
+            if (vowel(that)) v = 1; // check if letter is vowel
+
+            // do not split some diphthongs
+            if (that === "y" && next === "e") continue; // 'ye'
+            if (basic) {
+              // English-like
+              if (that === "o" && next === "o") continue; // 'oo'
+              if (that === "e" && next === "e") continue; // 'ee'
+              if (that === "a" && next === "e") continue; // 'ae'
+              if (that === "c" && next === "h") continue; // 'ch'
+            }
+
+            if (vowel(that) === next) break; // two same vowels in a row
+            if (v && vowel(name[c + 2])) break; // syllable has vowel and additional vowel is expected soon
+          }
+
+          if (chain[prev] === undefined) chain[prev] = [];
+          chain[prev].push(syllable);
+        }
+      }
+
+      return chain;
+    };
+
+    // update chain for specific base
+    const updateChain = (i) =>
+      (chains[i] =
+        this.nameBases[i] || this.nameBases[i].b
+          ? calculateChain(this.nameBases[i].b)
+          : null);
+
+    // update chains for all used bases
+    const clearChains = () => (chains = []);
+
+    // generate name using Markov's chain
+    const getBase = (base, min = null, max = null, dupl = null) => {
+      if (base === undefined) {
+        console.error("Please define a base");
+        return;
+      }
+      if (!chains[base]) updateChain(base);
+
+      const data = chains[base];
+      if (!data || data[""] === undefined) {
+        // tip("Namesbase " + base + " is incorrect. Please check in namesbase editor", false, "error");
+        console.error("Namebase " + base + " is incorrect!");
+        return "ERROR";
+      }
+
+      if (!min) min = this.nameBases[base].min;
+      if (!max) max = this.nameBases[base].max;
+      if (dupl !== "") dupl = this.nameBases[base].d;
+
+      let v = data[""],
+        cur = ra(v),
+        w = "";
+      for (let i = 0; i < 20; i++) {
+        if (cur === "") {
+          // end of word
+          if (w.length < min) {
+            cur = "";
+            w = "";
+            v = data[""];
+          } else break;
+        } else {
+          if (w.length + cur.length > max) {
+            // word too long
+            if (w.length < min) w += cur;
+            break;
+          } else v = data[last(cur)] || data[""];
+        }
+
+        w += cur;
+        cur = ra(v);
+      }
+
+      // parse word to get a final name
+      const l = last(w); // last letter
+      if (l === "'" || l === " " || l === "-") w = w.slice(0, -1); // not allow some characters at the end
+
+      let name = [...w].reduce(function (r, c, i, d) {
+        if (c === d[i + 1] && !dupl.includes(c)) return r; // duplication is not allowed
+        if (!r.length) return c.toUpperCase();
+        if (r.slice(-1) === "-" && c === " ") return r; // remove space after hyphen
+        if (r.slice(-1) === " ") return r + c.toUpperCase(); // capitalize letter after space
+        if (r.slice(-1) === "-") return r + c.toUpperCase(); // capitalize letter after hyphen
+        if (c === "a" && d[i + 1] === "e") return r; // "ae" => "e"
+        if (i + 2 < d.length && c === d[i + 1] && c === d[i + 2]) return r; // remove three same letters in a row
+        return r + c;
+      }, "");
+
+      // join the word if any part has only 1 letter
+      if (name.split(" ").some((part) => part.length < 2))
+        name = name
+          .split(" ")
+          .map((p, i) => (i ? p.toLowerCase() : p))
+          .join("");
+
+      if (name.length < 2) {
+        console.error("Name is too short! Random name will be selected");
+        name = ra(this.nameBases[base].b.split(","));
+      }
+
+      return name;
+    };
+
+    // generate name for culture
+    const getCulture = (culture, min = null, max = null, dupl = null) => {
+      if (culture === undefined) {
+        console.error("Please define a culture");
+        return;
+      }
+      const base = this.pack.cultures[culture].base;
+      return getBase(base, min, max, dupl);
+    };
+
+    // generate short name for culture
+    const getCultureShort = function (culture) {
+      if (culture === undefined) {
+        console.error("Please define a culture");
+        return;
+      }
+      return getBaseShort(pack.cultures[culture].base);
+    };
+
+    // generate short name for base
+    const getBaseShort = (base) => {
+      if (this.nameBases[base] === undefined) {
+        // tip(`Namebase ${base} does not exist. Please upload custom namebases of change the base in Cultures Editor`, false, "error");
+        base = 1;
+      }
+      const min = this.nameBases[base].min - 1;
+      const max = Math.max(this.nameBases[base].max - 2, min);
+      // Removed extraneous 0
+      return getBase(base, min, max, "");
+    };
+
+    // generate state name based on capital or random name and culture-specific suffix
+    // prettier-ignore
+    const getState = function(name = null, culture = null, base = null) {
+      if (name === null) {console.error("Please define a base name"); return;}
+      if (culture === null && base === null) {console.error("Please define a culture"); return;}
+      if (base === null) base = pack.cultures[culture].base;
+  
+      // exclude endings inappropriate for states name
+      if (name.includes(" ")) name = capitalize(name.replace(/ /g, "").toLowerCase()); // don't allow multiword state names
+      if (name.length > 6 && name.slice(-4) === "berg") name = name.slice(0,-4); // remove -berg for any
+      if (name.length > 5 && name.slice(-3) === "ton") name = name.slice(0,-3); // remove -ton for any
+  
+      if (base === 5 && ["sk", "ev", "ov"].includes(name.slice(-2))) name = name.slice(0,-2); // remove -sk/-ev/-ov for Ruthenian
+      else if (base === 12) return vowel(name.slice(-1)) ? name : name + "u"; // Japanese ends on any vowel or -u
+      else if (base === 18 && P(.4)) name = vowel(name.slice(0,1).toLowerCase()) ? "Al" + name.toLowerCase() : "Al " + name; // Arabic starts with -Al
+  
+      // no suffix for fantasy bases
+      if (base > 32 && base < 42) return name;
+  
+      // define if suffix should be used
+      if (name.length > 3 && vowel(name.slice(-1))) {
+        if (vowel(name.slice(-2,-1)) && P(.85)) name = name.slice(0,-2); // 85% for vv
+        else if (P(.7)) name = name.slice(0,-1); // ~60% for cv
+        else return name;
+      } else if (P(.4)) return name; // 60% for cc and vc
+  
+      // define suffix
+      let suffix = "ia"; // standard suffix
+  
+      const rnd = Math.random(), l = name.length;
+      if (base === 3 && rnd < .03 && l < 7) suffix = "terra"; // Italian
+      else if (base === 4 && rnd < .03 && l < 7) suffix = "terra"; // Spanish
+      else if (base === 13 && rnd < .03 && l < 7) suffix = "terra"; // Portuguese
+      else if (base === 2 && rnd < .03 && l < 7) suffix = "terre"; // French
+      else if (base === 0 && rnd < .5 && l < 7) suffix = "land"; // German
+      else if (base === 1 && rnd < .4 && l < 7 ) suffix = "land"; // English
+      else if (base === 6 && rnd < .3 && l < 7) suffix = "land"; // Nordic
+      else if (base === 32 && rnd < .1 && l < 7) suffix = "land"; // generic Human
+      else if (base === 7 && rnd < .1) suffix = "eia"; // Greek
+      else if (base === 9 && rnd < .35) suffix = "maa"; // Finnic
+      else if (base === 15 && rnd < .4 && l < 6) suffix = "orszag"; // Hungarian
+      else if (base === 16) suffix = rnd < .6 ? "stan" : "ya"; // Turkish
+      else if (base === 10) suffix = "guk"; // Korean
+      else if (base === 11) suffix = " Guo"; // Chinese
+      else if (base === 14) suffix = rnd < .5 && l < 6 ? "tlan" : "co"; // Nahuatl
+      else if (base === 17 && rnd < .8) suffix = "a"; // Berber
+      else if (base === 18 && rnd < .8) suffix = "a"; // Arabic
+  
+      return validateSuffix(name, suffix);
+    }
+
+    function validateSuffix(name, suffix) {
+      if (name.slice(-1 * suffix.length) === suffix) return name; // no suffix if name already ends with it
+      const s1 = suffix.charAt(0);
+      if (name.slice(-1) === s1) name = name.slice(0, -1); // remove name last letter if it's a suffix first letter
+      if (
+        vowel(s1) === vowel(name.slice(-1)) &&
+        vowel(s1) === vowel(name.slice(-2, -1))
+      )
+        name = name.slice(0, -1); // remove name last char if 2 last chars are the same type as suffix's 1st
+      if (name.slice(-1) === s1) name = name.slice(0, -1); // remove name last letter if it's a suffix first letter
+      return name + suffix;
+    }
+
+    // generato name for the map
+    const getMapName = (force) => {
+      // if (!force && locked("mapName")) return;
+      // if (force && locked("mapName")) unlock("mapName");
+      const base = P(0.7) ? 2 : P(0.5) ? rand(0, 6) : rand(0, 31);
+      if (!this.nameBases[base]) {
+        // tip("Namebase is not found", false, "error");
+        return "";
+      }
+      const min = this.nameBases[base].min - 1;
+      const max = Math.max(this.nameBases[base].max - 3, min);
+      // Removed extraneous 0
+      const baseName = getBase(base, min, max, "");
+      const name = P(0.7) ? addSuffix(baseName) : baseName;
+      mapName = name;
+    };
+
+    function addSuffix(name) {
+      const suffix = P(0.8) ? "ia" : "land";
+      if (suffix === "ia" && name.length > 6)
+        name = name.slice(0, -(name.length - 3));
+      else if (suffix === "land" && name.length > 6)
+        name = name.slice(0, -(name.length - 5));
+      return validateSuffix(name, suffix);
+    }
+
+    const getNameBases = function () {
+      // name, min length, max length, letters to allow duplication, multi-word name rate [deprecated]
+      // prettier-ignore
+      return [
+        // real-world bases by Azgaar:
+        {name: "German", i: 0, min: 5, max: 12, d: "lt", m: 0, b: "Achern,Aichhalden,Aitern,Albbruck,Alpirsbach,Altensteig,Althengstett,Appenweier,Auggen,Wildbad,Badenen,Badenweiler,Baiersbronn,Ballrechten,Bellingen,Berghaupten,Bernau,Biberach,Biederbach,Binzen,Birkendorf,Birkenfeld,Bischweier,Blumberg,Bollen,Bollschweil,Bonndorf,Bosingen,Braunlingen,Breisach,Breisgau,Breitnau,Brigachtal,Buchenbach,Buggingen,Buhl,Buhlertal,Calw,Dachsberg,Dobel,Donaueschingen,Dornhan,Dornstetten,Dottingen,Dunningen,Durbach,Durrheim,Ebhausen,Ebringen,Efringen,Egenhausen,Ehrenkirchen,Ehrsberg,Eimeldingen,Eisenbach,Elzach,Elztal,Emmendingen,Endingen,Engelsbrand,Enz,Enzklosterle,Eschbronn,Ettenheim,Ettlingen,Feldberg,Fischerbach,Fischingen,Fluorn,Forbach,Freiamt,Freiburg,Freudenstadt,Friedenweiler,Friesenheim,Frohnd,Furtwangen,Gaggenau,Geisingen,Gengenbach,Gernsbach,Glatt,Glatten,Glottertal,Gorwihl,Gottenheim,Grafenhausen,Grenzach,Griesbach,Gutach,Gutenbach,Hag,Haiterbach,Hardt,Harmersbach,Hasel,Haslach,Hausach,Hausen,Hausern,Heitersheim,Herbolzheim,Herrenalb,Herrischried,Hinterzarten,Hochenschwand,Hofen,Hofstetten,Hohberg,Horb,Horben,Hornberg,Hufingen,Ibach,Ihringen,Inzlingen,Kandern,Kappel,Kappelrodeck,Karlsbad,Karlsruhe,Kehl,Keltern,Kippenheim,Kirchzarten,Konigsfeld,Krozingen,Kuppenheim,Kussaberg,Lahr,Lauchringen,Lauf,Laufenburg,Lautenbach,Lauterbach,Lenzkirch,Liebenzell,Loffenau,Loffingen,Lorrach,Lossburg,Mahlberg,Malsburg,Malsch,March,Marxzell,Marzell,Maulburg,Monchweiler,Muhlenbach,Mullheim,Munstertal,Murg,Nagold,Neubulach,Neuenburg,Neuhausen,Neuried,Neuweiler,Niedereschach,Nordrach,Oberharmersbach,Oberkirch,Oberndorf,Oberbach,Oberried,Oberwolfach,Offenburg,Ohlsbach,Oppenau,Ortenberg,otigheim,Ottenhofen,Ottersweier,Peterstal,Pfaffenweiler,Pfalzgrafenweiler,Pforzheim,Rastatt,Renchen,Rheinau,Rheinfelden,Rheinmunster,Rickenbach,Rippoldsau,Rohrdorf,Rottweil,Rummingen,Rust,Sackingen,Sasbach,Sasbachwalden,Schallbach,Schallstadt,Schapbach,Schenkenzell,Schiltach,Schliengen,Schluchsee,Schomberg,Schonach,Schonau,Schonenberg,Schonwald,Schopfheim,Schopfloch,Schramberg,Schuttertal,Schwenningen,Schworstadt,Seebach,Seelbach,Seewald,Sexau,Simmersfeld,Simonswald,Sinzheim,Solden,Staufen,Stegen,Steinach,Steinen,Steinmauern,Straubenhardt,Stuhlingen,Sulz,Sulzburg,Teinach,Tiefenbronn,Tiengen,Titisee,Todtmoos,Todtnau,Todtnauberg,Triberg,Tunau,Tuningen,uhlingen,Unterkirnach,Reichenbach,Utzenfeld,Villingen,Villingendorf,Vogtsburg,Vohrenbach,Waldachtal,Waldbronn,Waldkirch,Waldshut,Wehr,Weil,Weilheim,Weisenbach,Wembach,Wieden,Wiesental,Wildberg,Winzeln,Wittlingen,Wittnau,Wolfach,Wutach,Wutoschingen,Wyhlen,Zavelstein"},
+        {name: "English", i: 1, min: 6, max: 11, d: "", m: .1, b: "Abingdon,Albrighton,Alcester,Almondbury,Altrincham,Amersham,Andover,Appleby,Ashboume,Atherstone,Aveton,Axbridge,Aylesbury,Baldock,Bamburgh,Barton,Basingstoke,Berden,Bere,Berkeley,Berwick,Betley,Bideford,Bingley,Birmingham,Blandford,Blechingley,Bodmin,Bolton,Bootham,Boroughbridge,Boscastle,Bossinney,Bramber,Brampton,Brasted,Bretford,Bridgetown,Bridlington,Bromyard,Bruton,Buckingham,Bungay,Burton,Calne,Cambridge,Canterbury,Carlisle,Castleton,Caus,Charmouth,Chawleigh,Chichester,Chillington,Chinnor,Chipping,Chisbury,Cleobury,Clifford,Clifton,Clitheroe,Cockermouth,Coleshill,Combe,Congleton,Crafthole,Crediton,Cuddenbeck,Dalton,Darlington,Dodbrooke,Drax,Dudley,Dunstable,Dunster,Dunwich,Durham,Dymock,Exeter,Exning,Faringdon,Felton,Fenny,Finedon,Flookburgh,Fowey,Frampton,Gateshead,Gatton,Godmanchester,Grampound,Grantham,Guildford,Halesowen,Halton,Harbottle,Harlow,Hatfield,Hatherleigh,Haydon,Helston,Henley,Hertford,Heytesbury,Hinckley,Hitchin,Holme,Hornby,Horsham,Kendal,Kenilworth,Kilkhampton,Kineton,Kington,Kinver,Kirby,Knaresborough,Knutsford,Launceston,Leighton,Lewes,Linton,Louth,Luton,Lyme,Lympstone,Macclesfield,Madeley,Malborough,Maldon,Manchester,Manningtree,Marazion,Marlborough,Marshfield,Mere,Merryfield,Middlewich,Midhurst,Milborne,Mitford,Modbury,Montacute,Mousehole,Newbiggin,Newborough,Newbury,Newenden,Newent,Norham,Northleach,Noss,Oakham,Olney,Orford,Ormskirk,Oswestry,Padstow,Paignton,Penkneth,Penrith,Penzance,Pershore,Petersfield,Pevensey,Pickering,Pilton,Pontefract,Portsmouth,Preston,Quatford,Reading,Redcliff,Retford,Rockingham,Romney,Rothbury,Rothwell,Salisbury,Saltash,Seaford,Seasalter,Sherston,Shifnal,Shoreham,Sidmouth,Skipsea,Skipton,Solihull,Somerton,Southam,Southwark,Standon,Stansted,Stapleton,Stottesdon,Sudbury,Swavesey,Tamerton,Tarporley,Tetbury,Thatcham,Thaxted,Thetford,Thornbury,Tintagel,Tiverton,Torksey,Totnes,Towcester,Tregoney,Trematon,Tutbury,Uxbridge,Wallingford,Wareham,Warenmouth,Wargrave,Warton,Watchet,Watford,Wendover,Westbury,Westcheap,Weymouth,Whitford,Wickwar,Wigan,Wigmore,Winchelsea,Winkleigh,Wiscombe,Witham,Witheridge,Wiveliscombe,Woodbury,Yeovil"},
+        {name: "French", i: 2, min: 5, max: 13, d: "nlrs", m: .1, b: "Adon,Aillant,Amilly,Andonville,Ardon,Artenay,Ascheres,Ascoux,Attray,Aubin,Audeville,Aulnay,Autruy,Auvilliers,Auxy,Aveyron,Baccon,Bardon,Barville,Batilly,Baule,Bazoches,Beauchamps,Beaugency,Beaulieu,Beaune,Bellegarde,Boesses,Boigny,Boiscommun,Boismorand,Boisseaux,Bondaroy,Bonnee,Bonny,Bordes,Bou,Bougy,Bouilly,Boulay,Bouzonville,Bouzy,Boynes,Bray,Breteau,Briare,Briarres,Bricy,Bromeilles,Bucy,Cepoy,Cercottes,Cerdon,Cernoy,Cesarville,Chailly,Chaingy,Chalette,Chambon,Champoulet,Chanteau,Chantecoq,Chapell,Charme,Charmont,Charsonville,Chateau,Chateauneuf,Chatel,Chatenoy,Chatillon,Chaussy,Checy,Chevannes,Chevillon,Chevilly,Chevry,Chilleurs,Choux,Chuelles,Clery,Coinces,Coligny,Combleux,Combreux,Conflans,Corbeilles,Corquilleroy,Cortrat,Coudroy,Coullons,Coulmiers,Courcelles,Courcy,Courtemaux,Courtempierre,Courtenay,Cravant,Crottes,Dadonville,Dammarie,Dampierre,Darvoy,Desmonts,Dimancheville,Donnery,Dordives,Dossainville,Douchy,Dry,Echilleuses,Egry,Engenville,Epieds,Erceville,Ervauville,Escrennes,Escrignelles,Estouy,Faverelles,Fay,Feins,Ferolles,Ferrieres,Fleury,Fontenay,Foret,Foucherolles,Freville,Gatinais,Gaubertin,Gemigny,Germigny,Gidy,Gien,Girolles,Givraines,Gondreville,Grangermont,Greneville,Griselles,Guigneville,Guilly,Gyleslonains,Huetre,Huisseau,Ingrannes,Ingre,Intville,Isdes,Jargeau,Jouy,Juranville,Bussiere,Laas,Ladon,Lailly,Langesse,Leouville,Ligny,Lombreuil,Lorcy,Lorris,Loury,Louzouer,Malesherbois,Marcilly,Mardie,Mareau,Marigny,Marsainvilliers,Melleroy,Menestreau,Merinville,Messas,Meung,Mezieres,Migneres,Mignerette,Mirabeau,Montargis,Montbarrois,Montbouy,Montcresson,Montereau,Montigny,Montliard,Mormant,Morville,Moulinet,Moulon,Nancray,Nargis,Nesploy,Neuville,Neuvy,Nevoy,Nibelle,Nogent,Noyers,Ocre,Oison,Olivet,Ondreville,Onzerain,Orleans,Ormes,Orville,Oussoy,Outarville,Ouzouer,Pannecieres,Pannes,Patay,Paucourt,Pers,Pierrefitte,Pithiverais,Pithiviers,Poilly,Potier,Prefontaines,Presnoy,Pressigny,Puiseaux,Quiers,Ramoulu,Rebrechien,Rouvray,Rozieres,Rozoy,Ruan,Sandillon,Santeau,Saran,Sceaux,Seichebrieres,Semoy,Sennely,Sermaises,Sigloy,Solterre,Sougy,Sully,Sury,Tavers,Thignonville,Thimory,Thorailles,Thou,Tigy,Tivernon,Tournoisis,Trainou,Treilles,Trigueres,Trinay,Vannes,Varennes,Vennecy,Vieilles,Vienne,Viglain,Vignes,Villamblain,Villemandeur,Villemoutiers,Villemurlin,Villeneuve,Villereau,Villevoques,Villorceau,Vimory,Vitry,Vrigny,Ivre"},
+        {name: "Italian", i: 3, min: 5, max: 12, d: "cltr", m: .1, b: "Accumoli,Acquafondata,Acquapendente,Acuto,Affile,Agosta,Alatri,Albano,Allumiere,Alvito,Amaseno,Amatrice,Anagni,Anguillara,Anticoli,Antrodoco,Anzio,Aprilia,Aquino,Arce,Arcinazzo,Ardea,Ariccia,Arlena,Arnara,Arpino,Arsoli,Artena,Ascrea,Atina,Ausonia,Bagnoregio,Barbarano,Bassano,Bassiano,Bellegra,Belmonte,Blera,Bolsena,Bomarzo,Borbona,Borgo,Borgorose,Boville,Bracciano,Broccostella,Calcata,Camerata,Campagnano,Campodimele,Campoli,Canale,Canepina,Canino,Cantalice,Cantalupo,Canterano,Capena,Capodimonte,Capranica,Caprarola,Carbognano,Casalattico,Casalvieri,Casape,Casaprota,Casperia,Cassino,Castelforte,Castelliri,Castello,Castelnuovo,Castiglione,Castro,Castrocielo,Cave,Ceccano,Celleno,Cellere,Ceprano,Cerreto,Cervara,Cervaro,Cerveteri,Ciampino,Ciciliano,Cineto,Cisterna,Cittaducale,Cittareale,Civita,Civitavecchia,Civitella,Colfelice,Collalto,Colle,Colleferro,Collegiove,Collepardo,Collevecchio,Colli,Colonna,Concerviano,Configni,Contigliano,Corchiano,Coreno,Cori,Cottanello,Esperia,Fabrica,Faleria,Fara,Farnese,Ferentino,Fiamignano,Fiano,Filacciano,Filettino,Fiuggi,Fiumicino,Fondi,Fontana,Fonte,Fontechiari,Forano,Formello,Formia,Frascati,Frasso,Frosinone,Fumone,Gaeta,Gallese,Gallicano,Gallinaro,Gavignano,Genazzano,Genzano,Gerano,Giuliano,Gorga,Gradoli,Graffignano,Greccio,Grottaferrata,Grotte,Guarcino,Guidonia,Ischia,Isola,Itri,Jenne,Labico,Labro,Ladispoli,Lanuvio,Lariano,Latera,Lenola,Leonessa,Licenza,Longone,Lubriano,Maenza,Magliano,Mandela,Manziana,Marano,Marcellina,Marcetelli,Marino,Marta,Mazzano,Mentana,Micigliano,Minturno,Mompeo,Montalto,Montasola,Monte,Montebuono,Montefiascone,Monteflavio,Montelanico,Monteleone,Montelibretti,Montenero,Monterosi,Monterotondo,Montopoli,Montorio,Moricone,Morlupo,Morolo,Morro,Nazzano,Nemi,Nepi,Nerola,Nespolo,Nettuno,Norma,Olevano,Onano,Oriolo,Orte,Orvinio,Paganico,Palestrina,Paliano,Palombara,Pastena,Patrica,Percile,Pescorocchiano,Pescosolido,Petrella,Piansano,Picinisco,Pico,Piedimonte,Piglio,Pignataro,Pisoniano,Pofi,Poggio,Poli,Pomezia,Pontecorvo,Pontinia,Ponza,Ponzano,Posta,Pozzaglia,Priverno,Proceno,Prossedi,Riano,Rieti,Rignano,Riofreddo,Ripi,Rivodutri,Rocca,Roccagiovine,Roccagorga,Roccantica,Roccasecca,Roiate,Ronciglione,Roviano,Sabaudia,Sacrofano,Salisano,Sambuci,Santa,Santi,Santopadre,Saracinesco,Scandriglia,Segni,Selci,Sermoneta,Serrone,Settefrati,Sezze,Sgurgola,Sonnino,Sora,Soriano,Sperlonga,Spigno,Stimigliano,Strangolagalli,Subiaco,Supino,Sutri,Tarano,Tarquinia,Terelle,Terracina,Tessennano,Tivoli,Toffia,Tolfa,Torre,Torri,Torrice,Torricella,Torrita,Trevi,Trevignano,Trivigliano,Turania,Tuscania,Vacone,Valentano,Vallecorsa,Vallemaio,Vallepietra,Vallerano,Vallerotonda,Vallinfreda,Valmontone,Varco,Vasanello,Vejano,Velletri,Ventotene,Veroli,Vetralla,Vicalvi,Vico,Vicovaro,Vignanello,Viterbo,Viticuso,Vitorchiano,Vivaro,Zagarolo"},
+        {name: "Castillian", i: 4, min: 5, max: 11, d: "lr", m: 0, b: "Abanades,Ablanque,Adobes,Ajofrin,Alameda,Alaminos,Alarilla,Albalate,Albares,Albarreal,Albendiego,Alcabon,Alcanizo,Alcaudete,Alcocer,Alcolea,Alcoroches,Aldea,Aldeanueva,Algar,Algora,Alhondiga,Alique,Almadrones,Almendral,Almoguera,Almonacid,Almorox,Alocen,Alovera,Alustante,Angon,Anguita,Anover,Anquela,Arbancon,Arbeteta,Arcicollar,Argecilla,Arges,Armallones,Armuna,Arroyo,Atanzon,Atienza,Aunon,Azuqueca,Azutan,Baides,Banos,Banuelos,Barcience,Bargas,Barriopedro,Belvis,Berninches,Borox,Brihuega,Budia,Buenaventura,Bujalaro,Burguillos,Burujon,Bustares,Cabanas,Cabanillas,Calera,Caleruela,Calzada,Camarena,Campillo,Camunas,Canizar,Canredondo,Cantalojas,Cardiel,Carmena,Carranque,Carriches,Casa,Casarrubios,Casas,Casasbuenas,Caspuenas,Castejon,Castellar,Castilforte,Castillo,Castilnuevo,Cazalegas,Cebolla,Cedillo,Cendejas,Centenera,Cervera,Checa,Chequilla,Chillaron,Chiloeches,Chozas,Chueca,Cifuentes,Cincovillas,Ciruelas,Ciruelos,Cobeja,Cobeta,Cobisa,Cogollor,Cogolludo,Condemios,Congostrina,Consuegra,Copernal,Corduente,Corral,Cuerva,Domingo,Dosbarrios,Driebes,Duron,El,Embid,Erustes,Escalona,Escalonilla,Escamilla,Escariche,Escopete,Espinosa,Espinoso,Esplegares,Esquivias,Estables,Estriegana,Fontanar,Fuembellida,Fuensalida,Fuentelsaz,Gajanejos,Galve,Galvez,Garciotum,Gascuena,Gerindote,Guadamur,Henche,Heras,Herreria,Herreruela,Hijes,Hinojosa,Hita,Hombrados,Hontanar,Hontoba,Horche,Hormigos,Huecas,Huermeces,Huerta,Hueva,Humanes,Illan,Illana,Illescas,Iniestola,Irueste,Jadraque,Jirueque,Lagartera,Las,Layos,Ledanca,Lillo,Lominchar,Loranca,Los,Lucillos,Lupiana,Luzaga,Luzon,Madridejos,Magan,Majaelrayo,Malaga,Malaguilla,Malpica,Mandayona,Mantiel,Manzaneque,Maqueda,Maranchon,Marchamalo,Marjaliza,Marrupe,Mascaraque,Masegoso,Matarrubia,Matillas,Mazarete,Mazuecos,Medranda,Megina,Mejorada,Mentrida,Mesegar,Miedes,Miguel,Millana,Milmarcos,Mirabueno,Miralrio,Mocejon,Mochales,Mohedas,Molina,Monasterio,Mondejar,Montarron,Mora,Moratilla,Morenilla,Muduex,Nambroca,Navalcan,Negredo,Noblejas,Noez,Nombela,Noves,Numancia,Nuno,Ocana,Ocentejo,Olias,Olmeda,Ontigola,Orea,Orgaz,Oropesa,Otero,Palmaces,Palomeque,Pantoja,Pardos,Paredes,Pareja,Parrillas,Pastrana,Pelahustan,Penalen,Penalver,Pepino,Peralejos,Peralveche,Pinilla,Pioz,Piqueras,Polan,Portillo,Poveda,Pozo,Pradena,Prados,Puebla,Puerto,Pulgar,Quer,Quero,Quintanar,Quismondo,Rebollosa,Recas,Renera,Retamoso,Retiendas,Riba,Rielves,Rillo,Riofrio,Robledillo,Robledo,Romanillos,Romanones,Rueda,Sacecorbo,Sacedon,Saelices,Salmeron,San,Santa,Santiuste,Santo,Sartajada,Sauca,Sayaton,Segurilla,Selas,Semillas,Sesena,Setiles,Sevilleja,Sienes,Siguenza,Solanillos,Somolinos,Sonseca,Sotillo,Sotodosos,Talavera,Tamajon,Taragudo,Taravilla,Tartanedo,Tembleque,Tendilla,Terzaga,Tierzo,Tordellego,Tordelrabano,Tordesilos,Torija,Torralba,Torre,Torrecilla,Torrecuadrada,Torrejon,Torremocha,Torrico,Torrijos,Torrubia,Tortola,Tortuera,Tortuero,Totanes,Traid,Trijueque,Trillo,Turleque,Uceda,Ugena,Ujados,Urda,Utande,Valdarachas,Valdesotos,Valhermoso,Valtablado,Valverde,Velada,Viana,Vinuelas,Yebes,Yebra,Yelamos,Yeles,Yepes,Yuncler,Yunclillos,Yuncos,Yunquera,Zaorejas,Zarzuela,Zorita"},
+        {name: "Ruthenian", i: 5, min: 5, max: 10, d: "", m: 0, b: "Belgorod,Beloberezhye,Belyi,Belz,Berestiy,Berezhets,Berezovets,Berezutsk,Bobruisk,Bolonets,Borisov,Borovsk,Bozhesk,Bratslav,Bryansk,Brynsk,Buryn,Byhov,Chechersk,Chemesov,Cheremosh,Cherlen,Chern,Chernigov,Chernitsa,Chernobyl,Chernogorod,Chertoryesk,Chetvertnia,Demyansk,Derevesk,Devyagoresk,Dichin,Dmitrov,Dorogobuch,Dorogobuzh,Drestvin,Drokov,Drutsk,Dubechin,Dubichi,Dubki,Dubkov,Dveren,Galich,Glebovo,Glinsk,Goloty,Gomiy,Gorodets,Gorodische,Gorodno,Gorohovets,Goroshin,Gorval,Goryshon,Holm,Horobor,Hoten,Hotin,Hotmyzhsk,Ilovech,Ivan,Izborsk,Izheslavl,Kamenets,Kanev,Karachev,Karna,Kavarna,Klechesk,Klyapech,Kolomyya,Kolyvan,Kopyl,Korec,Kornik,Korochunov,Korshev,Korsun,Koshkin,Kotelno,Kovyla,Kozelsk,Kozelsk,Kremenets,Krichev,Krylatsk,Ksniatin,Kulatsk,Kursk,Kursk,Lebedev,Lida,Logosko,Lomihvost,Loshesk,Loshichi,Lubech,Lubno,Lubutsk,Lutsk,Luchin,Luki,Lukoml,Luzha,Lvov,Mtsensk,Mdin,Medniki,Melecha,Merech,Meretsk,Mescherskoe,Meshkovsk,Metlitsk,Mezetsk,Mglin,Mihailov,Mikitin,Mikulino,Miloslavichi,Mogilev,Mologa,Moreva,Mosalsk,Moschiny,Mozyr,Mstislav,Mstislavets,Muravin,Nemech,Nemiza,Nerinsk,Nichan,Novgorod,Novogorodok,Obolichi,Obolensk,Obolensk,Oleshsk,Olgov,Omelnik,Opoka,Opoki,Oreshek,Orlets,Osechen,Oster,Ostrog,Ostrov,Perelai,Peremil,Peremyshl,Pererov,Peresechen,Perevitsk,Pereyaslav,Pinsk,Ples,Polotsk,Pronsk,Proposhesk,Punia,Putivl,Rechitsa,Rodno,Rogachev,Romanov,Romny,Roslavl,Rostislavl,Rostovets,Rsha,Ruza,Rybchesk,Rylsk,Rzhavesk,Rzhev,Rzhischev,Sambor,Serensk,Serensk,Serpeysk,Shilov,Shuya,Sinech,Sizhka,Skala,Slovensk,Slutsk,Smedin,Sneporod,Snitin,Snovsk,Sochevo,Sokolec,Starica,Starodub,Stepan,Sterzh,Streshin,Sutesk,Svinetsk,Svisloch,Terebovl,Ternov,Teshilov,Teterin,Tiversk,Torchevsk,Toropets,Torzhok,Tripolye,Trubchevsk,Tur,Turov,Usvyaty,Uteshkov,Vasilkov,Velil,Velye,Venev,Venicha,Verderev,Vereya,Veveresk,Viazma,Vidbesk,Vidychev,Voino,Volodimer,Volok,Volyn,Vorobesk,Voronich,Voronok,Vorotynsk,Vrev,Vruchiy,Vselug,Vyatichsk,Vyatka,Vyshegorod,Vyshgorod,Vysokoe,Yagniatin,Yaropolch,Yasenets,Yuryev,Yuryevets,Zaraysk,Zhitomel,Zholvazh,Zizhech,Zubkov,Zudechev,Zvenigorod"},
+        {name: "Nordic", i: 6, min: 6, max: 10, d: "kln", m: .1, b: "Akureyri,Aldra,Alftanes,Andenes,Austbo,Auvog,Bakkafjordur,Ballangen,Bardal,Beisfjord,Bifrost,Bildudalur,Bjerka,Bjerkvik,Bjorkosen,Bliksvaer,Blokken,Blonduos,Bolga,Bolungarvik,Borg,Borgarnes,Bosmoen,Bostad,Bostrand,Botsvika,Brautarholt,Breiddalsvik,Bringsli,Brunahlid,Budardalur,Byggdakjarni,Dalvik,Djupivogur,Donnes,Drageid,Drangsnes,Egilsstadir,Eiteroga,Elvenes,Engavogen,Ertenvog,Eskifjordur,Evenes,Eyrarbakki,Fagernes,Fallmoen,Fellabaer,Fenes,Finnoya,Fjaer,Fjelldal,Flakstad,Flateyri,Flostrand,Fludir,Gardaber,Gardur,Gimstad,Givaer,Gjeroy,Gladstad,Godoya,Godoynes,Granmoen,Gravdal,Grenivik,Grimsey,Grindavik,Grytting,Hafnir,Halsa,Hauganes,Haugland,Hauknes,Hella,Helland,Hellissandur,Hestad,Higrav,Hnifsdalur,Hofn,Hofsos,Holand,Holar,Holen,Holkestad,Holmavik,Hopen,Hovden,Hrafnagil,Hrisey,Husavik,Husvik,Hvammstangi,Hvanneyri,Hveragerdi,Hvolsvollur,Igeroy,Indre,Inndyr,Innhavet,Innes,Isafjordur,Jarklaustur,Jarnsreykir,Junkerdal,Kaldvog,Kanstad,Karlsoy,Kavosen,Keflavik,Kjelde,Kjerstad,Klakk,Kopasker,Kopavogur,Korgen,Kristnes,Krutoga,Krystad,Kvina,Lande,Laugar,Laugaras,Laugarbakki,Laugarvatn,Laupstad,Leines,Leira,Leiren,Leland,Lenvika,Loding,Lodingen,Lonsbakki,Lopsmarka,Lovund,Luroy,Maela,Melahverfi,Meloy,Mevik,Misvaer,Mornes,Mosfellsber,Moskenes,Myken,Naurstad,Nesberg,Nesjahverfi,Nesset,Nevernes,Obygda,Ofoten,Ogskardet,Okervika,Oknes,Olafsfjordur,Oldervika,Olstad,Onstad,Oppeid,Oresvika,Orsnes,Orsvog,Osmyra,Overdal,Prestoya,Raudalaekur,Raufarhofn,Reipo,Reykholar,Reykholt,Reykjahlid,Rif,Rinoya,Rodoy,Rognan,Rosvika,Rovika,Salhus,Sanden,Sandgerdi,Sandoker,Sandset,Sandvika,Saudarkrokur,Selfoss,Selsoya,Sennesvik,Setso,Siglufjordur,Silvalen,Skagastrond,Skjerstad,Skonland,Skorvogen,Skrova,Sleneset,Snubba,Softing,Solheim,Solheimar,Sorarnoy,Sorfugloy,Sorland,Sormela,Sorvaer,Sovika,Stamsund,Stamsvika,Stave,Stokka,Stokkseyri,Storjord,Storo,Storvika,Strand,Straumen,Strendene,Sudavik,Sudureyri,Sundoya,Sydalen,Thingeyri,Thorlakshofn,Thorshofn,Tjarnabyggd,Tjotta,Tosbotn,Traelnes,Trofors,Trones,Tverro,Ulvsvog,Unnstad,Utskor,Valla,Vandved,Varmahlid,Vassos,Vevelstad,Vidrek,Vik,Vikholmen,Vogar,Vogehamn,Vopnafjordur"},
+        {name: "Greek", i: 7, min: 5, max: 11, d: "s", m: .1, b: "Abdera,Abila,Abydos,Acanthus,Acharnae,Actium,Adramyttium,Aegae,Aegina,Aegium,Aenus,Agrinion,Aigosthena,Akragas,Akrai,Akrillai,Akroinon,Akrotiri,Alalia,Alexandreia,Alexandretta,Alexandria,Alinda,Amarynthos,Amaseia,Ambracia,Amida,Amisos,Amnisos,Amphicaea,Amphigeneia,Amphipolis,Amphissa,Ankon,Antigona,Antipatrea,Antioch,Antioch,Antiochia,Andros,Apamea,Aphidnae,Apollonia,Argos,Arsuf,Artanes,Artemita,Argyroupoli,Asine,Asklepios,Aspendos,Assus,Astacus,Athenai,Athmonia,Aytos,Ancient,Baris,Bhrytos,Borysthenes,Berge,Boura,Bouthroton,Brauron,Byblos,Byllis,Byzantium,Bythinion,Callipolis,Cebrene,Chalcedon,Calydon,Carystus,Chamaizi,Chalcis,Chersonesos,Chios,Chytri,Clazomenae,Cleonae,Cnidus,Colosse,Corcyra,Croton,Cyme,Cyrene,Cythera,Decelea,Delos,Delphi,Demetrias,Dicaearchia,Dimale,Didyma,Dion,Dioscurias,Dodona,Dorylaion,Dyme,Edessa,Elateia,Eleusis,Eleutherna,Emporion,Ephesus,Ephyra,Epidamnos,Epidauros,Eresos,Eretria,Erythrae,Eubea,Gangra,Gaza,Gela,Golgi,Gonnos,Gorgippia,Gournia,Gortyn,Gythium,Hagios,Hagia,Halicarnassus,Halieis,Helike,Heliopolis,Hellespontos,Helorus,Hemeroskopeion,Heraclea,Hermione,Hermonassa,Hierapetra,Hierapolis,Himera,Histria,Hubla,Hyele,Ialysos,Iasus,Idalium,Imbros,Iolcus,Itanos,Ithaca,Juktas,Kallipolis,Kamares,Kameiros,Kannia,Kamarina,Kasmenai,Katane,Kerkinitida,Kepoi,Kimmerikon,Kios,Klazomenai,Knidos,Knossos,Korinthos,Kos,Kourion,Kume,Kydonia,Kynos,Kyrenia,Lamia,Lampsacus,Laodicea,Lapithos,Larissa,Lato,Laus,Lebena,Lefkada,Lekhaion,Leibethra,Leontinoi,Lepreum,Lessa,Lilaea,Lindus,Lissus,Epizephyrian,Madytos,Magnesia,Mallia,Mantineia,Marathon,Marmara,Maroneia,Masis,Massalia,Megalopolis,Megara,Mesembria,Messene,Metapontum,Methana,Methone,Methumna,Miletos,Misenum,Mochlos,Monastiraki,Morgantina,Mulai,Mukenai,Mylasa,Myndus,Myonia,Myra,Myrmekion,Mutilene,Myos,Nauplios,Naucratis,Naupactus,Naxos,Neapoli,Neapolis,Nemea,Nicaea,Nicopolis,Nirou,Nymphaion,Nysa,Oenoe,Oenus,Odessos,Olbia,Olous,Olympia,Olynthus,Opus,Orchomenus,Oricos,Orestias,Oreus,Oropus,Onchesmos,Pactye,Pagasae,Palaikastro,Pandosia,Panticapaeum,Paphos,Parium,Paros,Parthenope,Patrae,Pavlopetri,Pegai,Pelion,Peiraies,Pella,Percote,Pergamum,Petsofa,Phaistos,Phaleron,Phanagoria,Pharae,Pharnacia,Pharos,Phaselis,Philippi,Pithekussa,Philippopolis,Platanos,Phlius,Pherae,Phocaea,Pinara,Pisa,Pitane,Pitiunt,Pixous,Plataea,Poseidonia,Potidaea,Priapus,Priene,Prousa,Pseira,Psychro,Pteleum,Pydna,Pylos,Pyrgos,Rhamnus,Rhegion,Rhithymna,Rhodes,Rhypes,Rizinia,Salamis,Same,Samos,Scyllaeum,Selinus,Seleucia,Semasus,Sestos,Scidrus,Sicyon,Side,Sidon,Siteia,Sinope,Siris,Sklavokampos,Smyrna,Soli,Sozopolis,Sparta,Stagirus,Stratos,Stymphalos,Sybaris,Surakousai,Taras,Tanagra,Tanais,Tauromenion,Tegea,Temnos,Tenedos,Tenea,Teos,Thapsos,Thassos,Thebai,Theodosia,Therma,Thespiae,Thronion,Thoricus,Thurii,Thyreum,Thyria,Tiruns,Tithoraea,Tomis,Tragurion,Trapeze,Trapezus,Tripolis,Troizen,Troliton,Troy,Tylissos,Tyras,Tyros,Tyritake,Vasiliki,Vathypetros,Zakynthos,Zakros,Zankle"},
+        {name: "Roman", i: 8, min: 6, max: 11, d: "ln", m: .1, b: "Abila,Adflexum,Adnicrem,Aelia,Aelius,Aeminium,Aequum,Agrippina,Agrippinae,Ala,Albanianis,Ambianum,Andautonia,Apulum,Aquae,Aquaegranni,Aquensis,Aquileia,Aquincum,Arae,Argentoratum,Ariminum,Ascrivium,Atrebatum,Atuatuca,Augusta,Aurelia,Aurelianorum,Batavar,Batavorum,Belum,Biriciana,Blestium,Bonames,Bonna,Bononia,Borbetomagus,Bovium,Bracara,Brigantium,Burgodunum,Caesaraugusta,Caesarea,Caesaromagus,Calleva,Camulodunum,Cannstatt,Cantiacorum,Capitolina,Castellum,Castra,Castrum,Cibalae,Clausentum,Colonia,Concangis,Condate,Confluentes,Conimbriga,Corduba,Coria,Corieltauvorum,Corinium,Coriovallum,Cornoviorum,Danum,Deva,Divodurum,Dobunnorum,Drusi,Dubris,Dumnoniorum,Durnovaria,Durocobrivis,Durocornovium,Duroliponte,Durovernum,Durovigutum,Eboracum,Edetanorum,Emerita,Emona,Euracini,Faventia,Flaviae,Florentia,Forum,Gerulata,Gerunda,Glevensium,Hadriani,Herculanea,Isca,Italica,Iulia,Iuliobrigensium,Iuvavum,Lactodurum,Lagentium,Lauri,Legionis,Lemanis,Lentia,Lepidi,Letocetum,Lindinis,Lindum,Londinium,Lopodunum,Lousonna,Lucus,Lugdunum,Luguvalium,Lutetia,Mancunium,Marsonia,Martius,Massa,Matilo,Mattiacorum,Mediolanum,Mod,Mogontiacum,Moridunum,Mursa,Naissus,Nervia,Nida,Nigrum,Novaesium,Noviomagus,Olicana,Ovilava,Parisiorum,Partiscum,Paterna,Pistoria,Placentia,Pollentia,Pomaria,Pons,Portus,Praetoria,Praetorium,Pullum,Ragusium,Ratae,Raurica,Regina,Regium,Regulbium,Rigomagus,Roma,Romula,Rutupiae,Salassorum,Salernum,Salona,Scalabis,Segovia,Silurum,Sirmium,Siscia,Sorviodurum,Sumelocenna,Tarraco,Taurinorum,Theranda,Traiectum,Treverorum,Tungrorum,Turicum,Ulpia,Valentia,Venetiae,Venta,Verulamium,Vesontio,Vetera,Victoriae,Victrix,Villa,Viminacium,Vindelicorum,Vindobona,Vinovia,Viroconium"},
+        {name: "Finnic", i: 9, min: 5, max: 11, d: "akiut", m: 0, b: "Aanekoski,Abjapaluoja,Ahlainen,Aholanvaara,Ahtari,Aijala,Aimala,Akaa,Alajarvi,Alatornio,Alavus,Antsla,Aspo,Bennas,Bjorkoby,Elva,Emasalo,Espoo,Esse,Evitskog,Forssa,Haapajarvi,Haapamaki,Haapavesi,Haapsalu,Haavisto,Hameenlinna,Hameenmaki,Hamina,Hanko,Harjavalta,Hattuvaara,Haukipudas,Hautajarvi,Havumaki,Heinola,Hetta,Hinkabole,Hirmula,Hossa,Huittinen,Husula,Hyryla,Hyvinkaa,Iisalmi,Ikaalinen,Ilmola,Imatra,Inari,Iskmo,Itakoski,Jamsa,Jarvenpaa,Jeppo,Jioesuu,Jiogeva,Joensuu,Jokela,Jokikyla,Jokisuu,Jormua,Juankoski,Jungsund,Jyvaskyla,Kaamasmukka,Kaarina,Kajaani,Kalajoki,Kallaste,Kankaanpaa,Kannus,Kardla,Karesuvanto,Karigasniemi,Karkkila,Karkku,Karksinuia,Karpankyla,Kaskinen,Kasnas,Kauhajoki,Kauhava,Kauniainen,Kauvatsa,Kehra,Keila,Kellokoski,Kelottijarvi,Kemi,Kemijarvi,Kerava,Keuruu,Kiikka,Kiipu,Kilinginiomme,Kiljava,Kilpisjarvi,Kitee,Kiuruvesi,Kivesjarvi,Kiviioli,Kivisuo,Klaukkala,Klovskog,Kohtlajarve,Kokemaki,Kokkola,Kolho,Koria,Koskue,Kotka,Kouva,Kouvola,Kristiina,Kaupunki,Kuhmo,Kunda,Kuopio,Kuressaare,Kurikka,Kusans,Kuusamo,Kylmalankyla,Lahti,Laitila,Lankipohja,Lansikyla,Lappeenranta,Lapua,Laurila,Lautiosaari,Lepsama,Liedakkala,Lieksa,Lihula,Littoinen,Lohja,Loimaa,Loksa,Loviisa,Luohuanylipaa,Lusi,Maardu,Maarianhamina,Malmi,Mantta,Masaby,Masala,Matasvaara,Maula,Miiluranta,Mikkeli,Mioisakula,Munapirtti,Mustvee,Muurahainen,Naantali,Nappa,Narpio,Nickby,Niinimaa,Niinisalo,Nikkila,Nilsia,Nivala,Nokia,Nummela,Nuorgam,Nurmes,Nuvvus,Obbnas,Oitti,Ojakkala,Ollola,onningeby,Orimattila,Orivesi,Otanmaki,Otava,Otepaa,Oulainen,Oulu,Outokumpu,Paavola,Paide,Paimio,Pakankyla,Paldiski,Parainen,Parkano,Parkumaki,Parola,Perttula,Pieksamaki,Pietarsaari,Pioltsamaa,Piolva,Pohjavaara,Porhola,Pori,Porrasa,Porvoo,Pudasjarvi,Purmo,Pussi,Pyhajarvi,Raahe,Raasepori,Raisio,Rajamaki,Rakvere,Rapina,Rapla,Rauma,Rautio,Reposaari,Riihimaki,Rovaniemi,Roykka,Ruonala,Ruottala,Rutalahti,Saarijarvi,Salo,Sastamala,Saue,Savonlinna,Seinajoki,Sillamae,Sindi,Siuntio,Somero,Sompujarvi,Suonenjoki,Suurejaani,Syrjantaka,Tampere,Tamsalu,Tapa,Temmes,Tiorva,Tormasenvaara,Tornio,Tottijarvi,Tulppio,Turenki,Turi,Tuukkala,Tuurala,Tuuri,Tuuski,Ulvila,Unari,Upinniemi,Utti,Uusikaarlepyy,Uusikaupunki,Vaaksy,Vaalimaa,Vaarinmaja,Vaasa,Vainikkala,Valga,Valkeakoski,Vantaa,Varkaus,Vehkapera,Vehmasmaki,Vieki,Vierumaki,Viitasaari,Viljandi,Vilppula,Viohma,Vioru,Virrat,Ylike,Ylivieska,Ylojarvi"},
+        {name: "Korean", i: 10, min: 5, max: 11, d: "", m: 0, b: "Aewor,Andong,Angang,Anjung,Anmyeon,Ansan,Anseong,Anyang,Aphae,Apo,Asan,Baebang,Baekseok,Baeksu,Beobwon,Beolgyo,Beomseo,Boeun,Bongdam,Bongdong,Bonghwa,Bongyang,Boryeong,Boseong,Buan,Bubal,Bucheon,Buksam,Busan,Busan,Busan,Buyeo,Changnyeong,Changwon,Cheonan,Cheongdo,Cheongjin,Cheongju,Cheongju,Cheongsong,Cheongyang,Cheorwon,Chirwon,Chowol,Chuncheon,Chuncheon,Chungju,Chungmu,Daecheon,Daedeok,Daegaya,Daegu,Daegu,Daegu,Daejeon,Daejeon,Daejeon,Daejeong,Daesan,Damyang,Dangjin,Danyang,Dasa,Dogye,Dolsan,Dong,Dongducheon,Donggwangyang,Donghae,Dongsong,Doyang,Eonyang,Eumseong,Gaeseong,Galmal,Gampo,Ganam,Ganggyeong,Ganghwa,Gangjin,Gangneung,Ganseong,Gapyeong,Gaun,Gaya,Geochang,Geoje,Geojin,Geoncheon,Geumho,Geumil,Geumsan,Geumseong,Geumwang,Gijang,Gimcheon,Gimhae,Gimhwa,Gimje,Gimpo,Goa,Gochang,Gochon,Goesan,Gohan,Goheung,Gokseong,Gongdo,Gongju,Gonjiam,Goseong,Goyang,Gujwa,Gumi,Gungnae,Gunpo,Gunsan,Gunsan,Gunwi,Guri,Gurye,Guryongpo,Gwacheon,Gwangcheon,Gwangju,Gwangju,Gwangju,Gwangju,Gwangmyeong,Gwangyang,Gwansan,Gyeongju,Gyeongsan,Gyeongseong,Gyeongseong,Gyeryong,Hadong,Haeju,Haenam,Hamchang,Hamheung,Hampyeong,Hamyang,Hamyeol,Hanam,Hanrim,Hapcheon,Hapdeok,Hayang,Heunghae,Heungnam,Hoengseong,Hongcheon,Hongnong,Hongseong,Hwacheon,Hwado,Hwando,Hwaseong,Hwasun,Hwawon,Hyangnam,Icheon,Iksan,Illo,Imsil,Incheon,Incheon,Incheon,Inje,Iri,Iri,Jangan,Janghang,Jangheung,Janghowon,Jangseong,Jangseungpo,Jangsu,Jecheon,Jeju,Jeomchon,Jeongeup,Jeonggwan,Jeongju,Jeongok,Jeongseon,Jeonju,Jeonju,Jeungpyeong,Jido,Jiksan,Jillyang,Jinan,Jincheon,Jindo,Jingeon,Jinhae,Jinjeop,Jinju,Jinju,Jinnampo,Jinyeong,Jocheon,Jochiwon,Jori,Judeok,Jumunjin,Maepo,Mangyeong,Masan,Masan,Migeum,Miryang,Mokcheon,Mokpo,Mokpo,Muan,Muju,Mungyeong,Munmak,Munsan,Munsan,Naeseo,Naesu,Najin,Naju,Namhae,Namji,Nampyeong,Namwon,Namyang,Namyangju,Nohwa,Nongong,Nonsan,Ochang,Ocheon,Oedong,Okcheon,Okgu,Onam,Onsan,Onyang,Opo,Osan,Osong,Paengseong,Paju,Pocheon,Pogok,Pohang,Poseung,Punggi,Pungsan,Pyeongchang,Pyeonghae,Pyeongtaek,Pyeongyang,Sabi,Sabuk,Sacheon,Samcheok,Samcheonpo,Samho,Samhyang,Samnangjin,Samrye,Sancheong,Sangdong,Sangju,Sanyang,Sapgyo,Sariwon,Sejong,Seocheon,Seogwipo,Seokjeok,Seonggeo,Seonghwan,Seongjin,Seongju,Seongnam,Seongsan,Seonsan,Seosan,Seoul,Seungju,Siheung,Sinbuk,Sindong,Sineuiju,Sintaein,Soheul,Sokcho,Songak,Songjeong,Songnim,Songtan,Sunchang,Suncheon,Suwon,Taean,Taebaek,Tongjin,Tongyeong,Uijeongbu,Uiryeong,Uiseong,Uiwang,Ujeong,Uljin,Ulleung,Ulsan,Ulsan,Unbong,Ungcheon,Ungjin,Wabu,Waegwan,Wando,Wanggeomseong,Wiryeseong,Wondeok,Wonju,Wonsan,Yangchon,Yanggu,Yangju,Yangpyeong,Yangsan,Yangyang,Yecheon,Yeocheon,Yeoju,Yeomchi,Yeoncheon,Yeongam,Yeongcheon,Yeongdeok,Yeongdong,Yeonggwang,Yeongju,Yeongwol,Yeongyang,Yeonil,Yeonmu,Yeosu,Yesan,Yongin,Yongjin,Yugu,Wayang"},
+        {name: "Chinese", i: 11, min: 5, max: 10, d: "", m: 0, b: "Anding,Anlu,Anqing,Anshun,Baan,Baixing,Banyang,Baoding,Baoqing,Binzhou,Caozhou,Changbai,Changchun,Changde,Changling,Changsha,Changtu,Changzhou,Chaozhou,Cheli,Chengde,Chengdu,Chenzhou,Chizhou,Chongqing,Chuxiong,Chuzhou,Dading,Dali,Daming,Datong,Daxing,Dean,Dengke,Dengzhou,Deqing,Dexing,Dihua,Dingli,Dongan,Dongchang,Dongchuan,Dongping,Duyun,Fengtian,Fengxiang,Fengyang,Fenzhou,Funing,Fuzhou,Ganzhou,Gaoyao,Gaozhou,Gongchang,Guangnan,Guangning,Guangping,Guangxin,Guangzhou,Guide,Guilin,Guiyang,Hailong,Hailun,Hangzhou,Hanyang,Hanzhong,Heihe,Hejian,Henan,Hengzhou,Hezhong,Huaian,Huaide,Huaiqing,Huanglong,Huangzhou,Huining,Huizhou,Hulan,Huzhou,Jiading,Jian,Jianchang,Jiande,Jiangning,Jiankang,Jianning,Jiaxing,Jiayang,Jilin,Jinan,Jingjiang,Jingzhao,Jingzhou,Jinhua,Jinzhou,Jiujiang,Kaifeng,Kaihua,Kangding,Kuizhou,Laizhou,Lanzhou,Leizhou,Liangzhou,Lianzhou,Liaoyang,Lijiang,Linan,Linhuang,Linjiang,Lintao,Liping,Liuzhou,Longan,Longjiang,Longqing,Longxing,Luan,Lubin,Lubin,Luzhou,Mishan,Nanan,Nanchang,Nandian,Nankang,Nanning,Nanyang,Nenjiang,Ningan,Ningbo,Ningguo,Ninguo,Ningwu,Ningxia,Ningyuan,Pingjiang,Pingle,Pingliang,Pingyang,Puer,Puzhou,Qianzhou,Qingyang,Qingyuan,Qingzhou,Qiongzhou,Qujing,Quzhou,Raozhou,Rende,Ruian,Ruizhou,Runing,Shafeng,Shajing,Shaoqing,Shaowu,Shaoxing,Shaozhou,Shinan,Shiqian,Shouchun,Shuangcheng,Shulei,Shunde,Shunqing,Shuntian,Shuoping,Sicheng,Sien,Sinan,Sizhou,Songjiang,Suiding,Suihua,Suining,Suzhou,Taian,Taibei,Tainan,Taiping,Taiwan,Taiyuan,Taizhou,Taonan,Tengchong,Tieli,Tingzhou,Tongchuan,Tongqing,Tongren,Tongzhou,Weihui,Wensu,Wenzhou,Wuchang,Wuding,Wuzhou,Xian,Xianchun,Xianping,Xijin,Xiliang,Xincheng,Xingan,Xingde,Xinghua,Xingjing,Xingqing,Xingyi,Xingyuan,Xingzhong,Xining,Xinmen,Xiping,Xuanhua,Xunzhou,Xuzhou,Yanan,Yangzhou,Yanji,Yanping,Yanqi,Yanzhou,Yazhou,Yichang,Yidu,Yilan,Yili,Yingchang,Yingde,Yingtian,Yingzhou,Yizhou,Yongchang,Yongping,Yongshun,Yongzhou,Yuanzhou,Yuezhou,Yulin,Yunnan,Yunyang,Zezhou,Zhangde,Zhangzhou,Zhaoqing,Zhaotong,Zhenan,Zhending,Zhengding,Zhenhai,Zhenjiang,Zhenxi,Zhenyun,Zhongshan,Zunyi"},
+        {name: "Japanese", i: 12, min: 4, max: 10, d: "", m: 0, b: "Abira,Aga,Aikawa,Aizumisato,Ajigasawa,Akkeshi,Amagi,Ami,Anan,Ando,Asakawa,Ashikita,Bandai,Biratori,China,Chonan,Esashi,Fuchu,Fujimi,Funagata,Genkai,Godo,Goka,Gonohe,Gyokuto,Haboro,Hamatonbetsu,Happo,Harima,Hashikami,Hayashima,Heguri,Hidaka,Higashiagatsuma,Higashiura,Hiranai,Hirogawa,Hiroo,Hodatsushimizu,Hoki,Hokuei,Hokuryu,Horokanai,Ibigawa,Ichikai,Ichikawamisato,Ichinohe,Iide,Iijima,Iizuna,Ikawa,Inagawa,Itakura,Iwaizumi,Iwate,Kagamino,Kaisei,Kamifurano,Kamiita,Kamijima,Kamikawa,Kamikawa,Kamikawa,Kaminokawa,Kamishihoro,Kamitonda,Kamiyama,Kanda,Kanna,Kasagi,Kasuya,Katsuura,Kawabe,Kawagoe,Kawajima,Kawamata,Kawamoto,Kawanehon,Kawanishi,Kawara,Kawasaki,Kawasaki,Kawatana,Kawazu,Kihoku,Kikonai,Kin,Kiso,Kitagata,Kitajima,Kiyama,Kiyosato,Kofu,Koge,Kohoku,Kokonoe,Kora,Kosa,Kosaka,Kotohira,Kudoyama,Kumejima,Kumenan,Kumiyama,Kunitomi,Kurate,Kushimoto,Kutchan,Kyonan,Kyotamba,Mashike,Matsumae,Mifune,Mihama,Minabe,Minami,Minamiechizen,Minamioguni,Minamiosumi,Minamitane,Misaki,Misasa,Misato,Miyashiro,Miyoshi,Mori,Moseushi,Mutsuzawa,Nagaizumi,Nagatoro,Nagayo,Nagomi,Nakadomari,Nakanojo,Nakashibetsu,Nakatosa,Namegawa,Namie,Nanbu,Nanporo,Naoshima,Nasu,Niseko,Nishihara,Nishiizu,Nishikatsura,Nishikawa,Nishinoshima,Nishiwaga,Nogi,Noto,Nyuzen,Oarai,Obuse,Odai,Ogawara,Oharu,Oi,Oirase,Oishida,Oiso,Oizumi,Oji,Okagaki,Oketo,Okutama,Omu,Ono,Osaki,Osakikamijima,Otobe,Otsuki,Owani,Reihoku,Rifu,Rikubetsu,Rishiri,Rokunohe,Ryuo,Saka,Sakuho,Samani,Satsuma,Sayo,Saza,Setana,Shakotan,Shibayama,Shikama,Shimamoto,Shimizu,Shimokawa,Shintomi,Shirakawa,Shisui,Shitara,Sobetsu,Sue,Sumita,Suooshima,Suttsu,Tabuse,Tachiarai,Tadami,Tadaoka,Taiji,Taiki,Takachiho,Takahama,Taketoyo,Tako,Taragi,Tateshina,Tatsugo,Tawaramoto,Teshikaga,Tobe,Toin,Tokigawa,Toma,Tomioka,Tonosho,Tosa,Toyo,Toyokoro,Toyotomi,Toyoyama,Tsubata,Tsubetsu,Tsukigata,Tsunan,Tsuno,Tsuwano,Umi,Wakasa,Yamamoto,Yamanobe,Yamatsuri,Yanaizu,Yasuda,Yoichi,Yonaguni,Yoro,Yoshino,Yubetsu,Yugawara,Yuni,Yusuhara,Yuza"},
+        {name: "Portuguese", i: 13, min: 5, max: 11, d: "", m: .1, b: "Abrigada,Afonsoeiro,Agueda,Aguiar,Aguilada,Alagoas,Alagoinhas,Albufeira,Alcacovas,Alcanhoes,Alcobaca,Alcochete,Alcoutim,Aldoar,Alexania,Alfeizerao,Algarve,Alenquer,Almada,Almagreira,Almeirim,Alpalhao,Alpedrinha,Alvalade,Alverca,Alvor,Alvorada,Amadora,Amapa,Amieira,Anapolis,Anhangueira,Ansiaes,Apelacao,Aracaju,Aranhas,Arega,Areira,Araguaina,Araruama,Arganil,Armacao,Arouca,Asfontes,Assenceira,Avelar,Aveiro,Azambuja,Azinheira,Azueira,Bahia,Bairros,Balsas,Barcarena,Barreiras,Barreiro,Barretos,Batalha,Beira,Beja,Benavente,Betim,Boticas,Braga,Braganca,Brasilia,Brejo,Cabecao,Cabeceiras,Cabedelo,Cabofrio,Cachoeiras,Cadafais,Calheta,Calihandriz,Calvao,Camacha,Caminha,Campinas,Canidelo,Canha,Canoas,Capinha,Carmoes,Cartaxo,Carvalhal,Carvoeiro,Cascavel,Castanhal,Castelobranco,Caueira,Caxias,Chapadinha,Chaves,Celheiras,Cocais,Coimbra,Comporta,Coentral,Conde,Copacabana,Coqueirinho,Coruche,Corumba,Couco,Cubatao,Curitiba,Damaia,Doisportos,Douradilho,Dourados,Enxames,Enxara,Erada,Erechim,Ericeira,Ermidasdosado,Ervidel,Escalhao,Escariz,Esmoriz,Estombar,Espinhal,Espinho,Esposende,Esquerdinha,Estela,Estoril,Eunapolis,Evora,Famalicao,Famoes,Fanhoes,Fanzeres,Fatela,Fatima,Faro,Felgueiras,Ferreira,Figueira,Flecheiras,Florianopolis,Fornalhas,Fortaleza,Freiria,Freixeira,Frielas,Fronteira,Funchal,Fundao,Gaeiras,Gafanhadaboahora,Goa,Goiania,Gracas,Gradil,Grainho,Gralheira,Guarulhos,Guetim,Guimaraes,Horta,Iguacu,Igrejanova,Ilhavo,Ilheus,Ipanema,Iraja,Itaboral,Itacuruca,Itaguai,Itanhaem,Itapevi,Juazeiro,Lagos,Lavacolchos,Laies,Lamego,Laranjeiras,Leiria,Limoeiro,Linhares,Lisboa,Lomba,Lorvao,Lourencomarques,Lourical,Lourinha,Luziania,Macao,Macapa,Macedo,Machava,Malveira,Manaus,Mangabeira,Mangaratiba,Marambaia,Maranhao,Maringue,Marinhais,Matacaes,Matosinhos,Maxial,Maxias,Mealhada,Meimoa,Meires,Milharado,Mira,Miranda,Mirandela,Mogadouro,Montalegre,Montesinho,Moura,Mourao,Mozelos,Negroes,Neiva,Nespereira,Nilopolis,Niteroi,Nordeste,Obidos,Odemira,Odivelas,Oeiras,Oleiros,Olhao,Olhalvo,Olhomarinho,Olinda,Olival,Oliveira,Oliveirinha,Oporto,Ourem,Ovar,Palhais,Palheiros,Palmeira,Palmela,Palmital,Pampilhosa,Pantanal,Paradinha,Parelheiros,Paripueira,Paudalho,Pedrosinho,Penafiel,Peniche,Pedrogao,Pegoes,Pinhao,Pinheiro,Pinhel,Pombal,Pontal,Pontinha,Portel,Portimao,Poxim,Quarteira,Queijas,Queluz,Quiaios,Ramalhal,Reboleira,Recife,Redinha,Ribadouro,Ribeira,Ribeirao,Rosais,Roteiro,Sabugal,Sacavem,Sagres,Sandim,Sangalhos,Santarem,Santos,Sarilhos,Sarzedas,Satao,Satuba,Seixal,Seixas,Seixezelo,Seixo,Selmes,Sepetiba,Serta,Setubal,Silvares,Silveira,Sinhaem,Sintra,Sobral,Sobralinho,Sorocaba,Tabuacotavir,Tabuleiro,Taveiro,Teixoso,Telhado,Telheiro,Tomar,Torrao,Torreira,Torresvedras,Tramagal,Trancoso,Troviscal,Vagos,Valpacos,Varzea,Vassouras,Velas,Viana,Vidigal,Vidigueira,Vidual,Viladerei,Vilamar,Vimeiro,Vinhais,Vinhos,Viseu,Vitoria,Vlamao,Vouzela"},
+        {name: "Nahuatl", i: 14, min: 6, max: 13, d: "l", m: 0, b: "Acaltepec,Acaltepecatl,Acapulco,Acatlan,Acaxochitlan,Ajuchitlan,Atotonilco,Azcapotzalco,Camotlan,Campeche,Chalco,Chapultepec,Chiapan,Chiapas,Chihuahua,Cihuatlan,Cihuatlancihuatl,Coahuila,Coatepec,Coatlan,Coatzacoalcos,Colima,Colotlan,Coyoacan,Cuauhillan,Cuauhnahuac,Cuauhtemoc,Cuernavaca,Ecatepec,Epatlan,Guanajuato,Huaxacac,Huehuetlan,Hueyapan,Ixtapa,Iztaccihuatl,Iztapalapa,Jalisco,Jocotepec,Jocotepecxocotl,Matixco,Mazatlan,Michhuahcan,Michoacan,Michoacanmichin,Minatitlan,Naucalpan,Nayarit,Nezahualcoyotl,Oaxaca,Ocotepec,Ocotlan,Olinalan,Otompan,Popocatepetl,Queretaro,Sonora,Tabasco,Tamaulipas,Tecolotlan,Tenochtitlan,Teocuitlatlan,Teocuitlatlanteotl,Teotlalco,Teotlalcoteotl,Tepotzotlan,Tepoztlantepoztli,Texcoco,Tlachco,Tlalocan,Tlaxcala,Tlaxcallan,Tollocan,Tolutepetl,Tonanytlan,Tototlan,Tuchtlan,Tuxpan,Uaxacac,Xalapa,Xochimilco,Xolotlan,Yaotlan,Yopico,Yucatan,Yztac,Zacatecas,Zacualco"},
+        {name: "Hungarian", i: 15, min: 6, max: 13, d: "", m: 0.1, b: "Aba,Abadszalok,Abony,Adony,Ajak,Albertirsa,Alsozsolca,Aszod,Babolna,Bacsalmas,Baktaloranthaza,Balassagyarmat,Balatonalmadi,Balatonboglar,Balatonfured,Balatonfuzfo,Balkany,Balmazujvaros,Barcs,Bataszek,Batonyterenye,Battonya,Bekes,Berettyoujfalu,Berhida,Biatorbagy,Bicske,Biharkeresztes,Bodajk,Boly,Bonyhad,Budakalasz,Budakeszi,Celldomolk,Csakvar,Csenger,Csongrad,Csorna,Csorvas,Csurgo,Dabas,Demecser,Derecske,Devavanya,Devecser,Dombovar,Dombrad,Dorogullo,Dunafoldvar,Dunaharaszti,Dunavarsany,Dunavecse,Edeleny,Elek,Emod,Encs,Enying,Ercsi,Fegyvernek,Fehergyarmat,Felsozsolca,Fertoszentmiklos,Fonyod,Fot,Fuzesabony,Fuzesgyarmat,Gardony,God,Gyal,Gyomaendrod,Gyomro,Hajdudorog,Hajduhadhaz,Hajdunanas,Hajdusamson,Hajduszoboszlo,Halasztelek,Harkany,Hatvan,Heves,Heviz,Ibrany,Isaszeg,Izsak,Janoshalma,Janossomorja,Jaszapati,Jaszarokszallas,Jaszfenyszaru,Jaszkiser,Kaba,Kalocsa,Kapuvar,Karcag,Kecel,Kemecse,Kenderes,Kerekegyhaza,Kerepes,Keszthely,Kisber,Kiskoros,Kiskunmajsa,Kistarcsa,Kistelek,Kisujszallas,Kisvarda,Komadi,Komarom,Komlo,Kormend,Korosladany,Koszeg,Kozarmisleny,Kunhegyes,Kunszentmarton,Kunszentmiklos,Labatlan,Lajosmizse,Lenti,Letavertes,Letenye,Lorinci,Maglod,Mako,Mandok,Marcali,Martfu,Martonvasar,Mateszalka,Melykut,Mezobereny,Mezocsat,Mezohegyes,Mezokeresztes,Mezokovacshaza,Mezokovesd,Mezotur,Mindszent,Mohacs,Monor,Mor,Morahalom,Nadudvar,Nagyatad,Nagyecsed,Nagyhalasz,Nagykallo,Nagykata,Nagykoros,Nagymaros,Nyekladhaza,Nyergesujfalu,Nyiradony,Nyirbator,Nyirmada,Nyirtelek,Ocsa,Orkeny,Oroszlany,Paks,Pannonhalma,Paszto,Pecel,Pecsvarad,Pilis,Pilisvorosvar,Polgar,Polgardi,Pomaz,Puspokladany,Pusztaszabolcs,Putnok,Racalmas,Rackeve,Rakamaz,Rakoczifalva,Sajoszentpeter,Sandorfalva,Sarbogard,Sarkad,Sarospatak,Sarvar,Satoraljaujhely,Siklos,Simontornya,Solt,Soltvadkert,Sumeg,Szabadszallas,Szarvas,Szazhalombatta,Szecseny,Szeghalom,Szendro,Szentgotthard,Szentlorinc,Szerencs,Szigethalom,Szigetvar,Szikszo,Tab,Tamasi,Tapioszele,Tapolca,Tat,Tata,Teglas,Tet,Tiszacsege,Tiszafoldvar,Tiszafured,Tiszakecske,Tiszalok,Tiszaujvaros,Tiszavasvari,Tokaj,Tokol,Tolna,Tompa,Torokbalint,Torokszentmiklos,Totkomlos,Tura,Turkeve,Ujkigyos,ujszasz,Vamospercs,Varpalota,Vasarosnameny,Vasvar,Vecses,Velence,Veresegyhaz,Verpelet,Veszto,Zahony,Zalaszentgrot,Zirc,Zsambek"},
+        {name: "Turkish", i: 16, min: 4, max: 10, d: "", m: 0, b: "Adapazari,Adiyaman,Afshin,Afyon,Ari,Akchaabat,Akchakale,Akchakoca,Akdamadeni,Akhisar,Aksaray,Akshehir,Alaca,Alanya,Alapli,Alashehir,Amasya,Anamur,Antakya,Ardeshen,Artvin,Aydin,Ayvalik,Babaeski,Bafra,Balikesir,Bandirma,Bartin,Bashiskele,Batman,Bayburt,Belen,Bergama,Besni,Beypazari,Beyshehir,Biga,Bilecik,Bingul,Birecik,Bismil,Bitlis,Bodrum,Bolu,Bolvadin,Bor,Bostanichi,Boyabat,Bozuyuk,Bucak,Bulancak,Bulanik,Burdur,Burhaniye,Chan,Chanakkale,Chankiri,Charshamba,Chaycuma,Chayeli,Chayirova,Cherkezkuy,Cheshme,Ceyhan,Ceylanpinar,Chine,Chivril,Cizre,Chorlu,Chumra,Dalaman,Darica,Denizli,Derik,Derince,Develi,Devrek,Didim,Dilovasi,Dinar,Diyadin,Diyarbakir,Doubayazit,Durtyol,Duzce,Duzichi,Edirne,Edremit,Elazi,Elbistan,Emirda,Erbaa,Ercish,Erdek,Erdemli,Ereli,Ergani,Erzin,Erzincan,Erzurum,Eskishehir,Fatsa,Fethiye,Gazipasha,Gebze,Gelibolu,Gerede,Geyve,Giresun,Guksun,Gulbashi,Gulcuk,Gurnen,Gumushhane,Guroymak,Hakkari,Harbiye,Havza,Hayrabolu,Hilvan,Idil,Idir,Ilgin,Imamolu,Incirliova,Inegul,Iskenderun,Iskilip,Islahiye,Isparta,Izmit,Iznik,Kadirli,Kahramanmarash,Kahta,Kaman,Kapakli,Karabuk,Karacabey,Karadeniz Ereli,Karakupru,Karaman,Karamursel,Karapinar,Karasu,Kars,Kartepe,Kastamonu,Kemer,Keshan,Kilimli,Kilis,Kirikhan,Kirikkale,Kirklareli,Kirshehir,Kiziltepe,Kurfez,Korkuteli,Kovancilar,Kozan,Kozlu,Kozluk,Kulu,Kumluca,Kurtalan,Kushadasi,Kutahya,Luleburgaz,Malatya,Malazgirt,Malkara,Manavgat,Manisa,Mardin,Marmaris,Mersin,Merzifon,Midyat,Milas,Mula,Muratli,Mush,Mut,Nazilli,Nevshehir,Nide,Niksar,Nizip,Nusaybin,udemish,Oltu,Ordu,Orhangazi,Ortaca,Osmancik,Osmaniye,Patnos,Payas,Pazarcik,Polatli,Reyhanli,Rize,Safranbolu,Salihli,Samanda,Samsun,Sandikli,shanliurfa,Saray,Sarikamish,Sarikaya,sharkishla,shereflikochhisar,Serik,Serinyol,Seydishehir,Siirt,Silifke,Silopi,Silvan,Simav,Sinop,shirnak,Sivas,Siverek,Surke,Soma,Sorgun,Suluova,Sungurlu,Suruch,Susurluk,Tarsus,Tatvan,Tavshanli,Tekirda,Terme,Tire,Tokat,Tosya,Trabzon,Tunceli,Turgutlu,Turhal,Unye,Ushak,Uzunkurpru,Van,Vezirkurpru,Viranshehir,Yahyali,Yalova,Yenishehir,Yerkury,Yozgat,Yuksekova,Zile,Zonguldak"},
+        {name: "Berber", i: 17, min: 4, max: 10, d: "s", m: .2, b: "Abkhouch,Adrar,Agadir,Agelmam,Aghmat,Agrakal,Agulmam,Ahaggar,Almou,Anfa,Annaba,Aousja,Arbat,Argoub,Arif,Asfi,Assamer,Assif,Azaghar,Azmour,Azrou,Beccar,Beja,Bennour,Benslimane,Berkane,Berrechid,Bizerte,Bouskoura,Boutferda,Dar Bouazza,Darallouch,Darchaabane,Dcheira,Denden,Djebel,Djedeida,Drargua,Essaouira,Ezzahra,Fas,Fnideq,Ghezeze,Goubellat,Grisaffen,Guelmim,Guercif,Hammamet,Harrouda,Hoceima,Idurar,Ifendassen,Ifoghas,Imilchil,Inezgane,Izoughar,Jendouba,Kacem,Kelibia,Kenitra,Kerrando,Khalidia,Khemisset,Khenifra,Khouribga,Kidal,Korba,Korbous,Lahraouyine,Larache,Leyun,Lqliaa,Manouba,Martil,Mazagan,Mcherga,Mdiq,Megrine,Mellal,Melloul,Midelt,Mohammedia,Mornag,Mrrakc,Nabeul,Nadhour,Nador,Nawaksut,Nefza,Ouarzazate,Ouazzane,Oued Zem,Oujda,Ouladteima,Qsentina,Rades,Rafraf,Safi,Sefrou,Sejnane,Settat,Sijilmassa,Skhirat,Slimane,Somaa,Sraghna,Susa,Tabarka,Taferka,Tafza,Tagbalut,Tagerdayt,Takelsa,Tanja,Tantan,Taourirt,Taroudant,Tasfelalayt,Tattiwin,Taza,Tazerka,Tazizawt,Tebourba,Teboursouk,Temara,Testour,Tetouan,Tibeskert,Tifelt,Tinariwen,Tinduf,Tinja,Tiznit,Toubkal,Trables,Tubqal,Tunes,Urup,Watlas,Wehran,Wejda,Youssoufia,Zaghouan,Zahret,Zemmour,Zriba"},
+        {name: "Arabic", i: 18, min: 4, max: 9, d: "ae", m: .2, b: "Abadilah,Abayt,Abha,Abud,Aden,Ahwar,Ajman,Alabadilah,Alabar,Alahjer,Alain,Alaraq,Alarish,Alarjam,Alashraf,Alaswaaq,Alawali,Albarar,Albawadi,Albirk,Aldhabiyah,Alduwaid,Alfareeq,Algayed,Alhada,Alhafirah,Alhamar,Alharam,Alharidhah,Alhawtah,Alhazim,Alhrateem,Alhudaydah,Alhujun,Alhuwaya,Aljahra,Aljohar,Aljubail,Alkawd,Alkhalas,Alkhawaneej,Alkhen,Alkhhafah,Alkhobar,Alkhuznah,Alkiranah,Allisafah,Allith,Almadeed,Almardamah,Almarwah,Almasnaah,Almejammah,Almojermah,Almshaykh,Almurjan,Almuwayh,Almuzaylif,Alnaheem,Alnashifah,Alqadeimah,Alqah,Alqahma,Alqalh,Alqouz,Alquaba,Alqunfudhah,Alqurayyat,Alradha,Alraqmiah,Alsadyah,Alsafa,Alshagab,Alshoqiq,Alshuqaiq,Alsilaa,Althafeer,Alwakrah,Alwasqah,Amaq,Amran,Annaseem,Aqbiyah,Arafat,Arar,Ardah,Arrawdah,Asfan,Ashayrah,Ashshahaniyah,Askar,Assaffaniyah,Ayaar,Aziziyah,Baesh,Bahrah,Baish,Balhaf,Banizayd,Baqaa,Baqal,Bidiyah,Bisha,Biyatah,Buqhayq,Burayda,Dafiyat,Damad,Dammam,Dariyah,Daynah,Dhafar,Dhahran,Dhalkut,Dhamar,Dhubab,Dhurma,Dibab,Dirab,Doha,Dukhan,Duwaibah,Enaker,Fadhla,Fahaheel,Fanateer,Farasan,Fardah,Fujairah,Ghalilah,Ghar,Ghizlan,Ghomgyah,Ghran,Hababah,Habil,Hadiyah,Haffah,Hajanbah,Hajrah,Halban,Haqqaq,Haradh,Hasar,Hathah,Hawarwar,Hawaya,Hawiyah,Hebaa,Hefar,Hijal,Husnah,Huwailat,Huwaitah,Irqah,Isharah,Ithrah,Jamalah,Jarab,Jareef,Jarwal,Jash,Jazan,Jeddah,Jiblah,Jihanah,Jilah,Jizan,Joha,Joraibah,Juban,Jubbah,Juddah,Jumeirah,Kamaran,Keyad,Khab,Khabtsaeed,Khaiybar,Khasab,Khathirah,Khawarah,Khulais,Khulays,Klayah,Kumzar,Limah,Linah,Mabar,Madrak,Mahab,Mahalah,Makhtar,Makshosh,Manfuhah,Manifah,Manshabah,Mareah,Masdar,Mashwar,Masirah,Maskar,Masliyah,Mastabah,Maysaan,Mazhar,Mdina,Meeqat,Mirbah,Mirbat,Mokhtara,Muharraq,Muladdah,Musandam,Musaykah,Muscat,Mushayrif,Musrah,Mussafah,Mutrah,Nafhan,Nahdah,Nahwa,Najran,Nakhab,Nizwa,Oman,Qadah,Qalhat,Qamrah,Qasam,Qatabah,Qawah,Qosmah,Qurain,Quraydah,Quriyat,Qurwa,Rabigh,Radaa,Rafha,Rahlah,Rakamah,Rasheedah,Rasmadrakah,Risabah,Rustaq,Ryadh,Saabah,Saabar,Sabtaljarah,Sabya,Sadad,Sadah,Safinah,Saham,Sahlat,Saihat,Salalah,Salmalzwaher,Salmiya,Sanaa,Sanaban,Sayaa,Sayyan,Shabayah,Shabwah,Shafa,Shalim,Shaqra,Sharjah,Sharkat,Sharurah,Shatifiyah,Shibam,Shidah,Shifiyah,Shihar,Shoqra,Shoqsan,Shuwaq,Sibah,Sihmah,Sinaw,Sirwah,Sohar,Suhailah,Sulaibiya,Sunbah,Tabuk,Taif,Taqah,Tarif,Tharban,Thumrait,Thuqbah,Thuwal,Tubarjal,Turaif,Turbah,Tuwaiq,Ubar,Umaljerem,Urayarah,Urwah,Wabrah,Warbah,Yabreen,Yadamah,Yafur,Yarim,Yemen,Yiyallah,Zabid,Zahwah,Zallaq,Zinjibar,Zulumah"},
+        {name: "Inuit", i: 19, min: 5, max: 15, d: "alutsn", m: 0, b: "Aaluik,Aappilattoq,Aasiaat,Agdleruussakasit,Aggas,Akia,Akilia,Akuliaruseq,Akuliarutsip,Akunnaaq,Agissat,Agssaussat,Alluitsup,Alluttoq,Aluit,Aluk,Ammassalik,Amarortalik,Amitsorsuaq,Anarusuk,Angisorsuaq,Anguniartarfik,Annertussoq,Annikitsoq,Anoraliuirsoq,Appat,Apparsuit,Apusiaajik,Arsivik,Arsuk,Ataa,Atammik,Ateqanngitsorsuaq,Atilissuaq,Attu,Aukarnersuaq,Augpalugtoq, Aumat,Auvilikavsak,Auvilkikavsaup,Avadtlek,Avallersuaq,Bjornesk,Blabaerdalen,Blomsterdalen,Brattalhid,Bredebrae,Brededal,Claushavn,Edderfulegoer,Egger,Eqalugalinnguit,Eqalugarssuit,Eqaluit,Eqqua,Etah,Graah,Hakluyt,Haredalen,Hareoen,Hundeo,Igdlorssuit,Igaliku,Igdlugdlip,Igdluluarssuk,Iginniafik,Ikamiuk,Ikamiut,Ikarissat,Ikateq,Ikeq,Ikerasak,Ikerasaarsuk,Ikermiut,Ikermoissuaq,Ikertivaq,Ikorfarssuit,Ikorfat,Ilimanaq,Illorsuit,Iluileq,Iluiteq,Ilulissat,Illunnguit,Imaarsivik,Imartunarssuk,Immikkoortukajik,Innaarsuit,Ingjald,Inneruulalik,Inussullissuaq,Iqek,Ikerasakassak,Iperaq,Ippik,Isortok,Isungartussoq,Itileq,Itivdleq,Itissaalik,Ittit,Ittoqqortoormiit,Ivingmiut,Ivittuut,Kanajoorartuut,Kangaamiut,Kangaarsuk,Kangaatsiaq,Kangeq,Kangerluk,Kangerlussuaq,Kanglinnguit,Kapisillit,Karrat,Kekertamiut,Kiatak,Kiatassuaq,Kiataussaq,Kigatak,Kigdlussat,Kinaussak,Kingittorsuaq,Kitak,Kitsissuarsuit,Kitsissut,Klenczner,Kook,Kraulshavn,Kujalleq,Kullorsuaq,Kulusuk,Kuurmiit,Kuusuaq,Laksedalen,Maniitsoq,Marrakajik,Mattaangassut,Mernoq,Mittivakkat,Moriusaq,Myggbukta,Naajaat,Nako,Nangissat,Nanortalik,Nanuuseq,Nappassoq,Narsarmijt,Narssaq,Narsarsuaq,Narssarssuk,Nasaussaq,Nasiffik,Natsiarsiorfik,Naujanguit,Niaqornaarsuk,Niaqornat,Nordfjordspasset,Nugatsiaq,Nuluuk,Nunaa,Nunarssit,Nunarsuaq,Nunataaq,Nunatakavsaup,Nutaarmiut,Nuugaatsiaq,Nuuk,Nuukullak,Nuuluk,Nuussuaq,Olonkinbyen,Oqaatsut,Oqaitsúnguit,Oqonermiut,Oodaaq,Paagussat,Palungataq,Pamialluk,Paamiut,Paatuut,Patuersoq,Perserajoq,Paornivik,Pituffik,Puugutaa,Puulkuip,Qaanaq,Qaarsorsuaq,Qaarsorsuatsiaq,Qaasuitsup,Qaersut,Qajartalik,Qallunaat,Qaneq,Qaqaarissorsuaq,Qaqit,Qaqortok,Qasigiannguit,Qasse,Qassimiut,Qeertartivaq,Qeertartivatsiaq,Qeqertaq,Qeqertarssdaq,Qeqertarsuaq,Qeqertasussuk,Qeqertarsuatsiaat,Qeqertat,Qeqqata,Qernertoq,Qernertunnguit,Qianarreq,Qilalugkiarfik,Qingagssat,Qingaq,Qoornuup,Qorlortorsuaq,Qullikorsuit,Qunnerit,Qutdleq,Ravnedalen,Ritenbenk,Rypedalen,Sarfannguit,Saarlia,Saarloq,Saatoq,Saatorsuaq,Saatup,Saattut,Sadeloe,Salleq,Salliaruseq,Sammeqqat,Sammisoq,Sanningassoq,Saqqaq,Saqqarlersuaq,Saqqarliit,Sarqaq,Sattiaatteq,Savissivik,Serfanguaq,Sermersooq,Sermersut,Sermilik,Sermiligaaq,Sermitsiaq,Simitakaja,Simiutaq,Singamaq,Siorapaluk,Sisimiut,Sisuarsuit,Skal,Skarvefjeld,Skjoldungen,Storoen,Sullorsuaq,Suunikajik,Sverdrup,Taartoq,Takiseeq,Talerua,Tarqo,Tasirliaq,Tasiusak,Tiilerilaaq,Timilersua,Timmiarmiut,Tingmjarmiut,Traill,Tukingassoq,Tuttorqortooq,Tuujuk,Tuttulissuup,Tussaaq,Uigordlit,Uigorlersuaq,Uilortussoq,Uiivaq,Ujuaakajiip,Ukkusissat,Umanat,Upernavik,Upernattivik,Upepnagssivik,Upernivik,Uttorsiutit,Uumannaq,Uummannaarsuk,Uunartoq,Uvkusigssat,Ymer"},
+        {name: "Basque", i: 20, min: 4, max: 11, d: "r", m: .1, b: "Abadio,Abaltzisketa,Abanto Zierbena,Aduna,Agurain,Aia,Aiara,Aizarnazabal,Ajangiz,Albiztur,Alegia,Alkiza,Alonsotegi,Altzaga,Altzo,Amezketa,Amorebieta,Amoroto,Amurrio,Andoain,Anoeta,Antzuola,Arakaldo,Arama,Aramaio,Arantzazu,Arbatzegi ,Areatza,Aretxabaleta,Arraia,Arrankudiaga,Arrasate,Arratzu,Arratzua,Arrieta,Arrigorriaga,Artea,Artzentales,Artziniega,Asparrena,Asteasu,Astigarraga,Ataun,Atxondo,Aulesti,Azkoitia,Azpeitia,Bakio,Baliarrain,Balmaseda,Barakaldo,Barrika,Barrundia,Basauri,Bastida,Beasain,Bedia,Beizama,Belauntza,Berango,Berantevilla,Berastegi,Bergara,Bermeo,Bernedo,Berriatua,Berriz,Berrobi,Bidania,Bilar,Bilbao,Burgelu,Busturia,Deba,Derio,Dima,Donemiliaga,Donostia,Dulantzi,Durango,Ea,Eibar,Elantxobe,Elduain,Elgeta,Elgoibar,Elorrio,Erandio,Ere-o,Ermua,Errenteria,Errezil,Erribera Beitia,Erriberagoitia,Errigoiti,Eskoriatza,Eskuernaga,Etxebarri,Etxebarria,Ezkio,Fika,Forua,Fruiz,Gabiria,Gaintza,Galdakao,Galdames,Gamiz,Garai,Gasteiz,Gatika,Gatzaga,Gaubea,Gauna,Gautegiz Arteaga,Gaztelu,Gernika,Gerrikaitz,Getaria,Getxo,Gizaburuaga,Goiatz,Gordexola,Gorliz,Harana,Hernani,Hernialde,Hondarribia,Ibarra,Ibarrangelu,Idiazabal,Iekora,Igorre,Ikaztegieta,Iru-a Oka,Irun,Irura,Iruraiz,Ispaster,Itsaso,Itsasondo,Iurreta,Izurtza,Jatabe,Kanpezu,Karrantza Harana,Kortezubi,Kripan,Kuartango,Lanestosa,Lantziego,Larrabetzu,Larraul,Lasarte,Laudio,Laukiz,Lazkao,Leaburu,Legazpi,Legorreta,Legutio,Leintz,Leioa,Lekeitio,Lemoa,Lemoiz,Leza,Lezama,Lezo,Lizartza,Loiu,Lumo,Ma-aria,Maeztu,Mallabia,Markina,Maruri,Ma-ueta,Me-aka,Mendaro,Mendata,Mendexa,Moreda Araba,Morga,Mundaka,Mungia,Munitibar,Murueta,Muskiz,Mutiloa,Mutriku,Muxika,Nabarniz,O-ati,Oiartzun,Oion,Okondo,Olaberria,Ondarroa,Ordizia,Orendain,Orexa,Oria,Orio,Ormaiztegi,Orozko,Ortuella,Otxandio,Pasaia,Plentzia,Portugalete,Samaniego,Santurtzi,Segura,Sestao,Sondika,Sopela,Sopuerta,Soraluze,Sukarrieta,Tolosa,Trapagaran,Turtzioz,Ubarrundia,Ubide,Ugao,Urdua,Urduliz,Urizaharra,Urkabustaiz,Urnieta,Urretxu,Usurbil,Xemein,Zaia,Zaldibar,Zaldibia,Zalduondo,Zambrana,Zamudio,Zaratamo,Zarautz,Zeanuri,Zeberio,Zegama,Zerain,Zestoa,Zierbena,Zigoitia,Ziortza,Zizurkil,Zuia,Zumaia,Zumarraga"},
+        {name: "Nigerian", i: 21, min: 4, max: 10, d: "", m: .3, b: "Abadogo,Abafon,Abdu,Acharu,Adaba,Adealesu,Adeto,Adyongo,Afaga,Afamju,Afuje,Agbelagba,Agigbigi,Agogoke,Ahute,Aiyelaboro,Ajebe,Ajola,Akarekwu,Akessan,Akunuba,Alawode,Alkaijji,Amangam,Amaoji,Amgbaye,Amtasa,Amunigun,Anase,Aniho,Animahun,Antul,Anyoko,Apekaa,Arapagi,Asamagidi,Asande,Ataibang,Awgbagba,Awhum,Awodu,Babanana,Babateduwa,Bagu,Bakura,Bandakwai,Bangdi,Barbo,Barkeje,Basa,Basabra,Basansagawa,Bieleshin,Bilikani,Birnindodo,Braidu,Bulakawa,Buriburi,Burisidna,Busum,Bwoi,Cainnan,Chakum,Charati,Chondugh,Dabibikiri,Dagwarga,Dallok,Danalili,Dandala,Darpi,Dhayaki,Dokatofa,Doma,Dozere,Duci,Dugan,Ebelibri,Efem,Efoi,Egudu,Egundugbo,Ekoku,Ekpe,Ekwere,Erhua,Eteu,Etikagbene,Ewhoeviri,Ewhotie,Ezemaowa,Fatima,Gadege,Galakura,Galea,Gamai,Gamen,Ganjin,Gantetudu,Garangamawa,Garema,Gargar,Gari,Garinbode,Garkuwa,Garu Kime,Gazabu,Gbure,Gerti,Gidan,Giringwe,Gitabaremu,Giyagiri,Giyawa,Gmawa,Golakochi,Golumba,Guchi,Gudugu,Gunji,Gusa,Gwambula,Gwamgwam,Gwodoti,Hayinlere,Hayinmaialewa,Hirishi,Hombo,Ibefum,Iberekodo,Ibodeipa,Icharge,Ideoro,Idofin,Idofinoka,Idya,Iganmeji,Igbetar,Igbogo,Ijoko,Ijuwa,Ikawga,Ikekogbe,Ikhin,Ikoro,Ikotefe,Ikotokpora,Ikpakidout,Ikpeoniong,Ilofa,Imuogo,Inyeneke,Iorsugh,Ipawo,Ipinlerere,Isicha,Itakpa,Itoki,Iyedeame,Jameri,Jangi,Jara,Jare,Jataudakum,Jaurogomki,Jepel,Jibam,Jirgu,Jirkange,Kafinmalama,Kamkem,Katab,Katanga,Katinda,Katirije,Kaurakimba,Keffinshanu,Kellumiri,Kiagbodor,Kibiare,Kingking,Kirbutu,Kita,Kogbo,Kogogo,Kopje,Koriga,Koroko,Korokorosei,Kotoku,Kuata,Kujum,Kukau,Kunboon,Kuonubogbene,Kurawe,Kushinahu,Kwaramakeri,Ladimeji,Lafiaro,Lahaga,Laindebajanle,Laindegoro,Lajere,Lakati,Ligeri,Litenswa,Lokobimagaji,Lusabe,Maba,Madarzai,Magoi,Maialewa,Maianita,Maijuja,Mairakuni,Maleh,Malikansaa,Mallamkola,Mallammaduri,Marmara,Masagu,Masoma,Mata,Matankali,Mbalare,Megoyo,Meku,Miama,Mige,Mkporagwu,Modi,Molafa,Mshi,Msugh,Muduvu,Murnachehu,Namnai,Nanumawa,Nasudu,Ndagawo,Ndamanma,Ndiebeleagu,Ndiwulunbe,Ndonutim,Ngaruwa,Ngbande,Nguengu,Nto Ekpe,Nubudi,Nyajo,Nyido,Nyior,Obafor,Obazuwa,Odajie,Odiama,Ofunatam,Ogali,Ogan,Ogbaga,Ogbahu,Ogultu,Ogunbunmi,Ogunmakin,Ojaota,Ojirami,Ojopode,Okehin,Olugunna,Omotunde,Onipede,Onisopi,Onma,Orhere,Orya,Oshotan,Otukwang,Otunade,Pepegbene,Poros,Rafin,Rampa,Rimi,Rinjim,Robertkiri,Rugan,Rumbukawa,Sabiu,Sabon,Sabongari,Sai,Salmatappare,Sangabama,Sarabe,Seboregetore,Seibiri,Sendowa,Shafar,Shagwa,Shata,Shefunda,Shengu,Sokoron,Sunnayu,Taberlma,Tafoki,Takula,Talontan,Taraku,Tarhemba,Tayu,Ter,Timtim,Timyam,Tindirke,Tirkalou,Tokunbo,Tonga,Torlwam,Tseakaadza,Tseanongo,Tseavungu,Tsebeeve,Tsekov,Tsepaegh,Tuba,Tumbo,Tungalombo,Tungamasu,Tunganrati,Tunganyakwe,Tungenzuri,Ubimimi,Uhkirhi,Umoru,Umuabai,Umuaja,Umuajuju,Umuimo,Umuojala,Unchida,Ungua,Unguwar,Unongo,Usha,Ute,Utongbo,Vembera,Vorokotok,Wachin,Walebaga,Wurawura,Wuro,Yanbashi,Yanmedi,Yenaka,Yoku,Zamangera,Zarunkwari,Zilumo,Zulika"},
+        {name: "Celtic", i: 22, min: 4, max: 12, d: "nld", m: 0, b: "Aberaman,Aberangell,Aberarth,Aberavon,Aberbanc,Aberbargoed,Aberbeeg,Abercanaid,Abercarn,Abercastle,Abercegir,Abercraf,Abercregan,Abercych,Abercynon,Aberdare,Aberdaron,Aberdaugleddau,Aberdeen,Aberdulais,Aberdyfi,Aberedw,Abereiddy,Abererch,Abereron,Aberfan,Aberffraw,Aberffrwd,Abergavenny,Abergele,Aberglasslyn,Abergorlech,Abergwaun,Abergwesyn,Abergwili,Abergwynfi,Abergwyngregyn,Abergynolwyn,Aberhafesp,Aberhonddu,Aberkenfig,Aberllefenni,Abermain,Abermaw,Abermorddu,Abermule,Abernant,Aberpennar,Aberporth,Aberriw,Abersoch,Abersychan,Abertawe,Aberteifi,Aberthin,Abertillery,Abertridwr,Aberystwyth,Achininver,Afonhafren,Alisaha,Antinbhearmor,Ardenna,Attacon,Beira,Bhrura,Boioduro,Bona,Boudobriga,Bravon,Brigant,Briganta,Briva,Cambodunum,Cambra,Caracta,Catumagos,Centobriga,Ceredigion,Chalain,Dinn,Diwa,Dubingen,Duro,Ebora,Ebruac,Eburodunum,Eccles,Eighe,Eireann,Ferkunos,Genua,Ghrainnse,Inbhear,Inbhir,Inbhirair,Innerleithen,Innerleven,Innerwick,Inver,Inveraldie,Inverallan,Inveralmond,Inveramsay,Inveran,Inveraray,Inverarnan,Inverbervie,Inverclyde,Inverell,Inveresk,Inverfarigaig,Invergarry,Invergordon,Invergowrie,Inverhaddon,Inverkeilor,Inverkeithing,Inverkeithney,Inverkip,Inverleigh,Inverleith,Inverloch,Inverlochlarig,Inverlochy,Invermay,Invermoriston,Inverness,Inveroran,Invershin,Inversnaid,Invertrossachs,Inverugie,Inveruglas,Inverurie,Kilninver,Kirkcaldy,Kirkintilloch,Krake,Latense,Leming,Lindomagos,Llanaber,Lochinver,Lugduno,Magoduro,Monmouthshire,Narann,Novioduno,Nowijonago,Octoduron,Penning,Pheofharain,Ricomago,Rossinver,Salodurum,Seguia,Sentica,Theorsa,Uige,Vitodurum,Windobona"},
+        {name: "Mesopotamian", i: 23, min: 4, max: 9, d: "srpl", m: .1, b: "Adab,Akkad,Akshak,Amnanum,Arbid,Arpachiyah,Arrapha,Assur,Babilim,Badtibira,Balawat,Barsip,Borsippa,Carchemish,Chagar Bazar,Chuera,Ctesiphon ,Der,Dilbat,Diniktum,Doura,Durkurigalzu,Ekallatum,Emar,Erbil,Eridu,Eshnunn,Fakhariya ,Gawra,Girsu,Hadatu,Hamoukar,Haradum,Harran,Hatra,Idu,Irisagrig,Isin,Jemdet,Kahat,Kartukulti,Khaiber,Kish ,Kisurra,Kuara,Kutha,Lagash,Larsa ,Leilan,Marad,Mardaman,Mari,Mashkan,Mumbaqat ,Nabada,Nagar,Nerebtum,Nimrud,Nineveh,Nippur,Nuzi,Qalatjarmo,Qatara,Rawda,Seleucia,Shaduppum,Shanidar,Sharrukin,Shemshara,Shibaniba,Shuruppak,Sippar,Tarbisu,Tellagrab,Tellessawwan,Tellessweyhat,Tellhassuna,Telltaya,Telul,Terqa,Thalathat,Tutub,Ubaid ,Umma,Ur,Urfa,Urkesh,Uruk,Urum,Zabalam,Zenobia"},
+        {name: "Iranian", i: 24, min: 5, max: 11, d: "", m: .1, b: "Abali,Abrisham,Absard,Abuzeydabad,Afus,Alavicheh,Alikosh,Amol,Anarak,Anbar,Andisheh,Anshan,Aran,Ardabil,Arderica,Ardestan,Arjomand,Asgaran,Asgharabad,Ashian,Awan,Babajan,Badrud,Bafran,Baghestan,Baghshad,Bahadoran,Baharan Shahr,Baharestan,Bakun,Bam,Baqershahr,Barzok,Bastam,Behistun,Bitistar,Bumahen,Bushehr,Chadegan,Chahardangeh,Chamgardan,Chermahin,Choghabonut,Chugan,Damaneh,Damavand,Darabgard,Daran,Dastgerd,Dehaq,Dehaqan,Dezful,Dizicheh,Dorcheh,Dowlatabad,Duruntash,Ecbatana,Eslamshahr,Estakhr,Ezhiyeh,Falavarjan,Farrokhi,Fasham,Ferdowsieh,Fereydunshahr,Ferunabad,Firuzkuh,Fuladshahr,Ganjdareh,Ganzak,Gaz,Geoy,Godin,Goldasht,Golestan,Golpayegan,Golshahr,Golshan,Gorgab,Guged,Habibabad,Hafshejan,Hajjifiruz,Hana,Harand,Hasanabad,Hasanlu,Hashtgerd,Hecatompylos,Hormirzad,Imanshahr,Isfahan,Jandaq,Javadabad,Jiroft,Jowsheqan ,Jowzdan,Kabnak,Kahriz Sang,Kahrizak,Kangavar,Karaj,Karkevand,Kashan,Kelishad,Kermanshah,Khaledabad,Khansar,Khorramabad,Khur,Khvorzuq,Kilan,Komeh,Komeshcheh,Konar,Kuhpayeh,Kul,Kushk,Lavasan,Laybid,Liyan,Lyan,Mahabad,Mahallat,Majlesi,Malard,Manzariyeh,Marlik,Meshkat,Meymeh,Miandasht,Mish,Mobarakeh,Nahavand,Nain,Najafabad,Naqshe,Narezzash,Nasimshahr,Nasirshahr,Nasrabad,Natanz,Neyasar,Nikabad,Nimvar,Nushabad,Pakdasht,Parand,Pardis,Parsa,Pasargadai,Patigrabana,Pir Bakran,Pishva,Qahderijan,Qahjaverestan,Qamsar,Qarchak,Qods,Rabat,Ray-shahr,Rezvanshahr,Rhages,Robat Karim,Rozveh,Rudehen,Sabashahr,Safadasht,Sagzi,Salehieh,Sandal,Sarvestan,Sedeh,Sefidshahr,Semirom,Semnan,Shadpurabad,Shah,Shahdad,Shahedshahr,Shahin,Shahpour,Shahr,Shahreza,Shahriar,Sharifabad,Shemshak,Shiraz,Shushan,Shushtar,Sialk,Sin,Sukhteh,Tabas,Tabriz,Takhte,Talkhuncheh,Talli,Tarq,Temukan,Tepe,Tiran,Tudeshk,Tureng,Urmia,Vahidieh,Vahrkana,Vanak,Varamin,Varnamkhast,Varzaneh,Vazvan,Yahya,Yarim,Yasuj,Zarrin Shahr,Zavareh,Zayandeh,Zazeran,Ziar,Zibashahr,Zranka"},
+        {name: "Hawaiian", i: 25, min: 5, max: 10, d: "auo", m: 1, b: "Aapueo,Ahoa,Ahuakaio,Ahuakamalii,Ahuakeio,Ahupau,Aki,Alaakua,Alae,Alaeloa,Alaenui,Alamihi,Aleamai,Alena,Alio,Aupokopoko,Auwahi,Hahakea,Haiku,Halakaa,Halehaku,Halehana,Halemano,Haleu,Haliimaile,Hamakuapoko,Hamoa,Hanakaoo,Hanaulu,Hanawana,Hanehoi,Haneoo,Haou,Hikiaupea,Hoalua,Hokuula,Honohina,Honokahua,Honokala,Honokalani,Honokeana,Honokohau,Honokowai,Honolua,Honolulu,Honolulunui,Honomaele,Honomanu,Hononana,Honopou,Hoolawa,Hopenui,Hualele,Huelo,Hulaia,Ihuula,Ilikahi,Kaalaea,Kaalelehinale,Kaapahu,Kaehoeho,Kaeleku,Kaeo,Kahakuloa,Kahalawe,Kahalawe,Kahalehili,Kahana,Kahilo,Kahuai,Kaiaula,Kailihiakoko,Kailua,Kainehe,Kakalahale,Kakanoni,Kakio,Kakiweka,Kalena,Kalenanui,Kaleoaihe,Kalepa,Kaliae,Kalialinui,Kalihi,Kalihi,Kalihi,Kalimaohe,Kaloi,Kamani,Kamaole,Kamehame,Kanahena,Kanaio,Kaniaula,Kaonoulu,Kaopa,Kapaloa,Kapaula,Kapewakua,Kapohue,Kapuaikini,Kapunakea,Kapuuomahuka,Kauau,Kauaula,Kaukuhalahala,Kaulalo,Kaulanamoa,Kauluohana,Kaumahalua,Kaumakani,Kaumanu,Kaunauhane,Kaunuahane,Kaupakulua,Kawaipapa,Kawaloa,Kawaloa,Kawalua,Kawela,Keaa,Keaalii,Keaaula,Keahua,Keahuapono,Keakuapauaela,Kealahou,Keanae,Keauhou,Kekuapawela,Kelawea,Keokea,Keopuka,Kepio,Kihapuhala,Kikoo,Kilolani,Kipapa,Koakupuna,Koali,Koananai,Koheo,Kolea,Kolokolo,Kooka,Kopili,Kou,Kualapa,Kuhiwa,Kuholilea,Kuhua,Kuia,Kuiaha,Kuikui,Kukoae,Kukohia,Kukuiaeo,Kukuioolu,Kukuipuka,Kukuiula,Kulahuhu,Kumunui,Lapakea,Lapalapaiki,Lapueo,Launiupoko,Loiloa,Lole,Lualailua,Maalo,Mahinahina,Mahulua,Maiana,Mailepai,Makaakini,Makaalae,Makaehu,Makaiwa,Makaliua,Makapipi,Makapuu,Makawao,Makila,Mala,Maluaka,Mamalu,Manawaiapiki,Manawainui,Maulili,Mehamenui,Miana,Mikimiki,Moalii,Moanui,Mohopili,Mohopilo,Mokae,Mokuia,Mokupapa,Mooiki,Mooloa,Moomuku,Muolea,Nahuakamalii,Nailiilipoko,Nakaaha,Nakalepo,Nakaohu,Nakapehu,Nakula,Napili,Niniau,Niumalu,Nuu,Ohia,Oloewa,Olowalu,Omaopio,Onau,Onouli,Opaeula,Opana,Opikoula,Paakea,Paeahu,Paehala,Paeohi,Pahoa,Paia,Pakakia,Pakala,Palauea,Palemo,Panaewa,Paniau,Papaaea,Papaanui,Papaauhau,Papahawahawa,Papaka,Papauluana,Pauku,Paunau,Pauwalu,Pauwela,Peahi,Piapia,Pohakanele,Pohoula,Polaiki,Polanui,Polapola,Polua,Poopoo,Popoiwi,Popoloa,Poponui,Poupouwela,Puaa,Puaaluu,Puahoowali,Puakea,Puako,Pualaea,Puehuehu,Puekahi,Pueokauiki,Pukaauhuhu,Pukalani,Pukuilua,Pulehu,Pulehuiki,Pulehunui,Punaluu,Puolua,Puou,Puuhaehae,Puuhaoa,Puuiki,Puuki,Puukohola,Puulani,Puumaneoneo,Puunau,Puunoa,Puuomaiai,Puuomaile,Uaoa,Uhao,Ukumehame,Ulaino,Ulumalu,Wahikuli,Waiahole,Waiakoa,Waianae,Waianu,Waiawa,Waiehu,Waieli,Waihee,Waikapu,Wailamoa,Wailaulau,Wailua,Wailuku,Wainee,Waiohole,Waiohonu,Waiohue,Waiohuli,Waiokama,Waiokila,Waiopai,Waiopua,Waipao,Waipio,Waipioiki,Waipionui,Waipouli,Wakiu,Wananalua"},
+        {name: "Karnataka", i: 26, min: 5, max: 11, d: "tnl", m: 0, b: "Adityapatna,Adyar,Afzalpur,Aland,Alnavar,Alur,Ambikanagara,Anekal,Ankola,Annigeri,Arkalgud,Arsikere,Athni,Aurad,Badami,Bagalkot,Bagepalli,Bail,Bajpe,Bangalore,Bangarapet,Bankapura,Bannur,Bantval,Basavakalyan,Basavana,Belgaum,Beltangadi,Belur,Bhadravati,Bhalki,Bhatkal,Bhimarayanagudi,Bidar,Bijapur,Bilgi,Birur,Bommasandra,Byadgi,Challakere,Chamarajanagar,Channagiri,Channapatna,Channarayapatna,Chik,Chikmagalur,Chiknayakanhalli,Chikodi,Chincholi,Chintamani,Chitapur,Chitgoppa,Chitradurga,Dandeli,Dargajogihalli,Devadurga,Devanahalli,Dod,Donimalai,Gadag,Gajendragarh,Gangawati,Gauribidanur,Gokak,Gonikoppal,Gubbi,Gudibanda,Gulbarga,Guledgudda,Gundlupet,Gurmatkal,Haliyal,Hangal,Harapanahalli,Harihar,Hassan,Hatti,Haveri,Hebbagodi,Heggadadevankote,Hirekerur,Holalkere,Hole,Homnabad,Honavar,Honnali,Hoovina,Hosakote,Hosanagara,Hosdurga,Hospet,Hubli,Hukeri,Hungund,Hunsur,Ilkal,Indi,Jagalur,Jamkhandi,Jevargi,Jog,Kadigenahalli,Kadur,Kalghatgi,Kamalapuram,Kampli,Kanakapura,Karkal,Karwar,Khanapur,Kodiyal,Kolar,Kollegal,Konnur,Koppa,Koppal,Koratagere,Kotturu,Krishnarajanagara,Krishnarajasagara,Krishnarajpet,Kudchi,Kudligi,Kudremukh,Kumta,Kundapura,Kundgol,Kunigal,Kurgunta,Kushalnagar,Kushtagi,Lakshmeshwar,Lingsugur,Londa,Maddur,Madhugiri,Madikeri,Mahalingpur,Malavalli,Mallar,Malur,Mandya,Mangalore,Manvi,Molakalmuru,Mudalgi,Mudbidri,Muddebihal,Mudgal,Mudhol,Mudigere,Mulbagal,Mulgund,Mulki,Mulur,Mundargi,Mundgod,Munirabad,Mysore,Nagamangala,Nanjangud,Narasimharajapura,Naregal,Nargund,Navalgund,Nipani,Pandavapura,Pavagada,Piriyapatna,Pudu,Puttur,Rabkavi,Raichur,Ramanagaram,Ramdurg,Ranibennur,Raybag,Robertson,Ron,Sadalgi,Sagar,Sakleshpur,Saligram,Sandur,Sankeshwar,Saundatti,Savanur,Sedam,Shahabad,Shahpur,Shaktinagar,Shiggaon,Shikarpur,Shirhatti,Shorapur,Shrirangapattana,Siddapur,Sidlaghatta,Sindgi,Sindhnur,Sira,Siralkoppa,Sirsi,Siruguppa,Somvarpet,Sorab,Sringeri,Srinivaspur,Sulya,Talikota,Tarikere,Tekkalakote,Terdal,Thumbe,Tiptur,Tirthahalli,Tirumakudal,Tumkur,Turuvekere,Udupi,Vijayapura,Wadi,Yadgir,Yelandur,Yelbarga,Yellapur,Yenagudde"},
+        {name: "Quechua", i: 27, min: 6, max: 12, d: "l", m: 0, b: "Altomisayoq,Ancash,Andahuaylas,Apachekta,Apachita,Apu ,Apurimac,Arequipa,Atahuallpa,Atawalpa,Atico,Ayacucho,Ayllu,Cajamarca,Carhuac,Carhuacatac,Cashan,Caullaraju,Caxamalca,Cayesh,Chacchapunta,Chacraraju,Champara,Chanchan,Chekiacraju,Chinchey,Chontah,Chopicalqui,Chucuito,Chuito,Chullo,Chumpi,Chuncho,Chuquiapo,Churup,Cochapata,Cojup,Collota,Conococha,Copa,Corihuayrachina,Cusichaca,Despacho,Haika,Hanpiq,Hatun,Haywarisqa,Huaca,Hualcan,Huamanga,Huamashraju,Huancarhuas,Huandoy,Huantsan,Huarmihuanusca,Huascaran,Huaylas,Huayllabamba,Huichajanca,Huinayhuayna,Huinioch,Illiasca,Intipunku,Ishinca,Jahuacocha,Jirishanca,Juli,Jurau,Kakananpunta,Kamasqa,Karpay,Kausay,Khuya ,Kuelap,Llaca,Llactapata,Llanganuco,Llaqta,Llupachayoc,Machu,Mallku,Matarraju,Mikhuy,Milluacocha,Munay,Ocshapalca,Ollantaytambo,Pacamayo,Paccharaju,Pachacamac,Pachakamaq,Pachakuteq,Pachakuti,Pachamama  ,Paititi,Pajaten,Palcaraju,Pampa,Panaka,Paqarina,Paqo,Parap,Paria,Patallacta,Phuyupatamarca,Pisac,Pongos,Pucahirca,Pucaranra,Puscanturpa,Putaca,Qawaq ,Qayqa,Qochamoqo,Qollana,Qorihuayrachina,Qorimoqo,Quenuaracra,Queshque,Quillcayhuanca,Quillya,Quitaracsa,Quitaraju,Qusqu,Rajucolta,Rajutakanan,Rajutuna,Ranrahirca,Ranrapalca,Raria,Rasac,Rimarima,Riobamba,Runkuracay,Rurec,Sacsa,Saiwa,Sarapo,Sayacmarca,Sinakara,TamboColorado,Tamboccocha,Taripaypacha,Taulliraju,Tawantinsuyu,Taytanchis,Tiwanaku,Tocllaraju,Tsacra,Tuco,Tullparaju,Tumbes,Ulta,Uruashraju,Vallunaraju,Vilcabamba,Wacho ,Wankawillka,Wayra,Yachay,Yahuarraju,Yanamarey,Yanesha,Yerupaja"},
+        {name: "Swahili", i: 28, min: 4, max: 9, d: "", m: 0, b: "Abim,Adjumani,Alebtong,Amolatar,Amuria,Amuru,Apac,Arua,Arusha,Babati,Baragoi,Bombo,Budaka,Bugembe,Bugiri,Buikwe,Bukedea,Bukoba,Bukomansimbi,Bukungu,Buliisa,Bundibugyo,Bungoma,Busembatya,Bushenyi,Busia,Busia,Busolwe,Butaleja,Butambala,Butere,Buwenge,Buyende,Dadaab,Dodoma,Dokolo,Eldoret,Elegu,Emali,Embu,Entebbe,Garissa,Gede,Gulu,Handeni,Hima,Hoima,Hola,Ibanda,Iganga,Iringa,Isingiro,Isiolo,Jinja,Kaabong,Kabale,Kaberamaido,Kabuyanda,Kabwohe,Kagadi,Kahama,Kajiado,Kakamega,Kakinga,Kakira,Kakiri,Kakuma,Kalangala,Kaliro,Kalisizo,Kalongo,Kalungu,Kampala,Kamuli,Kamwenge,Kanoni,Kanungu,Kapchorwa,Kapenguria,Kasese,Kasulu,Katakwi,Kayunga,Kericho,Keroka,Kiambu,Kibaale,Kibaha,Kibingo,Kiboga,Kibwezi,Kigoma,Kihiihi,Kilifi,Kira,Kiruhura,Kiryandongo,Kisii,Kisoro,Kisumu,Kitale,Kitgum,Kitui,Koboko,Korogwe,Kotido,Kumi,Kyazanga,Kyegegwa,Kyenjojo,Kyotera,Lamu,Langata,Lindi,Lodwar,Lokichoggio,Londiani,Loyangalani,Lugazi,Lukaya,Luweero,Lwakhakha,Lwengo,Lyantonde,Machakos,Mafinga,Makambako,Makindu,Malaba,Malindi,Manafwa,Mandera,Maralal,Marsabit,Masaka,Masindi,MasindiPort,Masulita,Matugga,Mayuge,Mbale,Mbarara,Mbeya,Meru,Mitooma,Mityana,Mombasa,Morogoro,Moroto,Moshi,Moyale,Moyo,Mpanda,Mpigi,Mpondwe,Mtwara,Mubende,Mukono,Mumias,Muranga,Musoma,Mutomo,Mutukula,Mwanza,Nagongera,Nairobi,Naivasha,Nakapiripirit,Nakaseke,Nakasongola,Nakuru,Namanga,Namayingo,Namutumba,Nansana,Nanyuki,Narok,Naromoru,Nebbi,Ngora,Njeru,Njombe,Nkokonjeru,Ntungamo,Nyahururu,Nyeri,Oyam,Pader,Paidha,Pakwach,Pallisa,Rakai,Ruiru,Rukungiri,Rwimi,Sanga,Sembabule,Shimoni,Shinyanga,Singida,Sironko,Songea,Soroti,Ssabagabo,Sumbawanga,Tabora,Takaungu,Tanga,Thika,Tororo,Tunduma,Vihiga,Voi,Wajir,Wakiso,Watamu,Webuye,Wobulenzi,Wote,Wundanyi,Yumbe,Zanzibar"},
+        {name: "Vietnamese", i: 29, min: 3, max: 12, d: "", m: 1, b: "An Khe,An Nhon,Ayun Pa,Ba Don,Ba Ria,Bac Giang,Bac Kan,Bac Lieu,Bac Ninh,Bao Loc,Ben Cat,Ben Tre,Bien Hoa,Bim Son,Binh Long,Binh Minh,Buon Ho,Buon Ma Thuot,Ca Mau,Cai Lay,Cam Pha,Cam Ranh,Can Tho,Cao Bang,Cao Lanh,Chau Doc,Chi Linh,Cua Lo,Da Lat,Da Nang,Di An,Dien Ban,Dien Bien Phu,Dong Ha,Dong Hoi,Dong Trieu,Duyen Hai,Gia Nghia,Gia Rai,Go Cong,Ha Giang,Ha Long,Ha Noi,Ha Tinh,Hai Duong,Hai Phong,Hoa Binh,Hoang Mai,Hoi An,Hong Linh,Hong Ngu,Hue,Hung Yen,Huong Thuy,Huong Tra,Kien Tuong,Kon Tum,Ky Anh,La Gi,Lai Chau,Lang Son,Lao Cai,Long Khanh,Long My,Long Xuyen,Mong Cai,Muong Lay,My Hao,My Tho,Nam Dinh,Nga Bay,Nga Nam,Nghia Lo,Nha Trang,Ninh Binh,Ninh Hoa,Phan Rang Thap Cham,Phan Thiet,Pho Yen,Phu Ly,Phu My,Phu Tho,Phuoc Long,Pleiku,Quang Ngai,Quang Tri,Quang Yen,Quy Nhon,Rach Gia,Sa Dec,Sam Son,Soc Trang,Son La,Son Tay,Song Cau,Song Cong,Tam Diep,Tam Ky,Tan An,Tan Chau,Tan Uyen,Tay Ninh,Thai Binh,Thai Hoa,Thai Nguyen,Thanh Hoa,Thu Dau Mot,Thuan An,Tra Vinh,Tu Son,Tuy Hoa,Tuyen Quang,Uong Bi,Vi Thanh,Viet Tri,Vinh,Vinh Chau,Vinh Long,Vinh Yen,Vung Tau,Yen Bai"},
+        {name: "Cantonese", i: 30, min: 5, max: 11, d: "", m: 0, b: "Chaiwan,Chekham,Cheungshawan,Chingchung,Chinghoi,Chingsen,Chingshing,Chiunam,Chiuon,Chiuyeung,Chiyuen,Choihung,Chuehoi,Chuiman,Chungfa,Chungfu,Chungsan,Chunguktsuen,Dakhing,Daopo,Daumun,Dingwu,Dinpak,Donggun,Dongyuen,Duenchau,Fachau,Fado,Fanling,Fatgong,Fatshan,Fotan,Fuktien,Fumun,Funggong,Funghoi,Fungshun,Fungtei,Gamtin,Gochau,Goming,Gonghoi,Gongshing,Goyiu,Hanghau,Hangmei,Hashan,Hengfachuen,Hengon,Heungchau,Heunggong,Heungkiu,Hingning,Hohfuktong,Hoichue,Hoifung,Hoiping,Hokong,Hokshan,Homantin,Hotin,Hoyuen,Hunghom,Hungshuikiu,Jiuling,Kamping,Kamsheung,Kamwan,Kaulongtong,Keilun,Kinon,Kinsang,Kityeung,Kongmun,Kukgong,Kwaifong,Kwaihing,Kwongchau,Kwongling,Kwongming,Kwuntong,Laichikok,Laiking,Laiwan,Lamtei,Lamtin,Leitung,Leungking,Limkong,Linchau,Linnam,Linping,Linshan,Loding,Lokcheong,Lokfu,Lokmachau,Longchuen,Longgong,Longmun,Longping,Longwa,Longwu,Lowu,Luichau,Lukfung,Lukho,Lungmun,Macheung,Maliushui,Maonshan,Mauming,Maunam,Meifoo,Mingkum,Mogong,Mongkok,Muichau,Muigong,Muiyuen,Naiwai,Namcheong,Namhoi,Namhong,Namo,Namsha,Namshan,Nganwai,Ngchuen,Ngoumun,Ngwa,Nngautaukok,Onting,Pakwun,Paotoishan,Pingshan,Pingyuen,Poklo,Polam,Pongon,Poning,Potau,Puito,Punyue,Saiwanho,Saiyingpun,Samshing,Samshui,Samtsen,Samyuenlei,Sanfung,Sanhing,Sanhui,Sanwai,Sanwui,Seiwui,Shamshuipo,Shanmei,Shantau,Shatin,Shatinwai,Shaukeiwan,Shauking,Shekkipmei,Shekmun,Shekpai,Sheungshui,Shingkui,Shiuhing,Shundak,Shunyi,Shupinwai,Simshing,Siuhei,Siuhong,Siukwan,Siulun,Suikai,Taihing,Taikoo,Taipo,Taishuihang,Taiwai,Taiwo,Taiwohau,Tinhau,Tinho,Tinking,Tinshuiwai,Tiukengleng,Toishan,Tongfong,Tonglowan,Tsakyoochung,Tsamgong,Tsangshing,Tseungkwano,Tsihing,Tsimshatsui,Tsinggong,Tsingshantsuen,Tsingwun,Tsingyi,Tsingyuen,Tsiuchau,Tsuenshekshan,Tsuenwan,Tuenmun,Tungchung,Waichap,Waichau,Waidong,Wailoi,Waishing,Waiyeung,Wanchai,Wanfau,Wanon,Wanshing,Wingon,Wongchukhang,Wongpo,Wongtaisin,Woping,Wukaisha,Yano,Yaumatei,Yauoi,Yautong,Yenfa,Yeungchun,Yeungdong,Yeunggong,Yeungsai,Yeungshan,Yimtin,Yingdak,Yiuping,Yongshing,Yongyuen,Yuenlong,Yuenshing,Yuetsau,Yuknam,Yunping,Yuyuen"},
+        {name: "Mongolian", i: 31, min: 5, max: 12, d: "aou", m: .3, b: "Adaatsag,Airag,Alag Erdene,Altai,Altanshiree,Altantsogts,Arbulag,Baatsagaan,Batnorov,Batshireet,Battsengel,Bayan Adarga,Bayan Agt,Bayanbulag,Bayandalai,Bayandun,Bayangovi,Bayanjargalan,Bayankhongor,Bayankhutag,Bayanlig,Bayanmonkh,Bayannuur,Bayan Ondor,Bayan Ovoo,Bayantal,Bayantsagaan,Bayantumen,Bayan Uul,Bayanzurkh,Berkh,Biger,Binder,Bogd,Bombogor,Bor Ondor,Bugat,Bulgan,Buregkhangai,Burentogtokh,Buutsagaan,Buyant,Chandmani,Chandmani Ondor,Choibalsan,Chuluunkhoroot,Chuluut,Dadal,Dalanjargalan,Dalanzadgad,Darkhan,Darvi,Dashbalbar,Dashinchilen,Delger,Delgerekh,Delgerkhaan,Delgerkhangai,Delgertsogt,Deluun,Deren,Dorgon,Duut,Erdene,Erdenebulgan,Erdeneburen,Erdenedalai,Erdenemandal,Erdenetsogt,Galshar,Galt,Galuut,Govi Ugtaal,Gurvan,Gurvanbulag,Gurvansaikhan,Gurvanzagal,Ikhkhet,Ikh Tamir,Ikh Uul,Jargalan,Jargalant,Jargaltkhaan,Jinst,Khairkhan,Khalhgol,Khaliun,Khanbogd,Khangai,Khangal,Khankh,Khankhongor,Khashaat,Khatanbulag,Khatgal,Kherlen,Khishig Ondor,Khokh,Kholonbuir,Khongor,Khotont,Khovd,Khovsgol,Khuld,Khureemaral,Khurmen,Khutag Ondor,Luus,Mandakh,Mandal Ovoo,Mankhan,Manlai,Matad,Mogod,Monkhkhairkhan,Moron,Most,Myangad,Nogoonnuur,Nomgon,Norovlin,Noyon,Ogii,Olgii,Olziit,Omnodelger,Ondorkhaan,Ondorshil,Ondor Ulaan,Orgon,Orkhon,Rashaant,Renchinlkhumbe,Sagsai,Saikhan,Saikhandulaan,Saikhan Ovoo,Sainshand,Saintsagaan,Selenge,Sergelen,Sevrei,Sharga,Sharyngol,Shine Ider,Shinejinst,Shiveegovi,Sumber,Taishir,Tarialan,Tariat,Teshig,Togrog,Tolbo,Tomorbulag,Tonkhil,Tosontsengel,Tsagaandelger,Tsagaannuur,Tsagaan Ovoo,Tsagaan Uur,Tsakhir,Tseel,Tsengel,Tsenkher,Tsenkhermandal,Tsetseg,Tsetserleg,Tsogt,Tsogt Ovoo,Tsogttsetsii,Tunel,Tuvshruulekh,Ulaanbadrakh,Ulaankhus,Ulaan Uul,Uyench,Yesonbulag,Zag,Zamyn Uud,Zereg"},
+        // fantasy bases by Dopu:
+        {name: "Human Generic", i: 32, min: 6, max: 11, d: "peolst", m: 0, b: "Grimegrove,Cliffshear,Eaglevein,Basinborn,Whalewich,Faypond,Pondshade,Earthfield,Dustwatch,Houndcall,Oakenbell,Wildwell,Direwallow,Springmire,Bayfrost,Fearwich,Ghostdale,Cursespell,Shadowvein,Freygrave,Freyshell,Tradewick,Grasswallow,Kilshell,Flatwall,Mosswind,Edgehaven,Newfalls,Flathand,Lostcairn,Grimeshore,Littleshade,Millstrand,Snowbay,Quickbell,Crystalrock,Snakewharf,Oldwall,Whitvalley,Stagport,Deadkeep,Claymond,Angelhand,Ebonhold,Shimmerrun,Honeywater,Gloomburn,Arrowburgh,Slyvein,Dawnforest,Dirtshield,Southbreak,Clayband,Oakenrun,Graypost,Deepcairn,Lagoonpass,Cavewharf,Thornhelm,Smoothwallow,Lightfront,Irongrave,Stonespell,Cavemeadow,Millbell,Shimmerwell,Eldermere,Roguehaven,Dogmeadow,Pondside,Springview,Embervault,Dryhost,Bouldermouth,Stormhand,Oakenfall,Clearguard,Lightvale,Freyshear,Flameguard,Bellcairn,Bridgeforest,Scorchwich,Mythgulch,Maplesummit,Mosshand,Iceholde,Knightlight,Dawnwater,Laststar,Westpoint,Goldbreach,Falsevale,Pinegarde,Shroudrock,Whitwharf,Autumnband,Oceanstar,Rosedale,Snowtown,Chillstrand,Saltmouth,Crystalsummit,Redband,Thorncairn,Beargarde,Pearlhaven,Lostward,Northpeak,Sandhill,Cliffgate,Sandminster,Cloudcrest,Mythshear,Dragonward,Coldholde,Knighttide,Boulderharbor,Faybarrow,Dawnpass,Pondtown,Timberside,Madfair,Crystalspire,Shademeadow,Dragonbreak,Castlecross,Dogwell,Caveport,Wildlight,Mudfront,Eldermere,Midholde,Ravenwall,Mosstide,Everborn,Lastmere,Dawncall,Autumnkeep,Oldwatch,Shimmerwood,Eldergate,Deerchill,Fallpoint,Silvergulch,Cavemire,Deerbrook,Pinepond,Ravenside,Thornyard,Scorchstall,Swiftwell,Roguereach,Cloudwood,Smoothtown,Kilhill,Ironhollow,Stillhall,Rustmore,Ragefair,Ghostward,Deadford,Smallmire,Barebreak,Westforest,Bonemouth,Evercoast,Sleekgulch,Neverfront,Lostshield,Icelight,Quickgulch,Brinepeak,Hollowstorm,Limeband,Basinmore,Steepmoor,Blackford,Stormtide,Wildyard,Wolfpass,Houndburn,Pondfalls,Pureshell,Silvercairn,Houndwallow,Dewmere,Fearpeak,Bellstall,Diredale,Crowgrove,Moongulf,Kilholde,Sungulf,Baremore,Bleakwatch,Farrun,Grimeshire,Roseborn,Heartford,Scorchpost,Cloudbay,Whitlight,Timberham,Cloudmouth,Curseminster,Basinfrost,Maplevein,Sungarde,Cloudstar,Bellport,Silkwich,Ragehall,Bellreach,Swampmaw,Snakemere,Highbourne,Goldyard,Lakemond,Shadeville,Mightmouth,Nevercrest,Pinemount,Claymouth,Rosereach,Oldreach,Brittlehelm,Heartfall,Bonegulch,Silkhollow,Crystalgulf,Mutewell,Flameside,Blackwatch,Greenwharf,Moonacre,Beachwick,Littleborough,Castlefair,Stoneguard,Nighthall,Cragbury,Swanwall,Littlehall,Mudford,Shadeforest,Mightglen,Millhand,Easthill,Amberglen,Nighthall,Cragbury,Swanwall,Littlehall,Mudford,Shadeforest,Mightglen,Millhand,Easthill,Amberglen,Smoothcliff,Lakecross,Quicklight,Eaglecall,Silentkeep,Dragonshear,Ebonfront,Oakenmeadow,Cliffshield,Stormhorn,Cavefell,Wildedenn,Earthgate,Brittlecall,Swangarde,Steamwallow,Demonfall,Sleethallow,Mossstar,Dragonhold,Smoothgrove,Sleetrun,Flamewell,Mistvault,Heartvault,Newborough,Deeppoint,Littlehold,Westshell,Caveminster,Swiftshade,Grimwood,Littlemire,Bridgefalls,Lastmere,Fayyard,Madham,Curseguard,Earthpass,Silkbrook,Winterview,Grimeborough,Dustcross,Dogcoast,Dirtstall,Oxlight,Pondstall,Sleetglen,Ghostpeak,Snowshield,Loststar,Chillwharf,Sleettide,Millgulch,Whiteshore,Sunmond,Moonwell,Grassdrift,Westmeadow,Crowvault,Everchill,Bearmire,Bronzegrasp,Oxbrook,Cursefield,Steammouth,Smoothham,Arrowdenn,Stillstrand,Mudwich"},
+        {name: "Elven", i: 33, min: 6, max: 12, d: "lenmsrg", m: 0, b: "Adrindest,Aethel,Afranthemar,Aggar,Aiqua,Alari,Allanar,Allanbelle,Almalian,Alora,Alyanasari,Alyelona,Alyran,Amenalenora,Ammar,Amymabelle,Ancalen,AnhAlora,Anore,Anyndell,Arasari,Aren,Ashesari,Ashletheas,Ashmebel,Asrannore,Athelle,Aymlume,Baethei,Bel-Didhel,Belanore,Borethanil,Brinorion,Caelora,Chaggaust,Chaulssad,Chaundra,ChetarIthlin,Cyhmel,Cyla,Cyonore,Cyrangroth,Doladress,Dolarith,Dolasea,Dolonde,Dorthore,Dorwine,Draethe,Dranzan,Draugaust,Dreghei,Drelhei,Dryndlu,E'ana,E'ebel,Eahil,Edhil,Edraithion,Efho,Efranluma,Efvanore,Einyallond,Elathlume,Eld-Sinnocrin,Elddrinn,Elelthyr,Elheinn,Ellanalin,Ellena,Ellheserin,Ellnlin,Ellorthond,Elralara,Elstyr,Eltaesi,Elunore,Eman,EmneLenora,Emyel,Emyranserine,Enhethyr,Ennore,Entheas,Eriargond,Erranlenor,ErrarIthinn,Esari,Esath,Eserius,Eshsalin,Eshthalas,Esseavad,Esyana,EsyseAiqua,Evraland,Faellenor,Faladhell,Famelenora,Fethalas,Filranlean,Filsaqua,Formarion,Ferdor,Gafetheas,GafSerine,Gansari,Geliene,Gondorwin,Guallu,Haeth,Hanluna,Haulssad,Helatheas,Hellerien,Heloriath,Himlarien,Himliene,Hinnead,Hlaughei,Hlinas,Hloireenil,Hluihei,Hluitar,Hlurthei,Hlynead,Iaenarion,Ifrennoris,IllaAncalen,Illanathaes,Illfanora,Imlarlon,Imyfaluna,Imyse,Imyvelian,Inferius,Inhalon,Inllune,Inlurth,innsshe,Inransera,Iralserin,Irethtalos,Irholona,Ishal,Ishlashara,Isyenshara,Ithelion,Iymerius,Iaron,Iulil,Jaal,Jamkadi,Kaalume,Kaansera,Kalthalas,Karanthanil,Karnosea,Kasethyr,Keatheas,Kelsya,KethAiqua,Kmlon,Kyathlenor,Kyhasera,Lahetheas,Lammydr,Lefdorei,Lelhamelle,Lelon,Lenora,Lilean,Lindoress,Lindeenil,Lirillaquen,Litys,Llaughei,Llurthei,Lya,Lyenalon,Lyfa,Lylharion,Lylmhil,Lynathalas,Lir,Machei,Masenoris,Mathathlona,Mathethil,Mathntheas,Meethalas,Melelume,Menyamar,Menzithl,Minthyr,Mithlonde,Mornetheas,Mytha,Mythnserine,Mythsemelle,Mythsthas,Myvanas,Naahona,Nalore,NasadIlaurth,Nasin,Nathemar,Navethas,Neadar,Neanor,Neilon,Nelalon,Nellean,Nelnetaesi,Nfanor,Nilenathyr,Nionande,Nurtaleewe,Nylm,Nytenanas,Nythanlenor,Nythfelon,Nythodorei,Nytlenor,Nidiel,Noruiben,O'anlenora,O'lalona,Obeth,Ofaenathyr,Oflhone,Ollethlune,Ollmarion,Ollmnaes,Ollsmel,Olranlune,Olyaneas,Olynahil,Omanalon,Omyselon,Onelion,Onelond,Onylanor,Orlormel,Orlynn,Ormrion,Oshana,Oshmahona,Oshvamel,Raethei,Raineas,Rauguall,Rauthe,Rauthei,Reisera,Reslenora,Rrharrvhei,Ryanasera,Rymaserin,Sahnor,Saselune,Sel-Zedraazin,Selananor,Sellerion,Selmaluma,Serin,Serine,Shaeras,Shemnas,Shemserin,Sheosari,Sileltalos,Siriande,Siriathil,Sohona,Srannor,Sshanntyr,Sshaulssin,Sshaulu,Syholume,Sylharius,Sylranbel,Symdorei,Syranbel,Szoberr,Silon,Taesi,Thalas,Thalor,Thalore,Tharenlon,Tharlarast,Thelethlune,Thelhohil,Thelnora,Themar,Thene,Thilfalean,Thilnaenor,Thvethalas,Thylathlond,Tiregul,Tirion,Tlauven,Tlindhe,Ulal,Ullallanar,Ullmatalos,Ullve,Ulmetheas,Ulrenserine,Ulssin,Umnalin,Umye,Umyheserine,Unanneas,Unarith,Undraeth,Unysarion,Vel-Shonidor,Venas,Vinargothr,Waethe,Wasrion,Wlalean,Y'maqua,Yaeluma,Yeelume,Yele,Yethrion,Ymserine,Yueghed,Yuereth,Yuerran,Yuethin,Nandeedil,Olwen,Yridhremben"},
+        {name: "Dark Elven", i: 34, min: 6, max: 14, d: "nrslamg", m: .2, b: "Abaethaggar,Abburth,Afranthemar,Aharasplit,Aidanat,Ald'ruhn,Ashamanu,Ashesari,Ashletheas,Baerario,Baereghel,Baethei,Bahashae,Balmora,Bel-Didhel,Borethanil,Buiyrandyn,Caellagith,Caellathala,Caergroth,Caldras,Chaggar,Chaggaust,Channtar,Charrvhel'raugaust,Chaulssin,Chaundra,ChedNasad,ChetarIthlin,ChethRrhinn,Chymaer,Clarkarond,Cloibbra,Commoragh,Cyrangroth,Cilben,D'eldarc,Daedhrog,Dalkyn,Do'Urden,Doladress,Dolarith,Dolonde,Draethe,Dranzan,Dranzithl,Draugaust,Dreghei,Drelhei,Dryndlu,Dusklyngh,DyonG'ennivalz,Edraithion,Eld-Sinnocrin,Ellorthond,Enhethyr,Entheas,ErrarIthinn,Eryndlyn,Faladhell,Faneadar,Fethalas,Filranlean,Formarion,Ferdor,Gafetheas,Ghrond,Gilranel,Glamordis,Gnaarmok,Gnisis,Golothaer,Gondorwin,Guallidurth,Guallu,Gulshin,Haeth,Haggraef,Harganeth,Harkaldra,Haulssad,Haundrauth,Heloriath,Hlammachar,Hlaughei,Hloireenil,Hluitar,Inferius,innsshe,Ithilaughym,Iz'aiogith,Jaal,Jhachalkhyn,Kaerabrae,Karanthanil,Karondkar,Karsoluthiyl,Kellyth,Khuul,Lahetheas,Lidurth,Lindeenil,Lirillaquen,LithMy'athar,LlurthDreier,Lolth,Lothuial,Luihaulen'tar,Maeralyn,Maerimydra,Mathathlona,Mathethil,Mellodona,Menagith,Menegwen,Menerrendil,Menzithl,Menzoberranzan,Mila-Nipal,Mithryn,Molagmar,Mundor,Myvanas,Naggarond,NasadIlaurth,Nauthor,Navethas,Neadar,Nurtaleewe,Nidiel,Noruiben,O'lalona,Obeth,Ofaenathyr,Orlormel,Orlytlar,Pelagiad,Raethei,Raugaust,Rauguall,Rilauven,Rrharrvhei,Sadrith,Sel-Zedraazin,Seydaneen,Shaz'rir,Skaal,Sschindylryn,Shamath,Shamenz,Shanntur,Sshanntynlan,Sshanntyr,Shaulssin,SzithMorcane,Szithlin,Szobaeth,Sirdhemben,T'lindhet,Tebh'zhor,Telmere,Telnarquel,Tharlarast,Thylathlond,Tlaughe,Trizex,Tyrybblyn,Ugauth,Ughym,Ullmatalos,Ulmetheas,Ulrenserine,Uluitur,Undraeth,Undraurth,Undrek'Thoz,Ungethal,UstNatha,V'elddrinnsshar,Vaajha,Vel-Shonidor,Velddra,Velothi,Venead,Vhalth'vha,Vinargothr,Vojha,Waethe,Waethei,Xaalkis,Yakaridan,Yeelume,Yuethin,Yuethindrynn,Zirnakaynin,Nandeedil,olwen,Uhaelben,Uthaessien,Yridhremben"},
+        {name: "Dwarven", i: 35, min: 4, max: 11, d: "dk", m: 0, b: "Addundad,Ahagzad,Ahazil,Akil,Akzizad,Anumush,Araddush,Arar,Arbhur,Badushund,Baragzig,Baragzund,Barakinb,Barakzig,Barakzinb,Barakzir,Baramunz,Barazinb,Barazir,Bilgabar,Bilgatharb,Bilgathaz,Bilgila,Bilnaragz,Bilnulbar,Bilnulbun,Bizaddum,Bizaddush,Bizanarg,Bizaram,Bizinbiz,Biziram,Bunaram,Bundinar,Bundushol,Bundushund,Bundushur,Buzaram,Buzundab,Buzundush,Gabaragz,Gabaram,Gabilgab,Gabilgath,Gabizir,Gabunal,Gabunul,Gabuzan,Gatharam,Gatharbhur,Gathizdum,Gathuragz,Gathuraz,Gila,Giledzir,Gilukkhath,Gilukkhel,Gunala,Gunargath,Gunargil,Gundumunz,Gundusharb,Gundushizd,Kharbharbiln,Kharbhatharb,Kharbhela,Kharbilgab,Kharbuzadd,Khatharbar,Khathizdin,Khathundush,Khazanar,Khazinbund,Khaziragz,Khaziraz,Khizdabun,Khizdusharbh,Khizdushath,Khizdushel,Khizdushur,Kholedzar,Khundabiln,Khundabuz,Khundinarg,Khundushel,Khuragzig,Khuramunz,Kibarak,Kibilnal,Kibizar,Kibunarg,Kibundin,Kibuzan,Kinbadab,Kinbaragz,Kinbarakz,Kinbaram,Kinbizah,Kinbuzar,Nala,Naledzar,Naledzig,Naledzinb,Naragzah,Naragzar,Naragzig,Narakzah,Narakzar,Naramunz,Narazar,Nargabad,Nargabar,Nargatharb,Nargila,Nargundum,Nargundush,Nargunul,Narukthar,Narukthel,Nula,Nulbadush,Nulbaram,Nulbilnarg,Nulbunal,Nulbundab,Nulbundin,Nulbundum,Nulbuzah,Nuledzah,Nuledzig,Nulukkhaz,Nulukkhund,Nulukkhur,Sharakinb,Sharakzar,Sharamunz,Sharbarukth,Shatharbhizd,Shatharbiz,Shathazah,Shathizdush,Shathola,Shaziragz,Shizdinar,Shizdushund,Sholukkharb,Shundinulb,Shundushund,Shurakzund,Shuramunz,Tumunzadd,Tumunzan,Tumunzar,Tumunzinb,Tumunzir,Ukthad,Ulbirad,Ulbirar,Ulunzar,Ulur,Umunzad,Undalar,Undukkhil,Undun,Undur,Unduzur,Unzar,Unzathun,Usharar,Zaddinarg,Zaddushur,Zaharbad,Zaharbhizd,Zarakib,Zarakzar,Zaramunz,Zarukthel,Zinbarukth,Zirakinb,Zirakzir,Ziramunz,Ziruktharbh,Zirukthur,Zundumunz"},
+        {name: "Goblin", i: 36, min: 4, max: 9, d: "eag", m: 0, b: "Crild,Cielb,Srurd,Fruict,Xurx,Crekork,Strytzakt,Ialsirt,Gnoklig,Kleardeek,Gobbledak,Thelt,Swaxi,Ulm,Shaxi,Thult,Jasheafta,Kleabtong,Bhiagielt,Kuipuinx,Hiszils,Nilbog,Gneabs,Stiolx,Esz,Honk,Veekz,Vohniots,Bratliaq,Slehzit,Diervaq,Zriokots,Buyagh,Treaq,Phax,Ilm,Blus,Srefs,Biokvish,Gigganqi,Watvielx,Katmelt,Slofboif,gobbok,Klilm,Blix,Qosx,Fygsee,Moft,Asinx,Joimtoilm,Styrzangai,Prolkeh,Stioskurt,Mogg,Cel,Far,Rekx,Chalk,Paas,Brybsil,Utiarm,Eebligz,Iahzaarm,Stuikvact,Gobbrin,Ish,Suirx,Utha,Taxai,Onq,Stiaggaltia,Dobruing,Breshass,Cosvil,Traglila,Felhob,Hobgar,Preang,Sios,Wruilt,Chox,Pyreazzi,Glamzofs,Froihiofz,Givzieqee,Vreagaald,Bugbig,Kluirm,Ulb,Driord,Stroir,Croibieq,Bridvelb,Wrogdilk,Slukex,Ozbiard,Gagablin,Heszai,Kass,Chiafzia,Thresxea,Een,Oimzoishai,Enissee,Glernaahx,Qeerags,Phigheldai,Ziggek"},
+        {name: "Orc", i: 37, min: 4, max: 8, d: "gzrcu", m: 0, b: "ModhOdod,BodRugniz,Rildral,Zalbrez,Bebugh,Grurro,Ibruzzed,Goccogmurd,CheganKhed,BedgezGraz,IkhUgnan,NoGolkon,Dhezza,Chuccuz,Dribor,Khezdrugh,Uzdriboz,Nolgazgredh,KrogvurOz,ZrucraBi,ErLigvug,OkhUggekh,Vrobrun,Raggird,Adgoz,Chugga,Ghagrocroz,Khuldrerradh,IrmekhBhor,KuzgrurdDedh,ZunBergrord,AdhKhorkol,Alzokh,Mubror,Bozdra,Brugroz,Nuzecro,Qidzodkakh,GharedKrin,OrkudhBhur,EkhKrerdrugh,KrarZurmurd,Nuccag,Rezegh,Lorgran,Grergran,Nadguggez,Mocculdrer,BrorkrilZrog,RurguzVig,CharRodkeg,UghBhelgag,Zulbriz,Rodrekh,Erbragh,Bhicrur,Arkugzo,Arrordri,MiccolBurd,OddighKrodh,UghVruron,VrughNardrer,Dhoddud,Murmad,Chuzar,Vrazin,Ridgozedh,Lazzogno,MughakhChil,VrolburNur,KrighBhurdin,GhadhDrurzan,Adran,Chazgro,Krorgrug,Grodzakh,Ugrudraz,Iggulzaz,KudrukhLi,QuccuBan,GrighKaggaz,ArdGrughokh,Zolbred,Drozgrir,Agkadh,Zuggedh,Lulkore,Dhulbazzol,DhazonNer,ZrazzuzVaz,BrurKorre,EkhMezred,Vaddog,Drirdradh,Qashnagh,Arad,Zadarord,Khorbriccord,NelzorZroz,DruccoRad,DhodhBrerdrodh,BhakhZradgukh,Qirrer,Uzord,Bulbredh,Khuzdraz,Churgrorgadh,Legvicrodh,GazdrakhVrard,VagordKhod,GidhUcceg,BhogKirgol,Brogved,Aga,Kudzal,Brolzug,Ughudadh,Noshnogradh,ZubodUr,ZrulbukhDekh,ReVurkog,RoghChirzaz,Kharkiz,Bhogug,Bozziz,Vuccidh,Ruddirgrad,Zordrordud,GrirkrunQur,IbulBrad,AdAdzurd,GaghDruzred,Acran,Morbraz,Drurgin,Chogidh,Nogvolkar,Uzaggor,KazzuzZrar,ArrulChukh,DiChudun,GhoUgnud,Uzron,Uzdroz,Gholgard,Zragmukh,Qiddolzog,Reradgri,QiccadChal,NubudId,ZrardKrodog,KrudhKhogzokh,Vizdrun,Orrad,Darmon,Ulkin,Zigmorbredh,Bizzadurd,MuccugGhuz,MabraghBhard,DurKhaddol,BheghGegnod,Qazzudh,Drobagh,Zorrudh,Dodkakh,Gribrabrokh,Quggidkad,DududhAkh,DrizdedhAd,GhordBhozdrokh,ZadEzzedh,Larud,Ashnedh,Gridkog,Qirzodh,Bhirgoshbel,Ghirmarokh,ArizDru,AgzilGhal,DrodhAshnugh,UghErrod,Lugekh,Buccel,Rarurd,Verrugh,Qommorbrord,Bagzildre,NazadLudh,IbaghChol,GrazKhulgag,QigKrorkodh,Rozzez,Koggodh,Ruzgrin,Zrigud,Zragrizgrakh,Irdrelzug,VrurzarMol,KezulBruz,GurGhogkagh,KigRadkodh,Ulgor,Kroddadh,Eldrird,Bozgrun,Digzagkigh,Azrurdrekh,KhuzdordDugh,DhurkighGrer,MeGheggor,KoGerkradh,Bashnud,Nirdrukh,Adog,Egmod,Vruzzegvukh,Nagrubagh,DugkegVuz,MorkirZrudh,NudhKuldra,DhodhGhigin,Graldrodh,Rero,Merkraz,Ummo,Largraragh,Brordeggeg,UldrukhBhudh,DregvekhOg,GughZozgrod,GhidZrogiz,Khebun,Ordol,Ghadag,Dredagh,Bhiccozdur,Chizeril,KarkorZrid,EmmanMaz,LiBogzel,EkhBeccon,Dashnukh,Kacruz,Krummel,Dirdrurd,Khalbammedh,Dhizdrermodh,GharuZrug,BhurkrukhLen,ZuZredzokh,BralLazogh,Velgrudh,Dorgri,Irbraz,Udral,Bigkurel,Zarralkod,DhoggunBhogh,AdgrilGha,DrukhQodgoz,KaNube,Vrurgu,Mazgar,Lalga,Bolkan,Kudgroccukh,Zraldrozzuz,VorordUz,ZacradLe,BrukhZrabrul,GagDrugmag,Kraghird,Bhummagh,Brazadh,Kalbrugh,Brogzozir,Mugmodror,RezgrughErd,UmmughEkh,GuNuccul,VunGaghukh,Ghizgil,Arbran,Bulgragh,Negvidh,Girodgrurd,Ghedgrolbrol,DrogvukhDrodh,DhalgronMog,MulDhazzug,ChazCharard,Drurkuz,Niddeg,Bagguz,Ogkal,Rordrushnokh,Gorkozzil,KorkrirGrar,RigaghZrad"},
+        {name: "Giant", i: 38, min: 5, max: 10, d: "kdtng", m: 0, b: "Kostand,Throtrek,Solfod,Shurakzund,Heimfara,Anumush,Dulkun,Sigbeorn,Velhera,Glumvat,Khundinarg,Shathizdush,Baramunz,Nargunul,Magald,Noluch,Yotane,Tumunzar,Giledzir,Nurkel,Khizdabun,Yudgor,Hartreo,Galfald,Vigkan,Kibarak,Girkun,Gomruch,Guddud,Darnaric,Botharic,Gunargath,Oldstin,Rizen,Marbold,Nargundush,Hargarth,Kengord,Maerdis,Brerstin,Sigbi,Zigez,Umunzad,Nelkun,Yili,Usharar,Ranhera,Mistoch,Nuledzah,Nulbilnarg,Nulukkhur,Tulkug,Kigine,Marbrand,Gagkake,Khathizdin,Geru,Nagu,Grimor,Kaltoch,Koril,Druguk,Khatharbar,Debuch,Eraddam,Neliz,Brozu,Morluch,Enuz,Gatal,Beratira,Gurkale,Gluthmark,Iora,Tozage,Agane,Kegkez,Nuledzig,Bahourg,Jornangar,Kilfond,Dankuc,Rurki,Eldond,Barakzig,Olane,Gostuz,Grimtira,Brildung,Nulbaram,Nargabar,Narazar,Natan,oci,Khaziragz,Gabuzan,Orga,Addundad,Yulkake,Nulukkhaz,Bundushund,Guril,Barakinb,Sadgach,Vylwed,Vozig,Hildlaug,Chergun,Dagdhor,Kibizar,Shundushund,Mornkin,Jaldhor,inez,Lingarth,Churtec,Naragzah,Gabizir,Zugke,Ranava,Minu,Barazinb,Fynwyn,Talkale,Widhyrde,Sidga,Velfirth,Varkud,Shathola,Duhal,Srokvan,Guruge,Lindira,Rannerg,Kilkan,Gudgiz,Baragzund,Aerora,Inginy,Kharbharbiln,Theoddan,Rirkan,Undukkhil,Borgbert,Dina,Gortho,Kinbuzar,Kuzake,Drard,Gorkege,Nargatharb,Diru,Shatharbiz,Sgandrol,Sharakzar,Barakzinb,Dinez,Jarwar,Khizdushel,Wylaeya,Khazanar,Beornelde,Arangrim,Sholukkharb,Stighere,Gulwo,Irkin,Jornmoth,Gundusharb,Gabaram,Shizdinar,Memron,Guzi,Naramunz,Morntaric,Somrud,Norginny,Bremrol,Rurkoc,Zugkan,Vorkige,Kinbadab,Gila,Sulduch,Natil,Idgurth,Gabaragz,Tolkeg,Eradhelm,Dugfast,Froththorn,Galgrim,Theodgrim,Valdhere,Gazin,Tigkiz,Burthug,Chazruc,Kakkek,Toren"},
+        {name: "Draconic", i: 39, min: 6, max: 14, d: "aliuszrox", m: 0, b: "Aaronarra,Adalon,Adamarondor,Aeglyl,Aerosclughpalar,Aghazstamn,Aglaraerose,Agoshyrvor,Alduin,Alhazmabad,Altagos,Ammaratha,Amrennathed,Anaglathos,Andrathanach,Araemra,Araugauthos,Arauthator,Arharzel,Arngalor,Arveiaturace,Athauglas,Augaurath,Auntyrlothtor,Azarvilandral,Azhaq,Balagos,Baratathlaer,Bleucorundum,BrazzPolis,Canthraxis,Capnolithyl,Charvekkanathor,Chellewis,Chelnadatilar,Cirrothamalan,Claugiyliamatar,Cragnortherma,Dargentum,Dendeirmerdammarar,Dheubpurcwenpyl,Domborcojh,Draconobalen,Dragansalor,Dupretiskava,Durnehviir,Eacoathildarandus,Eldrisithain,Enixtryx,Eormennoth,Esmerandanna,Evenaelorathos,Faenphaele,Felgolos,Felrivenser,Firkraag,Fll'Yissetat,Furlinastis,Galadaeros,Galglentor,Garnetallisar,Garthammus,Gaulauntyr,Ghaulantatra,Glouroth,Greshrukk,Guyanothaz,Haerinvureem,Haklashara,Halagaster,Halaglathgar,Havarlan,Heltipyre,Hethcypressarvil,Hoondarrh,Icehauptannarthanyx,Iiurrendeem,Ileuthra,Iltharagh,Ingeloakastimizilian,Irdrithkryn,Ishenalyr,Iymrith,Jaerlethket,Jalanvaloss,Jhannexydofalamarne,Jharakkan,Kasidikal,Kastrandrethilian,Khavalanoth,Khuralosothantar,Kisonraathiisar,Kissethkashaan,Kistarianth,Klauth,Klithalrundrar,Krashos,Kreston,Kriionfanthicus,Krosulhah,Krustalanos,Kruziikrel,Kuldrak,Lareth,Latovenomer,Lhammaruntosz,Llimark,Ma'fel'no'sei'kedeh'naar,MaelestorRex,Magarovallanthanz,Mahatnartorian,Mahrlee,Malaeragoth,Malagarthaul,Malazan,Maldraedior,Maldrithor,MalekSalerno,Maughrysear,Mejas,Meliordianix,Merah,Mikkaalgensis,Mirmulnir,Mistinarperadnacles,Miteach,Mithbarazak,Morueme,Moruharzel,Naaslaarum,Nahagliiv,Nalavarauthatoryl,Naxorlytaalsxar,Nevalarich,Nolalothcaragascint,Nurvureem,Nymmurh,Odahviing,Olothontor,Ormalagos,Otaaryliakkarnos,Paarthurnax,Pelath,Pelendralaar,Praelorisstan,Praxasalandos,Protanther,Qiminstiir,Quelindritar,Ralionate,Rathalylaug,Rathguul,Rauglothgor,Raumorthadar,Relonikiv,Ringreemeralxoth,Roraurim,Ruuthundrarar,Rylatar'ralah'tyma,Rynnarvyx,Sablaxaahl,Sahloknir,Sahrotaar,Samdralyrion,Saryndalaghlothtor,Sawaka,Shalamalauth,Shammagar,Sharndrel,Shianax,Skarlthoon,Skurge,Smergadas,Ssalangan,Sssurist,Sussethilasis,Sylvallitham,Tamarand,Tantlevgithus,Taraunramorlamurla,Tarlacoal,Tenaarlaktor,Thalagyrt,Tharas'kalagram,Thauglorimorgorus,Thoklastees,Thyka,Tsenshivah,Ueurwen,Uinnessivar,Urnalithorgathla,Velcuthimmorhar,Velora,Vendrathdammarar,Venomindhar,Viinturuth,Voaraghamanthar,Voslaarum,Vr'tark,Vrondahorevos,Vuljotnaak,Vulthuryol,Wastirek,Worlathaugh,Xargithorvar,Xavarathimius,Yemere,Ylithargathril,Ylveraasahlisar,Za-Jikku,Zarlandris,Zellenesterex,Zilanthar,Zormapalearath,Zundaerazylym,Zz'Pzora"},
+        {name: "Arachnid", i: 40, min: 4, max: 10, d: "erlsk", m: 0, b: "Aaqok'ser,Acah,Aiced,Aisi,Aizachis,Allinqel,As'taq,Ashrash,Caaqtos,Caq'zux,Ceek'sax,Ceezuq,Cek'siereel,Cen'qi,Ceqru,Ceqzocer,Cezeed,Chachocaq,Charis,Chashar,Chashilieth,Checib,Chen'qal,Chernul,Cherzoq,Chezi,Chiazu,Chikoqal,Chishros,Chixhi,Chizhi,Chizoser,Chollash,Choq'sha,Chouk'rix,Cinchichail,Collul,Ecush'taid,Eenqachal,Ekiqe,El'zos,El'zur,Ellu,Eq'tur,Eqa,Eqas,Er'uria,Erikas,Ertu,Es'tase,Esrub,Evirrot,Exha,Haqsho,Heekath,Hiavheesh,Hitha,Hok'thi,Hossa,Iacid,Iciever,Ik'si,Illuq,Iri,Isicer,Isnir,Ivrid,Kaalzux,Keezut,Kheellavas,Kheizoh,Khellinqesh,Khiachod,Khika,Khinchi,Khirzur,Khivila,Khonrud,Khontid,Khosi,Khrakku,Khraqshis,Khrerrith,Khrethish'ti,Khriashus,Khrika,Khrirni,Khrocoqshesh,Klashirel,Klassa,Kleil'sha,Kliakis,Klishuth,Klith'osha,Krarnit,Kras'tex,Kreelzi,Krivas,Krotieqas,Laco,Lairta,Lais'tid,Laizuh,Lasnoth,Lekkol,Len'qeer,Leqanches,Lezad,Lhezsi,Lhilir,Lhivhath,Lhok'thu,Lialliesed,Liaraq,Liarisriq,Liceva,Lichorro,Lilla,Livorzish,Lokieqib,Nakar,Nakur,Naros,Natha,Necuk'saih,Neerhaca,Neet'er,Neezoh,Nenchiled,Nerhalneth,Nir'ih,Nizus,Noreeqo,Novalsher,On'qix,Qailloncho,Qak'sovo,Qalitho,Qartori,Qas'tor,Qasol,Qavrud,Qavud,Qazar,Qazieveq,Qazru,Qeik'thoth,Qekno,Qeqravee,Qes'tor,Qhaaviq,Qhaik'sal,Qhak'sish,Qhazsakais,Qhechorte,Qheliva,Qhenchaqes,Qherazal,Qhesoh,Qhiallud,Qhon'qos,Qhoshielleed,Qish'tur,Qisih,Qollal,Qorhoci,Qouxet,Qranchiq,Racith,Rak'zes,Ranchis,Rarhie,Rarzi,Rarzisiaq,Ras'tih,Ravosho,Recad,Rekid,Relshacash,Reqishee,Rernee,Rertachis,Rezhokketh,Reziel,Rhacish,Rhail'shel,Rhairhizse,Rhakivex,Rhaqeer,Rhartix,Rheciezsei,Rheevid,Rhel'shir,Rhetovraix,Rhevhie,Rhialzub,Rhiavekot,Rhikkos,Rhiqese,Rhiqi,Rhiqracar,Rhisned,Rhokno,Rhousnateb,Rhouvaqid,Riakeesnex,Rik'sid,Rintachal,Rir'ul,Rorrucis,Rosharhir,Rourk'u,Rouzakri,Sailiqei,Sanchiqed,Sanqad,Saqshu,Sat'ier,Sazi,Seiqas,Shieth'i,Shiqsheh,Shizha,Shrachuvo,Shranqo,Shravhos,Shravuth,Shreerhod,Shrethuh,Shriantieth,Shronqash,Shrovarhir,Shrozih,Siacaqoh,Siezosh,Silrul,Siq'sha,Sirro,Sornosi,Srachussi,Sreqrud,Srirnukaaq,Szaca,Szacih,Szaqova,Szasu,Szazhilos,Szeerrud,Szeezsad,Szeknur,Szesir,Szet'as,Szetirrar,Szezhirros,Szilshith,Szon'qol,Szornuq,Xaax'uq,Xeekke,Xosax,Yaconchi,Yacozses,Yazrer,Yeek'su,Yeeq'zox,Yeqil,Yeqroq,Yeveed,Yevied,Yicaveeh,Yirresh,Yisie,Yithik'thaih,Yorhaqshes,Zacheek'sa,Zakkasa,Zaqi,Zelraq,Zeqo,Zhaivoq,Zharuncho,Zhath'arhish,Zhavirrit,Zhazilraq,Zhazot,Zhazsachiel,Zhek'tha,Zhequ,Zhias'ted,Zhicat,Zhicur,Zhiese,Zhirhacil,Zhizri,Zhochizses,Zhorkir,Ziarih,Zirnib,Zis'teq,Zivezeh"},
+        {name: "Serpents", i: 41, min: 5, max: 11, d: "slrk", m: 0, b: "Aj'ha,Aj'i,Aj'tiss,Ajakess,Aksas,Aksiss,Al'en,An'jeshe,Apjige,Arkkess,Athaz,Atus,Azras,Caji,Cakrasar,Cal'arrun,Capji,Cathras,Cej'han,Ces,Cez'jenta,Cij'te,Cinash,Cizran,Coth'jus,Cothrash,Culzanek,Cunaless,Ej'tesh,Elzazash,Ergek,Eshjuk,Ethris,Gan'jas,Gapja,Gar'thituph,Gopjeguss,Gor'thesh,Gragishaph,Grar'theness,Grath'ji,Gressinas,Grolzesh,Grorjar,Grozrash,Guj'ika,Harji,Hej'hez,Herkush,Horgarrez,Illuph,Ipjar,Ithashin,Kaj'ess,Kar'kash,Kepjusha,Ki'kintus,Kissere,Koph,Kopjess,Kra'kasher,Krak,Krapjez,Krashjuless,Kraz'ji,Krirrigis,Krussin,Ma'lush,Mage,Maj'tak,Mal'a,Mapja,Mar'kash,Mar'kis,Marjin,Mas,Mathan,Men'jas,Meth'jaresh,Mij'hegak,Min'jash,Mith'jas,Monassu,Moss,Naj'hass,Najugash,Nak,Napjiph,Nar'ka,Nar'thuss,Narrusha,Nash,Nashjekez,Nataph,Nij'ass,Nij'tessiph,Nishjiss,Norkkuss,Nus,Olluruss,Or'thi,Or'thuss,Paj'a,Parkka,Pas,Pathujen,Paz'jaz,Pepjerras,Pirkkanar,Pituk,Porjunek,Pu'ke,Ragen,Ran'jess,Rargush,Razjuph,Rilzan,Riss,Rithruz,Rorgiss,Rossez,Rraj'asesh,Rraj'tass,Rrar'kess,Rrar'thuph,Rras,Rrazresh,Rrej'hish,Rrigelash,Rris,Rris,Rroksurrush,Rukrussush,Rurri,Russa,Ruth'jes,Sa'kitesh,Sar'thass,Sarjas,Sazjuzush,Ser'thez,Sezrass,Shajas,Shas,Shashja,Shass,Shetesh,Shijek,Shun'jaler,Shurjarri,Skaler,Skalla,Skallentas,Skaph,Skar'kerriz,Skath'jeruk,Sker'kalas,Skor,Skoz'ji,Sku'lu,Skuph,Skur'thur,Slalli,Slalt'har,Slelziress,Slil'ar,Sloz'jisa,Sojesh,Solle,Sorge,Sral'e,Sran'ji,Srapjess,Srar'thazur,Srash,Srath'jess,Srathrarre,Srerkkash,Srus,Sruss'tugeph,Sun,Suss'tir,Uzrash,Vargush,Vek,Vess'tu,Viph,Vult'ha,Vupjer,Vushjesash,Xagez,Xassa,Xulzessu,Zaj'tiss,Zan'jer,Zarriss,Zassegus,Zirres,Zsor,Zurjass"}
+      ];
+    };
+
+    return {
+      getBase,
+      getCulture,
+      getCultureShort,
+      getBaseShort,
+      getState,
+      updateChain,
+      clearChains,
+      getNameBases,
+      getMapName,
+      calculateChain,
+    };
+  })();
+
+  Cultures = (() => {
+    let cells = this.cells;
+    let pack = this.pack;
+    let rand = this.rand;
+    let P = this.P;
+    let active = false;
+
+    // expand cultures across the map (Dijkstra-like algorithm)
+    const expand = () => {
+      console.time("expandCultures");
+      cells = this.pack.cells;
+
+      const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
+      this.pack.cultures.forEach(function (c) {
+        if (!c.i || c.removed) return;
+        queue.queue({ e: c.center, p: 0, c: c.i });
+      });
+
+      const neutral = (cells.i.length / 5000) * 3000 * this.neutralInput; // limit cost for culture growth
+      const cost = [];
+      while (queue.length) {
+        const next = queue.dequeue(),
+          n = next.e,
+          p = next.p,
+          c = next.c;
+        const type = this.pack.cultures[c].type;
+        cells.c[n].forEach(function (e) {
+          const biome = cells.biome[e];
+          const biomeCost = getBiomeCost(c, biome, type);
+          const biomeChangeCost = biome === cells.biome[n] ? 0 : 20; // penalty on biome change
+          const heightCost = getHeightCost(e, cells.h[e], type);
+          const riverCost = getRiverCost(cells.r[e], e, type);
+          const typeCost = getTypeCost(cells.t[e], type);
+          const totalCost =
+            p +
+            (biomeCost + biomeChangeCost + heightCost + riverCost + typeCost) /
+              pack.cultures[c].expansionism;
+
+          if (totalCost > neutral) return;
+
+          if (!cost[e] || totalCost < cost[e]) {
+            if (cells.s[e] > 0) cells.culture[e] = c; // assign culture to populated cell
+            cost[e] = totalCost;
+            queue.queue({ e, p: totalCost, c });
+          }
+        });
+      }
+
+      console.timeEnd("expandCultures");
+    };
+
+    const getBiomeCost = (c, biome, type) => {
+      if (cells.biome[pack.cultures[c].center] === biome) return 10; // tiny penalty for native biome
+      if (type === "Hunting") return this.biomesData.cost[biome] * 5; // non-native biome penalty for hunters
+      if (type === "Nomadic" && biome > 4 && biome < 10)
+        return this.biomesData.cost[biome] * 10; // forest biome penalty for nomads
+      return this.biomesData.cost[biome] * 2; // general non-native biome penalty
+    };
+
+    function getHeightCost(i, h, type) {
+      const f = pack.features[cells.f[i]],
+        a = cells.area[i];
+      if (type === "Lake" && f.type === "lake") return 10; // no lake crossing penalty for Lake cultures
+      if (type === "Naval" && h < 20) return a * 2; // low sea/lake crossing penalty for Naval cultures
+      if (type === "Nomadic" && h < 20) return a * 50; // giant sea/lake crossing penalty for Nomads
+      if (h < 20) return a * 6; // general sea/lake crossing penalty
+      if (type === "Highland" && h < 44) return 3000; // giant penalty for highlanders on lowlands
+      if (type === "Highland" && h < 62) return 200; // giant penalty for highlanders on lowhills
+      if (type === "Highland") return 0; // no penalty for highlanders on highlands
+      if (h >= 67) return 200; // general mountains crossing penalty
+      if (h >= 44) return 30; // general hills crossing penalty
+      return 0;
+    }
+
+    function getRiverCost(r, i, type) {
+      if (type === "River") return r ? 0 : 100; // penalty for river cultures
+      if (!r) return 0; // no penalty for others if there is no river
+      return Math.min(Math.max(cells.fl[i] / 10, 20), 100); // river penalty from 20 to 100 based on flux
+    }
+
+    function getTypeCost(t, type) {
+      if (t === 1)
+        return type === "Naval" || type === "Lake"
+          ? 0
+          : type === "Nomadic"
+          ? 60
+          : 20; // penalty for coastline
+      if (t === 2) return type === "Naval" || type === "Nomadic" ? 30 : 0; // low penalty for land level 2 for Navals and nomads
+      if (t !== -1) return type === "Naval" || type === "Lake" ? 100 : 0; // penalty for mainland for navals
+      return 0;
+    }
+
+    const getRandomShield = () => {
+      const type = this.rw(this.COA.shields.types);
+      return this.rw(this.COA.shields[type]);
+    };
+    // calculate states data like area, population etc.
+    const collectStatistics = () => {
+      console.log("Culture Statistics");
+      const cells = this.pack.cells,
+        cultures = this.pack.cultures;
+      cultures.forEach((s) => {
+        if (s.removed) return;
+        s.cells = s.area = s.burgs = s.rural = s.urban = 0;
+        s.neighbors = new Set();
+      });
+      for (const i of cells.i) {
+        if (cells.h[i] < 20) continue;
+        const s = cells.culture[i];
+
+        // check for neighboring cultures
+        cells.c[i]
+          .filter((c) => cells.h[c] >= 20 && cells.culture[c] !== s)
+          .forEach((c) => cultures[s].neighbors.add(cells.culture[c]));
+
+        // collect stats
+        cultures[s].cells += 1;
+        cultures[s].area += cells.area[i];
+        cultures[s].rural += cells.pop[i];
+        if (cells.burg[i]) {
+          cultures[s].urban += this.pack.burgs[cells.burg[i]].population;
+          cultures[s].burgs++;
+        }
+      }
+
+      // convert neighbors Set object into array
+      cultures.forEach((s) => {
+        if (!s.neighbors) return;
+        s.neighbors = Array.from(s.neighbors);
+      });
+    };
+
+    const toggle = (bool = null) => {
+      if (bool == null) active = !active;
+      else active = bool;
+      if (active) {
+        this.Religions.toggle(0);
+        this.toggleBiomes(0);
+        this.BurgsAndStates.toggle(0);
+      }
+      const cultures = this.pack.cultures.filter((c) => c.i && !c.removed);
+      const empty = !this.cults.selectAll("path").size();
+      if (empty && cultures.length && active) {
+        this.drawCultures();
+        localStorage.setItem("activeLayer", "2");
+      } else {
+        this.cults.selectAll("path").remove();
+        if (this.activeLayer == 2) this.activeLayer = null;
+      }
+      this.updateSVG();
+    };
+    return { expand, getRandomShield, collectStatistics, toggle, active };
+  })();
+
+  COA = (() => {
+    const getShield = (culture, state) => {
+      const emblemShape = <HTMLSelectElement>(
+        document.getElementById("emblemShape")
+      );
+      const shapeGroup =
+        (<any>emblemShape.selectedOptions[0]?.parentNode).label ||
+        "Diversiform";
+      if (shapeGroup !== "Diversiform") return emblemShape.value;
+
+      if (emblemShape.value === "state" && state && this.pack.states[state].coa)
+        return this.pack.states[state].coa.shield;
+      if (this.pack.cultures[culture].shield)
+        return this.pack.cultures[culture].shield;
+      console.error(
+        "Shield shape is not defined on culture level",
+        this.pack.cultures[culture]
+      );
+      return "heater";
+    };
+
+    const toString = (coa) => JSON.stringify(coa).replaceAll("#", "%23");
+    const copy = (coa) => JSON.parse(JSON.stringify(coa));
+
+    return { toString, copy, getShield, shields };
+  })();
+
+  Routes = (() => {
+    const draw = (main, small, water) => {
+      console.time("drawRoutes");
+      const { cells, burgs } = this.pack;
+      const { burg, p } = cells;
+
+      const getBurgCoords = (b) => [burgs[b].x, burgs[b].y];
+      const getPathPoints = (cells) =>
+        cells.map((i) =>
+          Array.isArray(i) ? i : burg[i] ? getBurgCoords(burg[i]) : p[i]
+        );
+      const getPath = (segment) =>
+        Math.round(this.lineGen(getPathPoints(segment)));
+      const getPathsHTML = (paths, type) =>
+        paths
+          .map((path, i) => `<path id="${type}${i}" d="${getPath(path)}" />`)
+          .join("");
+
+      this.lineGen.curve(d3.curveCatmullRom.alpha(0.1));
+      this.roads.html(getPathsHTML(main, "road"));
+      this.trails.html(getPathsHTML(small, "trail"));
+
+      this.lineGen.curve(d3.curveBundle.beta(1));
+      this.searoutes.html(getPathsHTML(water, "searoute"));
+
+      console.timeEnd("drawRoutes");
+    };
+    return { draw };
+  })();
+
+  BurgsAndStates = (() => {
+    let gauss = this.gauss;
+    let getMiddlePoint = this.getMiddlePoint;
+    let grid = this.grid;
+    let rn = this.rn;
+    let graphWidth = this.graphWidth;
+    let graphHeight = this.graphHeight;
+    let manorsInput = this.manorsInput;
+    let pack = this.pack;
+    let COA = this.COA;
+    let P = this.P;
+    let burgIcons = this.burgIcons;
+    let burgLabels = this.burgLabels;
+    let icons = this.icons;
+    let anchors = this.anchors;
+    let biomesData = this.biomesData;
+    let findCell = this.findCell;
+    let common = this.common;
+    let defs = this.defs;
+    let labels = this.labels;
+    let toggleLabels = this.toggleLabels;
+    let splitInTwo = this.splitInTwo;
+    let getRandomColor = this.getRandomColor;
+    let getMixedColor = this.getMixedColor;
+    let Names = this.Names;
+    let getAdjective = this.getAdjective;
+    let options = this.options;
+    let rw = this.rw;
+    let trimVowels = this.trimVowels;
+    let ra = this.ra;
+    let active = false;
+
+    const getType = function (i, port) {
+      const cells = pack.cells;
+      if (port) return "Naval";
+      if (
+        cells.haven[i] &&
+        pack.features[cells.f[cells.haven[i]]].type === "lake"
+      )
+        return "Lake";
+      if (cells.h[i] > 60) return "Highland";
+      if (
+        cells.r[i] &&
+        cells.r[i].length > 100 &&
+        cells.r[i].length >= pack.rivers[0].length
+      )
+        return "River";
+
+      if (!cells.burg[i] || pack.burgs[cells.burg[i]].population < 6) {
+        if (this.population < 5 && [1, 2, 3, 4].includes(cells.biome[i]))
+          return "Nomadic";
+        if (cells.biome[i] > 4 && cells.biome[i] < 10) return "Hunting";
+      }
+
+      return "Generic";
+    };
+
+    const defineBurgFeatures = function (newburg) {
+      const cells = pack.cells;
+      pack.burgs
+        .filter((b) => (newburg ? b.i == newburg.i : b.i && !b.removed))
+        .forEach((b) => {
+          const pop = b.population;
+          b.citadel = b.capital || (pop > 50 && P(0.75)) || P(0.5) ? 1 : 0;
+          b.plaza =
+            pop > 50 || (pop > 30 && P(0.75)) || (pop > 10 && P(0.5)) || P(0.25)
+              ? 1
+              : 0;
+          b.walls =
+            b.capital ||
+            pop > 30 ||
+            (pop > 20 && P(0.75)) ||
+            (pop > 10 && P(0.5)) ||
+            P(0.2)
+              ? 1
+              : 0;
+          b.shanty =
+            pop > 30 || (pop > 20 && P(0.75)) || (b.walls && P(0.75)) ? 1 : 0;
+          const religion = cells.religion[b.cell];
+          const theocracy = pack.states[b.state].form === "Theocracy";
+          b.temple =
+            (religion && theocracy) ||
+            pop > 50 ||
+            (pop > 35 && P(0.75)) ||
+            (pop > 20 && P(0.5))
+              ? 1
+              : 0;
+        });
+    };
+
+    const drawBurgs = function () {
+      console.time("drawBurgs");
+
+      // remove old data
+      burgIcons.selectAll("circle").remove();
+      burgLabels.selectAll("text").remove();
+      icons.selectAll("use").remove();
+
+      // capitals
+      const capitals = pack.burgs.filter((b) => b.capital);
+      const capitalIcons = burgIcons.select("#cities");
+      const capitalLabels = burgLabels.select("#cities");
+      const capitalSize = capitalIcons.attr("size") || 1;
+      const capitalAnchors = anchors.selectAll("#cities");
+      const caSize = capitalAnchors.attr("size") || 2;
+
+      capitalIcons
+        .selectAll("circle")
+        .data(capitals)
+        .enter()
+        .append("circle")
+        .attr("id", (d) => "burg" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("cx", (d) => d.x)
+        .attr("cy", (d) => d.y)
+        .attr("r", capitalSize);
+
+      capitalLabels
+        .selectAll("text")
+        .data(capitals)
+        .enter()
+        .append("text")
+        .attr("id", (d) => "burgLabel" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => d.x)
+        .attr("y", (d) => d.y)
+        .attr("dy", `${capitalSize * -1.5}px`)
+        .text((d) => d.name);
+
+      capitalAnchors
+        .selectAll("use")
+        .data(capitals.filter((c) => c.port))
+        .enter()
+        .append("use")
+        .attr("xlink:href", "#icon-anchor")
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => rn(d.x - caSize * 0.47, 2))
+        .attr("y", (d) => rn(d.y - caSize * 0.47, 2))
+        .attr("width", caSize)
+        .attr("height", caSize);
+
+      // towns
+      const towns = pack.burgs.filter((b) => b.i && !b.capital);
+      const townIcons = burgIcons.select("#towns");
+      const townLabels = burgLabels.select("#towns");
+      const townSize = townIcons.attr("size") || 0.5;
+      const townsAnchors = anchors.selectAll("#towns");
+      const taSize = townsAnchors.attr("size") || 1;
+
+      townIcons
+        .selectAll("circle")
+        .data(towns)
+        .enter()
+        .append("circle")
+        .attr("id", (d) => "burg" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("cx", (d) => d.x)
+        .attr("cy", (d) => d.y)
+        .attr("r", townSize);
+
+      townLabels
+        .selectAll("text")
+        .data(towns)
+        .enter()
+        .append("text")
+        .attr("id", (d) => "burgLabel" + d.i)
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => d.x)
+        .attr("y", (d) => d.y)
+        .attr("dy", `${townSize * -1.5}px`)
+        .text((d) => d.name);
+
+      townsAnchors
+        .selectAll("use")
+        .data(towns.filter((c) => c.port))
+        .enter()
+        .append("use")
+        .attr("xlink:href", "#icon-anchor")
+        .attr("data-id", (d) => d.i)
+        .attr("x", (d) => rn(d.x - taSize * 0.47, 2))
+        .attr("y", (d) => rn(d.y - taSize * 0.47, 2))
+        .attr("width", taSize)
+        .attr("height", taSize);
+
+      console.timeEnd("drawBurgs");
+    };
+
+    // growth algorithm to assign cells to states like we did for cultures
+    const expandStates = () => {
+      console.time("expandStates");
+      const { cells, states, cultures, burgs } = this.pack;
+      const biomesData = this.biomesData;
+      cells.state = new Uint16Array(cells.i.length);
+      const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
+      const cost = [];
+      const neutral = (cells.i.length / 5000) * 2500 * this.neutralInput * 1;
+      //this.statesNeutral.value; // limit cost for state growth
+
+      states
+        .filter((s) => s.i && !s.removed)
+        .forEach((s) => {
+          const capitalCell = burgs[s.capital].cell;
+          cells.state[capitalCell] = s.i;
+          const cultureCenter = cultures[s.culture].center;
+          const b = cells.biome[cultureCenter]; // state native biome
+          queue.queue({ e: s.center, p: 0, s: s.i, b });
+          cost[s.center] = 1;
+        });
+
+      while (queue.length) {
+        const next = queue.dequeue();
+        const { e, p, s, b } = next;
+        const { type, culture } = states[s];
+
+        cells.c[e].forEach((e) => {
+          if (cells.state[e] && e === states[cells.state[e]].center) return; // do not overwrite capital cells
+
+          const cultureCost = culture === cells.culture[e] ? -9 : 100;
+          const populationCost =
+            cells.h[e] < 20
+              ? 0
+              : cells.s[e]
+              ? Math.max(20 - cells.s[e], 0)
+              : 5000;
+          const biomeCost = getBiomeCost(b, cells.biome[e], type);
+          const heightCost = getHeightCost(
+            this.pack.features[cells.f[e]],
+            cells.h[e],
+            type
+          );
+          const riverCost = getRiverCost(cells.r[e], e, type);
+          const typeCost = getTypeCost(cells.t[e], type);
+          const cellCost = Math.max(
+            cultureCost +
+              populationCost +
+              biomeCost +
+              heightCost +
+              riverCost +
+              typeCost,
+            0
+          );
+          const totalCost = p + 10 + cellCost / states[s].expansionism;
+
+          if (totalCost > neutral) return;
+
+          if (!cost[e] || totalCost < cost[e]) {
+            if (cells.h[e] >= 20) cells.state[e] = s; // assign state to cell
+            cost[e] = totalCost;
+            queue.queue({ e, p: totalCost, s, b });
+          }
+        });
+      }
+
+      burgs
+        .filter((b) => b.i && !b.removed)
+        .forEach((b) => (b.state = cells.state[b.cell])); // assign state to burgs
+
+      function getBiomeCost(b, biome, type) {
+        if (b === biome) return 10; // tiny penalty for native biome
+        if (type === "Hunting") return biomesData.cost[biome] * 2; // non-native biome penalty for hunters
+        if (type === "Nomadic" && biome > 4 && biome < 10)
+          return biomesData.cost[biome] * 3; // forest biome penalty for nomads
+        return biomesData.cost[biome]; // general non-native biome penalty
+      }
+
+      function getHeightCost(f, h, type) {
+        if (type === "Lake" && f.type === "lake") return 10; // low lake crossing penalty for Lake cultures
+        if (type === "Naval" && h < 20) return 300; // low sea crossing penalty for Navals
+        if (type === "Nomadic" && h < 20) return 10000; // giant sea crossing penalty for Nomads
+        if (h < 20) return 1000; // general sea crossing penalty
+        if (type === "Highland" && h < 62) return 1100; // penalty for highlanders on lowlands
+        if (type === "Highland") return 0; // no penalty for highlanders on highlands
+        if (h >= 67) return 2200; // general mountains crossing penalty
+        if (h >= 44) return 300; // general hills crossing penalty
+        return 0;
+      }
+
+      function getRiverCost(r, i, type) {
+        if (type === "River") return r ? 0 : 100; // penalty for river cultures
+        if (!r) return 0; // no penalty for others if there is no river
+        return Math.min(Math.max(cells.fl[i] / 10, 20), 100); // river penalty from 20 to 100 based on flux
+      }
+
+      function getTypeCost(t, type) {
+        if (t === 1)
+          return type === "Naval" || type === "Lake"
+            ? 0
+            : type === "Nomadic"
+            ? 60
+            : 20; // penalty for coastline
+        if (t === 2) return type === "Naval" || type === "Nomadic" ? 30 : 0; // low penalty for land level 2 for Navals and nomads
+        if (t !== -1) return type === "Naval" || type === "Lake" ? 100 : 0; // penalty for mainland for navals
+        return 0;
+      }
+
+      console.timeEnd("expandStates");
+    };
+
+    const normalizeStates = function () {
+      console.time("normalizeStates");
+      const cells = pack.cells,
+        burgs = pack.burgs;
+
+      for (const i of cells.i) {
+        if (cells.h[i] < 20 || cells.burg[i]) continue; // do not overwrite burgs
+        if (cells.c[i].some((c) => burgs[cells.burg[c]].capital)) continue; // do not overwrite near capital
+        const neibs = cells.c[i].filter((c) => cells.h[c] >= 20);
+        const adversaries = neibs.filter(
+          (c) => cells.state[c] !== cells.state[i]
+        );
+        if (adversaries.length < 2) continue;
+        const buddies = neibs.filter((c) => cells.state[c] === cells.state[i]);
+        if (buddies.length > 2) continue;
+        if (adversaries.length <= buddies.length) continue;
+        cells.state[i] = cells.state[adversaries[0]];
+      }
+      console.timeEnd("normalizeStates");
+    };
+
+    // Resets the cultures of all burgs and states to their
+    // cell or center cell's (respectively) culture.
+    const updateCultures = function () {
+      console.time("updateCulturesForBurgsAndStates");
+
+      // Assign the culture associated with the burgs cell.
+      pack.burgs = pack.burgs.map((burg, index) => {
+        // Ignore metadata burg
+        if (index === 0) {
+          return burg;
+        }
+        return { ...burg, culture: pack.cells.culture[burg.cell] };
+      });
+
+      // Assign the culture associated with the states' center cell.
+      pack.states = pack.states.map((state, index) => {
+        // Ignore neutrals state
+        if (index === 0) {
+          return state;
+        }
+        return { ...state, culture: pack.cells.culture[state.center] };
+      });
+
+      console.timeEnd("updateCulturesForBurgsAndStates");
+    };
+
+    // calculate and draw curved state labels for a list of states
+    const drawStateLabels = () => {
+      console.time("drawStateLabels");
+      const { cells, features, states } = this.pack;
+      const paths = []; // text paths
+      let lineGen = this.lineGen;
+      let round = this.round;
+      this.lineGen.curve(d3.curveBundle.beta(1));
+
+      console.log("retrievePole");
+      for (const s of states) {
+        if (s.i == 0) continue;
+        const used = [];
+        const visualCenter = findCell(s.pole[0], s.pole[1]);
+        const start =
+          cells.state[visualCenter] === s.i ? visualCenter : s.center;
+        const hull = getHull(start, s.i, s.cells / 10);
+        const points = [...hull].map((v: number) => this.pack.vertices.p[v]);
+        const delaunay = Delaunator.from(points);
+        const voronoi = new Voronoi(delaunay, points, points.length);
+        const chain = connectCenters(voronoi.vertices, s.pole[1]);
+        const relaxed = chain
+          .map((i) => voronoi.vertices.p[i])
+          .filter((p, i) => i % 15 === 0 || i + 1 === chain.length);
+        paths.push([s.i, relaxed]);
+
+        function getHull(start, state, maxLake) {
+          const queue = [start],
+            hull = new Set();
+
+          while (queue.length) {
+            const q = queue.pop();
+            const nQ = cells.c[q].filter((c) => cells.state[c] === state);
+
+            cells.c[q].forEach(function (c, d) {
+              const passableLake =
+                features[cells.f[c]].type === "lake" &&
+                features[cells.f[c]].cells < maxLake;
+              if (cells.b[c] || (cells.state[c] !== state && !passableLake)) {
+                hull.add(cells.v[q][d]);
+                return;
+              }
+              const nC = cells.c[c].filter((n) => cells.state[n] === state);
+              const intersected = common(nQ, nC).length;
+              if (hull.size > 20 && !intersected && !passableLake) {
+                hull.add(cells.v[q][d]);
+                return;
+              }
+              if (used[c]) return;
+              used[c] = 1;
+              queue.push(c);
+            });
+          }
+
+          return hull;
+        }
+
+        function connectCenters(c, y) {
+          // check if vertex is inside the area
+          const inside = c.p.map(function (p) {
+            if (
+              p[0] <= 0 ||
+              p[1] <= 0 ||
+              p[0] >= graphWidth ||
+              p[1] >= graphHeight
+            )
+              return false; // out of the screen
+            return used[findCell(p[0], p[1])];
+          });
+
+          const pointsInside = d3
+            .range(c.p.length)
+            .filter((i: number) => inside[i]);
+          if (!pointsInside.length) return [0];
+          const h = c.p.length < 200 ? 0 : c.p.length < 600 ? 0.5 : 1; // power of horyzontality shift
+          const end =
+            pointsInside[
+              d3.scan(
+                pointsInside,
+                (a, b) =>
+                  c.p[a][0] -
+                  c.p[b][0] +
+                  (Math.abs(c.p[a][1] - y) - Math.abs(c.p[b][1] - y)) * h
+              )
+            ]; // left point
+          const start =
+            pointsInside[
+              d3.scan(
+                pointsInside,
+                (a, b) =>
+                  c.p[b][0] -
+                  c.p[a][0] -
+                  (Math.abs(c.p[b][1] - y) - Math.abs(c.p[a][1] - y)) * h
+              )
+            ]; // right point
+
+          // connect leftmost and rightmost points with shortest path
+          const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
+          const cost = [],
+            from = [];
+          queue.queue({ e: start, p: 0 });
+
+          while (queue.length) {
+            const next = queue.dequeue(),
+              n = next.e,
+              p = next.p;
+            if (n === end) break;
+
+            for (const v of c.v[n]) {
+              if (v === -1) continue;
+              const totalCost = p + (inside[v] ? 1 : 100);
+              if (from[v] || totalCost >= cost[v]) continue;
+              cost[v] = totalCost;
+              from[v] = n;
+              queue.queue({ e: v, p: totalCost });
+            }
+          }
+
+          // restore path
+          const chain = [end];
+          let cur = end;
+          while (cur !== start) {
+            cur = from[cur];
+            if (inside[cur]) chain.push(cur);
+          }
+          return chain;
+        }
+      }
+      let labels = this.labels;
+      let defs = this.defs;
+      let pack = this.pack;
+      void (function drawLabels() {
+        const g = labels.select("#states");
+        const t = defs.select("#textPaths");
+
+        g.selectAll("text").remove();
+        t.selectAll("path[id*='stateLabel']").remove();
+        labels.select("#cultures").selectAll("text").remove();
+        t.selectAll("path[id*='cultureLabel']").remove();
+        labels.select("#religions").selectAll("text").remove();
+        t.selectAll("path[id*='religionLabel']").remove();
+
+        const example = g
+          .append("text")
+          .attr("x", 0)
+          .attr("x", 0)
+          .text("Average");
+        const letterLength = example.node().getComputedTextLength() / 7; // average length of 1 letter
+        paths.forEach((p) => {
+          const id = p[0];
+          const s = states[p[0]];
+
+          // if (list) {
+          //   t.select("#textPath_stateLabel" + id).remove();
+          //   g.select("#stateLabel" + id).remove();
+          // }
+
+          const path =
+            p[1].length > 1
+              ? lineGen(p[1])
+              : `M${p[1][0][0] - 50},${p[1][0][1]}h${100}`;
+          const textPath = t
+            .append("path")
+            .attr("d", path)
+            .attr("id", "textPath_stateLabel" + id);
+          const pathLength =
+            p[1].length > 1
+              ? textPath.node().getTotalLength() / letterLength
+              : 0; // path length in letters
+
+          let lines = [];
+          let ratio = 100;
+
+          if (pathLength < s.name.length) {
+            // only short name will fit
+            lines = splitInTwo(s.name);
+            ratio = Math.max(
+              Math.min(rn((pathLength / lines[0].length) * 60), 150),
+              50
+            );
+          } else if (pathLength > s.fullName.length * 2.5) {
+            // full name will fit in one line
+            lines = [s.fullName];
+            ratio = Math.max(
+              Math.min(rn((pathLength / lines[0].length) * 70), 170),
+              70
+            );
+          } else {
+            // try miltilined label
+            lines = splitInTwo(s.fullName);
+            ratio = Math.max(
+              Math.min(rn((pathLength / lines[0].length) * 60), 150),
+              70
+            );
+          }
+
+          // prolongate path if it's too short
+          if (pathLength && pathLength < lines[0].length) {
+            const points = p[1];
+            const f = points[0];
+            const l = points[points.length - 1];
+            const [dx, dy] = [l[0] - f[0], l[1] - f[1]];
+            const mod = Math.abs((letterLength * lines[0].length) / dx) / 2;
+            points[0] = [rn(f[0] - dx * mod), rn(f[1] - dy * mod)];
+            points[points.length - 1] = [
+              rn(l[0] + dx * mod),
+              rn(l[1] + dy * mod),
+            ];
+            textPath.attr("d", round(lineGen(points)));
+          }
+
+          example.attr("font-size", ratio + "%");
+          const top = (lines.length - 1) / -2; // y offset
+          const spans = lines.map((l, d) => {
+            example.text(l);
+            const left = example.node().getBBox().width / -2; // x offset
+            return `<tspan x="${left}px" dy="${d ? 1 : top}em">${l}</tspan>`;
+          });
+
+          const el = g
+            .append("text")
+            .attr("id", "stateLabel" + id)
+            .append("textPath")
+            .attr("xlink:href", "#textPath_stateLabel" + id)
+            .attr("startOffset", "50%")
+            .attr("font-size", ratio + "%")
+            .node();
+
+          el.insertAdjacentHTML("afterbegin", spans.join(""));
+          if (lines.length < 2) return;
+
+          // check whether multilined label is generally inside the state. If no, replace with short name label
+          const cs = pack.cells.state;
+          const b = el.parentNode.getBBox();
+          const c1 = (): any => +cs[findCell(b.x, b.y)] === id;
+          const c2 = (): any => +cs[findCell(b.x + b.width / 2, b.y)] === id;
+          const c3 = () => +cs[findCell(b.x + b.width, b.y)] === id;
+          const c4 = () => +cs[findCell(b.x + b.width, b.y + b.height)] === id;
+          const c5 = () =>
+            +cs[findCell(b.x + b.width / 2, b.y + b.height)] === id;
+          const c6 = () => +cs[findCell(b.x, b.y + b.height)] === id;
+          if (c1() + c2() + c3() + c4() + c5() + c6() > 3) return; // generally inside
+
+          // use one-line name
+          const name =
+            pathLength > s.fullName.length * 1.8 ? s.fullName : s.name;
+          example.text(name);
+          const left = example.node().getBBox().width / -2; // x offset
+          el.innerHTML = `<tspan x="${left}px">${name}</tspan>`;
+          ratio = Math.max(
+            Math.min(rn((pathLength / name.length) * 60), 130),
+            40
+          );
+          el.setAttribute("font-size", ratio + "%");
+        });
+
+        example.remove();
+        // if (!displayed) toggleLabels();
+      })();
+
+      console.timeEnd("drawStateLabels");
+    };
+
+    // calculate states data like area, population etc.
+    const collectStatistics = function () {
+      console.time("collectStatistics");
+      console.log("State Statistics");
+      const cells = pack.cells,
+        states = pack.states;
+      states.forEach((s) => {
+        if (s.removed) return;
+        s.cells = s.area = s.burgs = s.rural = s.urban = 0;
+        s.neighbors = new Set();
+      });
+
+      for (const i of cells.i) {
+        if (cells.h[i] < 20) continue;
+        const s = cells.state[i];
+
+        // check for neighboring states
+        cells.c[i]
+          .filter((c) => cells.h[c] >= 20 && cells.state[c] !== s)
+          .forEach((c) => states[s].neighbors.add(cells.state[c]));
+
+        // collect stats
+        states[s].cells += 1;
+        states[s].area += cells.area[i];
+        states[s].rural += cells.pop[i];
+        if (cells.burg[i]) {
+          states[s].urban += pack.burgs[cells.burg[i]].population;
+          states[s].burgs++;
+        }
+      }
+
+      // convert neighbors Set object into array
+      states.forEach((s) => {
+        if (!s.neighbors) return;
+        s.neighbors = Array.from(s.neighbors);
+      });
+
+      console.timeEnd("collectStatistics");
+    };
+
+    const assignColors = function () {
+      console.time("assignColors");
+      const colors = [
+        "#66c2a5",
+        "#fc8d62",
+        "#8da0cb",
+        "#e78ac3",
+        "#a6d854",
+        "#ffd92f",
+      ]; // d3.schemeSet2;
+
+      // assin basic color using greedy coloring algorithm
+      pack.states.forEach((s) => {
+        if (!s.i || s.removed) return;
+        const neibs = s.neighbors;
+        s.color = colors.find((c) =>
+          neibs.every((n) => pack.states[n].color !== c)
+        );
+        if (!s.color) s.color = getRandomColor();
+        colors.push(colors.shift());
+      });
+
+      // randomize each already used color a bit
+      colors.forEach((c) => {
+        const sameColored = pack.states.filter((s) => s.color === c);
+        sameColored.forEach((s, d) => {
+          if (!d) return;
+          s.color = getMixedColor(s.color);
+        });
+      });
+
+      console.timeEnd("assignColors");
+    };
+
+    // generate historical conflicts of each state
+    const generateCampaigns = function () {
+      const wars = {
+        War: 6,
+        Conflict: 2,
+        Campaign: 4,
+        Invasion: 2,
+        Rebellion: 2,
+        Conquest: 2,
+        Intervention: 1,
+        Expedition: 1,
+        Crusade: 1,
+      };
+
+      pack.states.forEach((s) => {
+        if (!s.i || s.removed) return;
+        const n = s.neighbors.length ? s.neighbors : [0];
+        s.campaigns = n
+          .map((i) => {
+            const name =
+              i && P(0.8)
+                ? pack.states[i].name
+                : Names.getCultureShort(s.culture);
+            const start = gauss(options.year - 100, 150, 1, options.year - 6);
+            const end = start + gauss(4, 5, 1, options.year - start - 1);
+            return { name: getAdjective(name) + " " + rw(wars), start, end };
+          })
+          .sort((a, b) => a.start - b.start);
+      });
+    };
+
+    // generate Diplomatic Relationships
+    const generateDiplomacy = function () {
+      console.time("generateDiplomacy");
+      const cells = pack.cells,
+        states = pack.states;
+      const chronicle = (states[0].diplomacy = []);
+      const valid = states.filter((s) => s.i && !states.removed);
+
+      const neibs = {
+        Ally: 1,
+        Friendly: 2,
+        Neutral: 1,
+        Suspicion: 10,
+        Rival: 9,
+      }; // relations to neighbors
+      const neibsOfNeibs = { Ally: 10, Friendly: 8, Neutral: 5, Suspicion: 1 }; // relations to neighbors of neighbors
+      const far = { Friendly: 1, Neutral: 12, Suspicion: 2, Unknown: 6 }; // relations to other
+      const navals = { Neutral: 1, Suspicion: 2, Rival: 1, Unknown: 1 }; // relations of naval powers
+
+      valid.forEach((s) => (s.diplomacy = new Array(states.length).fill("x"))); // clear all relationships
+      if (valid.length < 2) return; // no states to renerate relations with
+      const areaMean = d3.mean(valid.map((s) => s.area)); // avarage state area
+
+      // generic relations
+      for (let f = 1; f < states.length; f++) {
+        if (states[f].removed) continue;
+
+        if (states[f].diplomacy.includes("Vassal")) {
+          // Vassals copy relations from their Suzerains
+          const suzerain = states[f].diplomacy.indexOf("Vassal");
+
+          for (let i = 1; i < states.length; i++) {
+            if (i === f || i === suzerain) continue;
+            states[f].diplomacy[i] = states[suzerain].diplomacy[i];
+            if (states[suzerain].diplomacy[i] === "Suzerain")
+              states[f].diplomacy[i] = "Ally";
+            for (let e = 1; e < states.length; e++) {
+              if (e === f || e === suzerain) continue;
+              if (
+                states[e].diplomacy[suzerain] === "Suzerain" ||
+                states[e].diplomacy[suzerain] === "Vassal"
+              )
+                continue;
+              states[e].diplomacy[f] = states[e].diplomacy[suzerain];
+            }
+          }
+          continue;
+        }
+
+        for (let t = f + 1; t < states.length; t++) {
+          if (states[t].removed) continue;
+
+          if (states[t].diplomacy.includes("Vassal")) {
+            const suzerain = states[t].diplomacy.indexOf("Vassal");
+            states[f].diplomacy[t] = states[f].diplomacy[suzerain];
+            continue;
+          }
+
+          const naval =
+            states[f].type === "Naval" &&
+            states[t].type === "Naval" &&
+            cells.f[states[f].center] !== cells.f[states[t].center];
+          const neib = naval ? false : states[f].neighbors.includes(t);
+          const neibOfNeib =
+            naval || neib
+              ? false
+              : states[f].neighbors
+                  .map((n) => states[n].neighbors)
+                  .join("")
+                  .includes(t);
+
+          let status = naval
+            ? rw(navals)
+            : neib
+            ? rw(neibs)
+            : neibOfNeib
+            ? rw(neibsOfNeibs)
+            : rw(far);
+
+          // add Vassal
+          if (
+            neib &&
+            P(0.8) &&
+            states[f].area > areaMean &&
+            states[t].area < areaMean &&
+            states[f].area / states[t].area > 2
+          )
+            status = "Vassal";
+          states[f].diplomacy[t] = status === "Vassal" ? "Suzerain" : status;
+          states[t].diplomacy[f] = status;
+        }
+      }
+
+      // declare wars
+      for (let attacker = 1; attacker < states.length; attacker++) {
+        const ad = states[attacker].diplomacy; // attacker relations;
+        if (states[attacker].removed) continue;
+        if (!ad.includes("Rival")) continue; // no rivals to attack
+        if (ad.includes("Vassal")) continue; // not independent
+        if (ad.includes("Enemy")) continue; // already at war
+
+        // random independent rival
+        const defender = ra(
+          ad
+            .map((r, d) =>
+              r === "Rival" && !states[d].diplomacy.includes("Vassal") ? d : 0
+            )
+            .filter((d) => d)
+        );
+        let ap = states[attacker].area * states[attacker].expansionism,
+          dp = states[defender].area * states[defender].expansionism;
+        if (ap < dp * gauss(1.6, 0.8, 0, 10, 2)) continue; // defender is too strong
+        const an = states[attacker].name,
+          dn = states[defender].name; // names
+        const attackers = [attacker],
+          defenders = [defender]; // attackers and defenders array
+        const dd = states[defender].diplomacy; // defender relations;
+
+        // start a war
+        const war = [
+          `${an}-${trimVowels(dn)}ian War`,
+          `${an} declared a war on its rival ${dn}`,
+        ];
+        const end = options.year;
+        const start = end - gauss(2, 2, 0, 5);
+        states[attacker].campaigns.push({
+          name: `${trimVowels(dn)}ian War`,
+          start,
+          end,
+        });
+        states[defender].campaigns.push({
+          name: `${trimVowels(an)}ian War`,
+          start,
+          end,
+        });
+
+        // attacker vassals join the war
+        ad.forEach((r, d) => {
+          if (r === "Suzerain") {
+            attackers.push(d);
+            war.push(
+              `${an}'s vassal ${states[d].name} joined the war on attackers side`
+            );
+          }
+        });
+
+        // defender vassals join the war
+        dd.forEach((r, d) => {
+          if (r === "Suzerain") {
+            defenders.push(d);
+            war.push(
+              `${dn}'s vassal ${states[d].name} joined the war on defenders side`
+            );
+          }
+        });
+
+        ap = d3.sum(
+          attackers.map((a) => states[a].area * states[a].expansionism)
+        ); // attackers joined power
+        dp = d3.sum(
+          defenders.map((d) => states[d].area * states[d].expansionism)
+        ); // defender joined power
+
+        // defender allies join
+        dd.forEach((r, d) => {
+          if (r !== "Ally" || states[d].diplomacy.includes("Vassal")) return;
+          if (
+            states[d].diplomacy[attacker] !== "Rival" &&
+            ap / dp > 2 * gauss(1.6, 0.8, 0, 10, 2)
+          ) {
+            const reason = states[d].diplomacy.includes("Enemy")
+              ? `Being already at war,`
+              : `Frightened by ${an},`;
+            war.push(
+              `${reason} ${states[d].name} severed the defense pact with ${dn}`
+            );
+            dd[d] = states[d].diplomacy[defender] = "Suspicion";
+            return;
+          }
+          defenders.push(d);
+          dp += states[d].area * states[d].expansionism;
+          war.push(
+            `${dn}'s ally ${states[d].name} joined the war on defenders side`
+          );
+
+          // ally vassals join
+          states[d].diplomacy
+            .map((r, d) => (r === "Suzerain" ? d : 0))
+            .filter((d) => d)
+            .forEach((v) => {
+              defenders.push(v);
+              dp += states[v].area * states[v].expansionism;
+              war.push(
+                `${states[d].name}'s vassal ${states[v].name} joined the war on defenders side`
+              );
+            });
+        });
+
+        // attacker allies join if the defender is their rival or joined power > defenders power and defender is not an ally
+        ad.forEach((r, d) => {
+          if (
+            r !== "Ally" ||
+            states[d].diplomacy.includes("Vassal") ||
+            defenders.includes(d)
+          )
+            return;
+          const name = states[d].name;
+          if (
+            states[d].diplomacy[defender] !== "Rival" &&
+            (P(0.2) || ap <= dp * 1.2)
+          ) {
+            war.push(`${an}'s ally ${name} avoided entering the war`);
+            return;
+          }
+          const allies = states[d].diplomacy
+            .map((r, d) => (r === "Ally" ? d : 0))
+            .filter((d) => d);
+          if (allies.some((ally) => defenders.includes(ally))) {
+            war.push(
+              `${an}'s ally ${name} did not join the war as its allies are in war on both sides`
+            );
+            return;
+          }
+
+          attackers.push(d);
+          ap += states[d].area * states[d].expansionism;
+          war.push(`${an}'s ally ${name} joined the war on attackers side`);
+
+          // ally vassals join
+          states[d].diplomacy
+            .map((r, d) => (r === "Suzerain" ? d : 0))
+            .filter((d) => d)
+            .forEach((v) => {
+              attackers.push(v);
+              dp += states[v].area * states[v].expansionism;
+              war.push(
+                `${states[d].name}'s vassal ${states[v].name} joined the war on attackers side`
+              );
+            });
+        });
+
+        // change relations to Enemy for all participants
+        attackers.forEach((a) =>
+          defenders.forEach(
+            (d) => (states[a].diplomacy[d] = states[d].diplomacy[a] = "Enemy")
+          )
+        );
+        chronicle.push(war); // add a record to diplomatical history
+      }
+
+      console.timeEnd("generateDiplomacy");
+      //console.table(states.map(s => s.diplomacy));
+    };
+    let rand = this.rand;
+
+    // state forms requiring Adjective + Name, all other forms use scheme Form + Of + Name
+
+    const getFullName = function (s) {
+      if (!s.formName) return s.name;
+      if (!s.name && s.formName) return "The " + s.formName;
+      const adjName = adjForms.includes(s.formName) && !/-| /.test(s.name);
+      return adjName
+        ? `${getAdjective(s.name)} ${s.formName}`
+        : `${s.formName} of ${s.name}`;
+    };
+    let seed = this.seed;
+    const toggle = (bool = null) => {
+      console.log("toggle");
+      if (bool == null) active = !active;
+      else active = bool;
+      if (active) {
+        this.Religions.toggle(0);
+        this.Cultures.toggle(0);
+        this.toggleBiomes(0);
+        this.regions.style("display", null);
+        this.drawStates();
+        this.BurgsAndStates.drawStateLabels();
+        localStorage.setItem("activeLayer", "1");
+      } else {
+        this.regions.style("display", "none").selectAll("path").remove();
+        if (this.activeLayer == 3) this.activeLayer = null;
+      }
+      this.updateSVG();
+    };
+
+    return {
+      toggle,
+      active,
+      expandStates,
+      normalizeStates,
+      assignColors,
+      drawBurgs,
+      defineBurgFeatures,
+      getType,
+      drawStateLabels,
+      collectStatistics,
+      getFullName,
+      updateCultures,
+    };
+  })();
+
+  updateEpoch() {
+    this.neutralInput = this.options.year / 6000;
+    this.BurgsAndStates.expandStates();
+    this.Religions.expandReligions();
+    this.Cultures.expand();
+    if (this.activeLayer == 1) {
+      this.drawStates();
+      this.BurgsAndStates.drawStateLabels();
+    }
+    if (this.activeLayer == 3) {
+      this.Religions.draw();
+    }
+    if (this.activeLayer == 2) {
+      this.drawCultures();
+    }
+  }
+
+  Markers = (() => {
+    let config = [];
+    let occupied = [];
+
+    const getMarkerCoordinates = (cell) => {
+      const { cells, burgs } = this.pack;
+      const burgId = cells.burg[cell];
+
+      if (burgId) {
+        const { x, y } = burgs[burgId];
+        return [x, y];
+      }
+
+      return cells.p[cell];
+    };
+
+    const addMarker = (cell, type, icon, dx = null, dy = null, px = null) => {
+      const i = this.pack.markers.length;
+      const [x, y] = getMarkerCoordinates(cell);
+      const marker: any = { i, icon, type, x, y, cell };
+      if (dx) marker.dx = dx;
+      if (dy) marker.dy = dy;
+      if (px) marker.px = px;
+      this.pack.markers.push(marker);
+      occupied[cell] = true;
+      return "marker" + i;
+    };
+
+    // return { generate, regenerate, getConfig, setConfig };
+  })();
+
+  Rivers = (() => {
+    let seed = this.seed;
+    let pack = this.pack;
+    let grid = this.grid;
+
+    // add points at 1/3 and 2/3 of a line between adjacents river cells
+    const addMeandering = (
+      riverCells,
+      riverPoints = null,
+      meandering = 0.5
+    ) => {
+      const { fl, conf, h } = this.pack.cells;
+      const meandered = [];
+      const lastStep = riverCells.length - 1;
+      const points = getRiverPoints(riverCells, riverPoints);
+      let step = h[riverCells[0]] < 20 ? 1 : 10;
+
+      let fluxPrev = 0;
+      const getFlux = (step, flux) => (step === lastStep ? fluxPrev : flux);
+
+      for (let i = 0; i <= lastStep; i++, step++) {
+        const cell = riverCells[i];
+        const isLastCell = i === lastStep;
+
+        const [x1, y1] = points[i];
+        const flux1 = getFlux(i, fl[cell]);
+        fluxPrev = flux1;
+
+        meandered.push([x1, y1, flux1]);
+        if (isLastCell) break;
+
+        const nextCell = riverCells[i + 1];
+        const [x2, y2] = points[i + 1];
+
+        if (nextCell === -1) {
+          meandered.push([x2, y2, fluxPrev]);
+          break;
+        }
+
+        const dist2 = (x2 - x1) ** 2 + (y2 - y1) ** 2; // square distance between cells
+        if (dist2 <= 25 && riverCells.length >= 6) continue;
+
+        const flux2 = getFlux(i + 1, fl[nextCell]);
+        const keepInitialFlux = conf[nextCell] || flux1 === flux2;
+
+        const meander =
+          meandering + 1 / step + Math.max(meandering - step / 100, 0);
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        const sinMeander = Math.sin(angle) * meander;
+        const cosMeander = Math.cos(angle) * meander;
+
+        if (
+          step < 10 &&
+          (dist2 > 64 || (dist2 > 36 && riverCells.length < 5))
+        ) {
+          // if dist2 is big or river is small add extra points at 1/3 and 2/3 of segment
+          const p1x = (x1 * 2 + x2) / 3 + -sinMeander;
+          const p1y = (y1 * 2 + y2) / 3 + cosMeander;
+          const p2x = (x1 + x2 * 2) / 3 + sinMeander / 2;
+          const p2y = (y1 + y2 * 2) / 3 - cosMeander / 2;
+          const [p1fl, p2fl] = keepInitialFlux
+            ? [flux1, flux1]
+            : [(flux1 * 2 + flux2) / 3, (flux1 + flux2 * 2) / 3];
+          meandered.push([p1x, p1y, p1fl], [p2x, p2y, p2fl]);
+        } else if (dist2 > 25 || riverCells.length < 6) {
+          // if dist is medium or river is small add 1 extra middlepoint
+          const p1x = (x1 + x2) / 2 + -sinMeander;
+          const p1y = (y1 + y2) / 2 + cosMeander;
+          const p1fl = keepInitialFlux ? flux1 : (flux1 + flux2) / 2;
+          meandered.push([p1x, p1y, p1fl]);
+        }
+      }
+
+      return meandered;
+    };
+
+    const getRiverPoints = (riverCells, riverPoints) => {
+      if (riverPoints) return riverPoints;
+      const { p } = this.pack.cells;
+      return riverCells.map((cell, i) => {
+        if (cell === -1) return getBorderPoint(riverCells[i - 1]);
+        return p[cell];
+      });
+    };
+
+    const getBorderPoint = (i) => {
+      const [x, y] = this.pack.cells.p[i];
+      const min = Math.min(y, this.graphHeight - y, x, this.graphWidth - x);
+      if (min === y) return [x, 0];
+      else if (min === this.graphHeight - y) return [x, this.graphHeight];
+      else if (min === x) return [0, y];
+      return [this.graphWidth, y];
+    };
+
+    const FLUX_FACTOR = 500;
+    const MAX_FLUX_WIDTH = 2;
+    const LENGTH_FACTOR = 200;
+    const STEP_WIDTH = 1 / LENGTH_FACTOR;
+    const LENGTH_PROGRESSION = [1, 1, 2, 3, 5, 8, 13, 21, 34].map(
+      (n) => n / LENGTH_FACTOR
+    );
+    const MAX_PROGRESSION = this.last(LENGTH_PROGRESSION);
+
+    const getOffset = (
+      flux,
+      pointNumber,
+      widthFactor = 1,
+      startingWidth = 0
+    ) => {
+      const fluxWidth = Math.min(flux ** 0.9 / FLUX_FACTOR, MAX_FLUX_WIDTH);
+      const lengthWidth =
+        pointNumber * STEP_WIDTH +
+        (LENGTH_PROGRESSION[pointNumber] || MAX_PROGRESSION);
+      return widthFactor * (lengthWidth + fluxWidth) + startingWidth;
+    };
+
+    // build polygon from a list of points and calculated offset (width)
+    const getRiverPath = (points, widthFactor = 1, startingWidth = 0) => {
+      const riverPointsLeft = [];
+      const riverPointsRight = [];
+
+      for (let p = 0; p < points.length; p++) {
+        const [x0, y0] = points[p - 1] || points[p];
+        const [x1, y1, flux] = points[p];
+        const [x2, y2] = points[p + 1] || points[p];
+
+        const offset = getOffset(flux, p, widthFactor, startingWidth);
+        const angle = Math.atan2(y0 - y2, x0 - x2);
+        const sinOffset = Math.sin(angle) * offset;
+        const cosOffset = Math.cos(angle) * offset;
+
+        riverPointsLeft.push([x1 - sinOffset, y1 + cosOffset]);
+        riverPointsRight.push([x1 + sinOffset, y1 - cosOffset]);
+      }
+
+      const right = this.lineGen(riverPointsRight.reverse());
+      let left = this.lineGen(riverPointsLeft);
+      left = left.substring(left.indexOf("C"));
+
+      return this.round(right + left, 1);
+    };
+
+    const specify = function () {
+      const rivers = pack.rivers;
+      if (!rivers.length) return;
+
+      for (const river of rivers) {
+        river.basin = getBasin(river.i);
+        river.name = getName(river.mouth);
+        river.type = getType(river);
+      }
+    };
+    let Names = this.Names;
+    const getName = function (cell) {
+      return Names.getCulture(pack.cells.culture[cell]);
+    };
+
+    // weighted arrays of river type names
+    const riverTypes = {
+      main: {
+        big: { River: 1 },
+        small: { Creek: 9, River: 3, Brook: 3, Stream: 1 },
+      },
+      fork: {
+        big: { Fork: 1 },
+        small: { Branch: 1 },
+      },
+    };
+
+    let smallLength = null;
+    const getType = ({ i, length, parent }) => {
+      if (smallLength === null) {
+        const threshold = Math.ceil(pack.rivers.length * 0.15);
+        smallLength = pack.rivers
+          .map((r) => r.length || 0)
+          .sort((a, b) => a - b)[threshold];
+      }
+
+      const isSmall = length < smallLength;
+      const isFork = this.each(3)(i) && parent && parent !== i;
+      return this.rw(
+        riverTypes[isFork ? "fork" : "main"][isSmall ? "small" : "big"]
+      );
+    };
+
+    const getApproximateLength = (points) => {
+      const length = points.reduce(
+        (s, v, i, p) =>
+          s + (i ? Math.hypot(v[0] - p[i - 1][0], v[1] - p[i - 1][1]) : 0),
+        0
+      );
+      return this.rn(length, 2);
+    };
+
+    // Real mouth width examples: Amazon 6000m, Volga 6000m, Dniepr 3000m, Mississippi 1300m, Themes 900m,
+    // Danube 800m, Daugava 600m, Neva 500m, Nile 450m, Don 400m, Wisla 300m, Pripyat 150m, Bug 140m, Muchavets 40m
+    const getWidth = (offset) => this.rn((offset / 1.5) ** 1.8, 2); // mouth width in km
+
+    const getBasin = function (r) {
+      const parent = pack.rivers.find((river) => river.i === r)?.parent;
+      if (!parent || r === parent) return r;
+      return getBasin(parent);
+    };
+
+    return {
+      addMeandering,
+      getRiverPath,
+      specify,
+      getName,
+      getType,
+      getBasin,
+      getWidth,
+      getOffset,
+      getApproximateLength,
+      getRiverPoints,
+    };
+  })();
+
+  Religions = (() => {
+    let active = false;
+    // calculate states data like area, population etc.
+    const collectStatistics = () => {
+      console.log("Religion Statistics");
+      const cells = this.pack.cells,
+        religions = this.pack.religions;
+      religions.forEach((s) => {
+        if (s.removed) return;
+        s.cells = s.area = s.burgs = s.rural = s.urban = 0;
+        s.neighbors = new Set();
+      });
+      for (const i of cells.i) {
+        if (cells.h[i] < 20) continue;
+        const s = cells.religion[i];
+
+        // check for neighboring religions
+        cells.c[i]
+          .filter((c) => cells.h[c] >= 20 && cells.religion[c] !== s)
+          .forEach((c) => religions[s].neighbors.add(cells.religion[c]));
+
+        // collect stats
+        religions[s].cells += 1;
+        religions[s].area += cells.area[i];
+        religions[s].rural += cells.pop[i];
+        if (cells.burg[i]) {
+          religions[s].urban += this.pack.burgs[cells.burg[i]].population;
+          religions[s].burgs++;
+        }
+      }
+
+      // convert neighbors Set object into array
+      religions.forEach((s) => {
+        if (!s.neighbors) return;
+        s.neighbors = Array.from(s.neighbors);
+      });
+    };
+    const toggle = (bool = null) => {
+      console.log("toggle");
+      if (bool == null) active = !active;
+      else active = bool;
+      const religions = this.pack.religions.filter((r) => r.i && !r.removed);
+      if (active) {
+        this.BurgsAndStates.toggle(0);
+        this.Cultures.toggle(0);
+        this.toggleBiomes(0);
+      }
+      if (!this.relig.selectAll("path").size() && religions.length && active) {
+        draw();
+        drawReligionLabels();
+        localStorage.setItem("activeLayer", "3");
+      } else {
+        this.relig.selectAll("path").remove();
+        if (this.activeLayer == 3) this.activeLayer = null;
+      }
+      this.updateSVG();
+    };
+
+    // calculate and draw curved state labels for a list of states
+    const drawReligionLabels = () => {
+      const { cells, features, religions } = this.pack;
+      const paths = []; // text paths
+      this.lineGen.curve(d3.curveBundle.beta(1));
+      let graphWidth = this.graphWidth;
+      let graphHeight = this.graphHeight;
+      let findCell = this.findCell;
+      for (const religion of religions) {
+        let short = false;
+        if (!religion.i || religion.removed || !religion.cells) continue;
+        const used = [];
+        const visualCenter = this.findCell(religion.pole[0], religion.pole[1]);
+        const start =
+          cells.religion[visualCenter] === religion.i
+            ? visualCenter
+            : religion.center;
+        const getHull = (start, religion, maxLake) => {
+          const queue = [start],
+            hull = new Set();
+
+          while (queue.length) {
+            const q = queue.pop();
+            const nQ = cells.c[q].filter((c) => cells.religion[c] === religion);
+
+            cells.c[q].forEach((c, d) => {
+              const passableLake =
+                features[cells.f[c]].type === "lake" &&
+                features[cells.f[c]].cells < maxLake;
+              if (
+                cells.b[c] ||
+                (cells.religion[c] !== religion && !passableLake)
+              ) {
+                hull.add(cells.v[q][d]);
+                return;
+              }
+              const nC = cells.c[c].filter(
+                (n) => cells.religion[n] === religion
+              );
+              const intersected = this.common(nQ, nC).length;
+              if (hull.size > 20 && !intersected && !passableLake) {
+                hull.add(cells.v[q][d]);
+                return;
+              }
+              if (used[c]) return;
+              used[c] = 1;
+              queue.push(c);
+            });
+          }
+
+          return hull;
+        };
+        const connectCenters = (c, y) => {
+          // check if vertex is inside the area
+          const inside = c.p.map(function (p) {
+            if (
+              p[0] <= 0 ||
+              p[1] <= 0 ||
+              p[0] >= graphWidth ||
+              p[1] >= graphHeight
+            )
+              return false; // out of the screen
+            return used[findCell(p[0], p[1])];
+          });
+
+          const pointsInside = d3.range(c.p.length).filter((i) => inside[i]);
+          if (!pointsInside.length) return [0];
+          const h = c.p.length < 200 ? 0 : c.p.length < 600 ? 0.5 : 1; // power of horyzontality shift
+          const end =
+            pointsInside[
+              d3.scan(
+                pointsInside,
+                (a, b) =>
+                  c.p[a][0] -
+                  c.p[b][0] +
+                  (Math.abs(c.p[a][1] - y) - Math.abs(c.p[b][1] - y)) * h
+              )
+            ]; // left point
+          const start =
+            pointsInside[
+              d3.scan(
+                pointsInside,
+                (a, b) =>
+                  c.p[b][0] -
+                  c.p[a][0] -
+                  (Math.abs(c.p[b][1] - y) - Math.abs(c.p[a][1] - y)) * h
+              )
+            ]; // right point
+
+          // connect leftmost and rightmost points with shortest path
+          const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
+          const cost = [],
+            from = [];
+          queue.queue({ e: start, p: 0 });
+
+          while (queue.length) {
+            const next = queue.dequeue(),
+              n = next.e,
+              p = next.p;
+            if (n === end) break;
+
+            for (const v of c.v[n]) {
+              if (v === -1) continue;
+              const totalCost = p + (inside[v] ? 1 : 100);
+              if (from[v] || totalCost >= cost[v]) continue;
+              cost[v] = totalCost;
+              from[v] = n;
+              queue.queue({ e: v, p: totalCost });
+            }
+          }
+
+          // restore path
+          const chain = [end];
+          let cur = end;
+          while (cur !== start) {
+            cur = from[cur];
+            if (inside[cur]) chain.push(cur);
+          }
+          return chain;
+        };
+
+        const hull = getHull(start, religion.i, religion.cells / 10);
+        const points = [...hull].map((v: any) => this.pack.vertices.p[v]);
+        const delaunay = Delaunator.from(points);
+        const voronoi = new Voronoi(delaunay, points, points.length);
+        const chain = connectCenters(voronoi.vertices, religion.pole[1]);
+        const relaxed = chain
+          .map((i) => voronoi.vertices.p[i])
+          .filter((p, i) => i % 15 === 0 || i + 1 === chain.length);
+        paths.push([religion.i, relaxed]);
+      }
+      let labels = this.labels;
+      let defs = this.defs;
+      let lineGen = this.lineGen;
+      let splitInTwo = this.splitInTwo;
+      let minmax = this.minmax;
+      let rn = this.rn;
+      let round = this.round;
+      let pack = this.pack;
+      void (function drawLabels() {
+        let g = labels.select("#religions");
+        const t = defs.select("#textPaths");
+        // const displayed = layerIsOn("toggleLabels");
+        // if (!displayed) toggleLabels();
+
+        // if (!list) {
+        // remove all labels and textpaths
+        g.selectAll("text").remove();
+        t.selectAll("path[id*='religionLabel']").remove();
+        labels.select("#states").selectAll("text").remove();
+        t.selectAll("path[id*='stateLabel']").remove();
+        labels.select("#cultures").selectAll("text").remove();
+        t.selectAll("path[id*='cultureLabel']").remove();
+        // }
+
+        if (typeof g._groups[0][0] == "undefined") {
+          g = labels.append("g").attr("id", "religions");
+        }
+
+        const example = g
+          .append("text")
+          .attr("x", 0)
+          .attr("x", 0)
+          .text("Average");
+        const letterLength = example.node().getComputedTextLength() / 7; // average length of 1 letter
+        paths.forEach((p) => {
+          const id = p[0];
+          const s = religions[p[0]];
+          let short = false;
+
+          const path =
+            p[1].length > 1
+              ? lineGen(p[1])
+              : `M${p[1][0][0] - 50},${p[1][0][1]}h${100}`;
+          const textPath = t
+            .append("path")
+            .attr("d", path)
+            .attr("id", "textPath_religionLabel" + id);
+          const pathLength =
+            p[1].length > 1
+              ? textPath.node().getTotalLength() / letterLength
+              : 0; // path length in letters
+
+          let lines = [];
+          let ratio = 100;
+
+          if (pathLength < s.name.length) {
+            // only short name will fit
+            lines = splitInTwo(s.name);
+            ratio = minmax(rn((pathLength / lines[0].length) * 60), 50, 150);
+          } else if (pathLength > s.name.length * 2.5) {
+            // full name will fit in one line
+            lines = [s.name];
+            ratio = minmax(rn((pathLength / lines[0].length) * 70), 70, 170);
+          } else {
+            // try miltilined label
+            lines = splitInTwo(s.name);
+            ratio = minmax(rn((pathLength / lines[0].length) * 60), 70, 150);
+          }
+
+          // prolongate path if it's too short
+          if (pathLength && pathLength < lines[0].length) {
+            const points = p[1];
+            const f = points[0];
+            const l = points[points.length - 1];
+            const [dx, dy] = [l[0] - f[0], l[1] - f[1]];
+            const mod = Math.abs((letterLength * lines[0].length) / dx) / 2;
+            points[0] = [rn(f[0] - dx * mod), rn(f[1] - dy * mod)];
+            points[points.length - 1] = [
+              rn(l[0] + dx * mod),
+              rn(l[1] + dy * mod),
+            ];
+            textPath.attr("d", round(lineGen(points)));
+            short = true;
+          }
+          example.attr("font-size", ratio + "%");
+          const top = (lines.length - 1) / -2; // y offset
+          const spans = lines.map((l, d) => {
+            example.text(l);
+            const left = example.node().getBBox().width / -2; // x offset
+            return `<tspan x="${left}px" dy="${d ? 1 : top}em">${l}</tspan>`;
+          });
+
+          const el = g
+            .append("text")
+            .attr("id", "religionLabel" + id)
+            .append("textPath")
+            .attr("xlink:href", "#textPath_religionLabel" + id)
+            .attr("startOffset", "50%")
+            .attr("font-size", ratio + "%")
+            .node();
+
+          el.insertAdjacentHTML("afterbegin", spans.join(""));
+          if (lines.length < 2) return;
+
+          // check whether multilined label is generally inside the state. If no, replace with short name label
+          const cs = pack.cells.state;
+          const b = el.parentNode.getBBox();
+          const c1: any = () => +cs[findCell(b.x, b.y)] === id;
+          const c2: any = () => +cs[findCell(b.x + b.width / 2, b.y)] === id;
+          const c3: any = () => +cs[findCell(b.x + b.width, b.y)] === id;
+          const c4: any = () =>
+            +cs[findCell(b.x + b.width, b.y + b.height)] === id;
+          const c5: any = () =>
+            +cs[findCell(b.x + b.width / 2, b.y + b.height)] === id;
+          const c6 = () => +cs[findCell(b.x, b.y + b.height)] === id;
+          if (c1() + c2() + c3() + c4() + c5() + c6() > 3) return; // generally inside
+
+          // use one-line name
+          const name = s.name;
+          example.text(name);
+          const left = example.node().getBBox().width / -2; // x offset
+          el.innerHTML = `<tspan x="${left}px">${name}</tspan>`;
+          ratio = minmax(rn((pathLength / name.length) * 60), 40, 130);
+          el.setAttribute("font-size", ratio + "%");
+        });
+
+        example.remove();
+        // toggleLabels(1);
+      })();
+    };
+
+    const draw = () => {
+      console.time("drawReligions");
+
+      this.relig.selectAll("path").remove();
+      const cells = this.pack.cells,
+        vertices = this.pack.vertices,
+        religions = this.pack.religions,
+        features = this.pack.features,
+        n = cells.i.length;
+      const used = new Uint8Array(cells.i.length);
+      const vArray = new Array(religions.length); // store vertices array
+      const body = new Array(religions.length).fill(""); // store path around each religion
+      const gap = new Array(religions.length).fill(""); // store path along water for each religion to fill the gaps
+
+      for (const i of cells.i) {
+        if (!cells.religion[i]) continue;
+        if (used[i]) continue;
+        used[i] = 1;
+        const r = cells.religion[i];
+        const onborder = cells.c[i].filter((n) => cells.religion[n] !== r);
+        if (!onborder.length) continue;
+        const borderWith = cells.c[i]
+          .map((c) => cells.religion[c])
+          .find((n) => n !== r);
+        const vertex = cells.v[i].find((v) =>
+          vertices.c[v].some((i) => cells.religion[i] === borderWith)
+        );
+        const chain = connectVertices(vertex, r, borderWith);
+        if (chain.length < 3) continue;
+        const points = chain.map((v) => vertices.p[v[0]]);
+        if (!vArray[r]) vArray[r] = [];
+        vArray[r].push(points);
+        body[r] += "M" + points.join("L");
+        gap[r] +=
+          "M" +
+          vertices.p[chain[0][0]] +
+          chain.reduce(
+            (r2, v, i, d) =>
+              !i
+                ? r2
+                : !v[2]
+                ? r2 + "L" + vertices.p[v[0]]
+                : d[i + 1] && !d[i + 1][2]
+                ? r2 + "M" + vertices.p[v[0]]
+                : r2,
+            ""
+          );
+      }
+
+      collectStatistics();
+      // find state visual center
+      vArray.forEach((ar, i) => {
+        const sorted = ar.sort((a, b) => b.length - a.length); // sort by points number
+        religions[i].pole = polylabel(sorted, 1.0); // pole of inaccessibility
+      });
+
+      const bodyData = body
+        .map((p, i) => [p.length > 10 ? p : null, i, religions[i].color])
+        .filter((d) => d[0]);
+      this.relig
+        .selectAll("path")
+        .data(bodyData)
+        .enter()
+        .append("path")
+        .attr("d", (d) => d[0])
+        .attr("fill", (d) => d[2])
+        .attr("id", (d) => "religion" + d[1]);
+      const gapData = gap
+        .map((p, i) => [p.length > 10 ? p : null, i, religions[i].color])
+        .filter((d) => d[0]);
+      this.relig
+        .selectAll(".path")
+        .data(gapData)
+        .enter()
+        .append("path")
+        .attr("d", (d) => d[0])
+        .attr("fill", "none")
+        .attr("stroke", (d) => d[2])
+        .attr("id", (d) => "religion-gap" + d[1])
+        .attr("stroke-width", "10px");
+
+      // connect vertices to chain
+      function connectVertices(start, t, religion) {
+        const chain = []; // vertices chain to form a path
+        let land = vertices.c[start].some(
+          (c) => cells.h[c] >= 20 && cells.religion[c] !== t
+        );
+        function check(i) {
+          religion = cells.religion[i];
+          land = cells.h[i] >= 20;
+        }
+
+        for (
+          let i = 0, current = start;
+          i === 0 || (current !== start && i < 20000);
+          i++
+        ) {
+          const prev = chain[chain.length - 1]
+            ? chain[chain.length - 1][0]
+            : -1; // previous vertex in chain
+          chain.push([current, religion, land]); // add current vertex to sequence
+          const c = vertices.c[current]; // cells adjacent to vertex
+          c.filter((c) => cells.religion[c] === t).forEach(
+            (c) => (used[c] = 1)
+          );
+          const c0 = c[0] >= n || cells.religion[c[0]] !== t;
+          const c1 = c[1] >= n || cells.religion[c[1]] !== t;
+          const c2 = c[2] >= n || cells.religion[c[2]] !== t;
+          const v = vertices.v[current]; // neighboring vertices
+          if (v[0] !== prev && c0 !== c1) {
+            current = v[0];
+            check(c0 ? c[0] : c[1]);
+          } else if (v[1] !== prev && c1 !== c2) {
+            current = v[1];
+            check(c1 ? c[1] : c[2]);
+          } else if (v[2] !== prev && c0 !== c2) {
+            current = v[2];
+            check(c2 ? c[2] : c[0]);
+          }
+          if (current === chain[chain.length - 1][0]) {
+            console.error("Next vertex is not found");
+            break;
+          }
+        }
+        return chain;
+      }
+      console.timeEnd("drawReligions");
+    };
+
+    // growth algorithm to assign cells to religions
+    const expandReligions = () => {
+      const cells = this.pack.cells,
+        religions = this.pack.religions;
+      const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
+      const cost = [];
+
+      religions
+        .filter((r) => r.type === "Organized" || r.type === "Cult")
+        .forEach((r) => {
+          cells.religion[r.center] = r.i;
+          queue.queue({
+            e: r.center,
+            p: 0,
+            r: r.i,
+            s: cells.state[r.center],
+            c: r.culture,
+          });
+          cost[r.center] = 1;
+        });
+
+      const neutral =
+        (cells.i.length / 5000) *
+        200 *
+        this.gauss(1, 0.3, 0.2, 2, 2) *
+        this.neutralInput; // limit cost for organized religions growth
+      const popCost = d3.max(cells.pop) / 3; // enougth population to spered religion without penalty
+
+      while (queue.length) {
+        const next = queue.dequeue(),
+          n = next.e,
+          p = next.p,
+          r = next.r,
+          c = next.c,
+          s = next.s;
+        const expansion = religions[r].expansion;
+        let biomesData = this.biomesData;
+        let rn = this.rn;
+        cells.c[n].forEach(function (e) {
+          if (expansion === "culture" && c !== cells.culture[e]) return;
+          if (expansion === "state" && s !== cells.state[e]) return;
+
+          const cultureCost = c !== cells.culture[e] ? 10 : 0;
+          const stateCost = s !== cells.state[e] ? 10 : 0;
+          const biomeCost = cells.road[e] ? 1 : biomesData.cost[cells.biome[e]];
+          const populationCost = Math.max(rn(popCost - cells.pop[e]), 0);
+          const heightCost = Math.max(cells.h[e], 20) - 20;
+          const waterCost = cells.h[e] < 20 ? (cells.road[e] ? 50 : 1000) : 0;
+          const totalCost =
+            p +
+            (cultureCost +
+              stateCost +
+              biomeCost +
+              populationCost +
+              heightCost +
+              waterCost) /
+              religions[r].expansionism;
+          if (totalCost > neutral) return;
+
+          if (!cost[e] || totalCost < cost[e]) {
+            if (cells.h[e] >= 20 && cells.culture[e]) cells.religion[e] = r; // assign religion to cell
+            cost[e] = totalCost;
+            queue.queue({ e, p: totalCost, r, c, s });
+          }
+        });
+      }
+    };
+
+    // growth algorithm to assign cells to heresies
+    const expandHeresies = () => {
+      const cells = this.pack.cells,
+        religions = this.pack.religions;
+      const queue = new PriorityQueue({ comparator: (a, b) => a.p - b.p });
+      const cost = [];
+
+      religions
+        .filter((r) => r.type === "Heresy")
+        .forEach((r) => {
+          const b = cells.religion[r.center]; // "base" religion id
+          cells.religion[r.center] = r.i; // heresy id
+          queue.queue({ e: r.center, p: 0, r: r.i, b });
+          cost[r.center] = 1;
+        });
+
+      const neutral = (cells.i.length / 5000) * 1000 * this.neutralInput; // limit cost for heresies growth
+      let biomesData = this.biomesData;
+      while (queue.length) {
+        const next = queue.dequeue(),
+          n = next.e,
+          p = next.p,
+          r = next.r,
+          b = next.b;
+
+        cells.c[n].forEach(function (e) {
+          const religionCost = cells.religion[e] === b ? 0 : 2000;
+          const biomeCost = cells.road[e] ? 0 : biomesData.cost[cells.biome[e]];
+          const heightCost = Math.max(cells.h[e], 20) - 20;
+          const waterCost = cells.h[e] < 20 ? (cells.road[e] ? 50 : 1000) : 0;
+          const totalCost =
+            p +
+            (religionCost + biomeCost + heightCost + waterCost) /
+              Math.max(religions[r].expansionism, 0.1);
+
+          if (totalCost > neutral) return;
+
+          if (!cost[e] || totalCost < cost[e]) {
+            if (cells.h[e] >= 20 && cells.culture[e]) cells.religion[e] = r;
+            // assign religion to cell
+            else cells.religion[e] = 0;
+            cost[e] = totalCost;
+            queue.queue({ e, p: totalCost, r });
+          }
+        });
+      }
+    };
+
+    return {
+      collectStatistics,
+      draw,
+      toggle,
+      active,
+      expandReligions,
+      expandHeresies,
+    };
+  })();
+  common(a, b) {
+    const setB = new Set(b);
+    return [...new Set(a)].filter((a) => setB.has(a));
+  }
+  Lakes = (() => {
+    let heightExponentInput = this.heightExponentInput;
+    let rn = this.rn;
+    let grid = this.grid;
+    let pack = this.pack;
+
+    const setClimateData = function (h) {
+      const cells = pack.cells;
+      const lakeOutCells = new Uint16Array(cells.i.length);
+
+      pack.features.forEach((f) => {
+        if (f.type !== "lake") return;
+
+        // default flux: sum of precipitation around lake
+        f.flux = f.shoreline.reduce(
+          (acc, c) => acc + grid.cells.prec[cells.g[c]],
+          0
+        );
+
+        // temperature and evaporation to detect closed lakes
+        f.temp =
+          f.cells < 6
+            ? grid.cells.temp[cells.g[f.firstCell]]
+            : rn(
+                d3.mean(f.shoreline.map((c) => grid.cells.temp[cells.g[c]])),
+                1
+              );
+        const height = (f.height - 18) ** heightExponentInput; // height in meters
+        const evaporation =
+          ((700 * (f.temp + 0.006 * height)) / 50 + 75) / (80 - f.temp); // based on Penman formula, [1-11]
+        f.evaporation = rn(evaporation * f.cells);
+
+        // no outlet for lakes in depressed areas
+        if (f.closed) return;
+
+        // lake outlet cell
+        f.outCell = f.shoreline[d3.scan(f.shoreline, (a, b) => h[a] - h[b])];
+        lakeOutCells[f.outCell] = f.i;
+      });
+
+      return lakeOutCells;
+    };
+
+    // get array of land cells aroound lake
+    const getShoreline = function (lake) {
+      const uniqueCells = new Set();
+      lake.vertices.forEach((v) =>
+        pack.vertices.c[v].forEach(
+          (c) => pack.cells.h[c] >= 20 && uniqueCells.add(c)
+        )
+      );
+      lake.shoreline = [...uniqueCells];
+    };
+
+    const prepareLakeData = (h) => {
+      const cells = pack.cells;
+      const ELEVATION_LIMIT = +(<HTMLInputElement>(
+        document.getElementById("lakeElevationLimitOutput")
+      )).value;
+
+      pack.features.forEach((f) => {
+        if (f.type !== "lake") return;
+        delete f.flux;
+        delete f.inlets;
+        delete f.outlet;
+        delete f.height;
+        delete f.closed;
+        !f.shoreline && this.Lakes.getShoreline(f);
+
+        // lake surface height is as lowest land cells around
+        const min = f.shoreline.sort((a, b) => h[a] - h[b])[0];
+        f.height = h[min] - 0.1;
+
+        // check if lake can be open (not in deep depression)
+        if (ELEVATION_LIMIT === 80) {
+          f.closed = false;
+          return;
+        }
+
+        let deep = true;
+        const threshold = f.height + ELEVATION_LIMIT;
+        const queue = [min];
+        const checked = [];
+        checked[min] = true;
+
+        // check if elevated lake can potentially pour to another water body
+        while (deep && queue.length) {
+          const q = queue.pop();
+
+          for (const n of cells.c[q]) {
+            if (checked[n]) continue;
+            if (h[n] >= threshold) continue;
+
+            if (h[n] < 20) {
+              const nFeature = pack.features[cells.f[n]];
+              if (nFeature.type === "ocean" || f.height > nFeature.height) {
+                deep = false;
+                break;
+              }
+            }
+
+            checked[n] = true;
+            queue.push(n);
+          }
+        }
+
+        f.closed = deep;
+      });
+    };
+
+    const cleanupLakeData = function () {
+      for (const feature of pack.features) {
+        if (feature.type !== "lake") continue;
+        delete feature.river;
+        delete feature.enteringFlux;
+        delete feature.outCell;
+        delete feature.closed;
+        feature.height = rn(feature.height, 3);
+
+        const inlets = feature.inlets?.filter((r) =>
+          pack.rivers.find((river) => river.i === r)
+        );
+        if (!inlets || !inlets.length) delete feature.inlets;
+        else feature.inlets = inlets;
+
+        const outlet =
+          feature.outlet &&
+          pack.rivers.find((river) => river.i === feature.outlet);
+        if (!outlet) delete feature.outlet;
+      }
+    };
+
+    const defineGroup = function () {
+      for (const feature of pack.features) {
+        if (feature.type !== "lake") continue;
+        const lakeEl = this.lakes.select(`[data-f="${feature.i}"]`).node();
+        if (!lakeEl) continue;
+
+        feature.group = getGroup(feature);
+        document.getElementById(feature.group).appendChild(lakeEl);
+      }
+    };
+
+    const generateName = function () {
+      Math.random = this.aleaPRNG(this.seed);
+      for (const feature of pack.features) {
+        if (feature.type !== "lake") continue;
+        feature.name = getName(feature);
+      }
+    };
+
+    const getName = function (feature) {
+      const landCell = pack.cells.c[feature.firstCell].find(
+        (c) => pack.cells.h[c] >= 20
+      );
+      const culture = pack.cells.culture[landCell];
+      return this.Names.getCulture(culture);
+    };
+
+    function getGroup(feature) {
+      if (feature.temp < -3) return "frozen";
+      if (
+        feature.height > 60 &&
+        feature.cells < 10 &&
+        feature.firstCell % 10 === 0
+      )
+        return "lava";
+
+      if (!feature.inlets && !feature.outlet) {
+        if (feature.evaporation > feature.flux * 4) return "dry";
+        if (feature.cells < 3 && feature.firstCell % 10 === 0)
+          return "sinkhole";
+      }
+
+      if (!feature.outlet && feature.evaporation > feature.flux) return "salt";
+
+      return "freshwater";
+    }
+
+    return {
+      setClimateData,
+      cleanupLakeData,
+      prepareLakeData,
+      defineGroup,
+      generateName,
+      getName,
+      getShoreline,
+    };
+  })();
 }

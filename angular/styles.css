@@ -1,215 +1,277 @@
 /* You can add global styles to this file, and also import other style files */
 /* app css stylesheet */
+@import "~quill/dist/quill.core.css";
+@import "~quill/dist/quill.bubble.css";
+@import "~quill/dist/quill.snow.css";
 
+.combatSpecial {
+  padding-left: 20px;
+  line-height: 1em;
+  position: relative;
+  top: -5px;
+}
 
-  .combatSpecial{
-    padding-left: 20px;
-      line-height: 1em;
-      position: relative;
-      top: -5px;
-  }
-  
-  
-          /* img[ bn-lazy-src ] {
+/* img[ bn-lazy-src ] {
               background-image: url( "./checkered.png" ) ;
           } */
-  
 
-  .action-group {
-    position:relative;
-    padding: 5px;
-    border: 1px solid #b4b4b4;
-    -moz-border-radius: 20px;
-    -webkit-border-radius: 20px;
-    margin:0px;
-    margin-bottom:5px;
-    margin-top:10px;
-    background-image: -moz-linear-gradient(top, #f7f7f7, #e5e5e5); /* FF3.6 */
-    background-image: -webkit-gradient(linear,left bottom,left top,color-stop(0, #e5e5e5),color-stop(1, #f7f7f7)); /* Saf4+, Chrome */
-  }
-  
-  
-  .spell-box{
-      height: 35px;
-      padding: 8px;
-      border: 1px solid darkgray;
-      margin-bottom: 3px;
-      border-radius: 10px;
-      cursor:pointer;
-      }
-  .spell-box:hover{
-        background-color: #D8D8D8;
-  }
-  
-  .spin-icon:hover i,.spin:hover{-webkit-transform:rotate(360deg);-moz-transform:rotate(360deg);-ms-transform:rotate(360deg);-o-transform:rotate(360deg);transform:rotate(360deg)}
+.action-group {
+  position: relative;
+  padding: 5px;
+  border: 1px solid #b4b4b4;
+  -moz-border-radius: 20px;
+  -webkit-border-radius: 20px;
+  margin: 0px;
+  margin-bottom: 5px;
+  margin-top: 10px;
+  background-image: -moz-linear-gradient(top, #f7f7f7, #e5e5e5); /* FF3.6 */
+  background-image: -webkit-gradient(
+    linear,
+    left bottom,
+    left top,
+    color-stop(0, #e5e5e5),
+    color-stop(1, #f7f7f7)
+  ); /* Saf4+, Chrome */
+}
 
-  
-    
+.spell-box {
+  height: 35px;
+  padding: 8px;
+  border: 1px solid darkgray;
+  margin-bottom: 3px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.spell-box:hover {
+  background-color: #d8d8d8;
+}
+
+.spin-icon:hover i,
+.spin:hover {
+  -webkit-transform: rotate(360deg);
+  -moz-transform: rotate(360deg);
+  -ms-transform: rotate(360deg);
+  -o-transform: rotate(360deg);
+  transform: rotate(360deg);
+}
+
 .dice {
-    font-size: 1.2rem;
-    height: 4rem;
-    width: 4rem;
-    color: white;
-    font-weight: 900;
-    padding: 1rem 0rem;
-    margin-top: 1rem;
-    margin-right: 0.6rem;
-    text-align: center;
-    -webkit-clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
-    clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+  font-size: 1.2rem;
+  height: 4rem;
+  width: 4rem;
+  color: white;
+  font-weight: 900;
+  padding: 1rem 0rem;
+  margin-top: 1rem;
+  margin-right: 0.6rem;
+  text-align: center;
+  -webkit-clip-path: polygon(
+    30% 0%,
+    70% 0%,
+    100% 30%,
+    100% 70%,
+    70% 100%,
+    30% 100%,
+    0% 70%,
+    0% 30%
+  );
+  clip-path: polygon(
+    30% 0%,
+    70% 0%,
+    100% 30%,
+    100% 70%,
+    70% 100%,
+    30% 100%,
+    0% 70%,
+    0% 30%
+  );
 }
 .dice:hover {
-    background-color:#5b3798 !important
+  background-color: #5b3798 !important;
 }
-  
-  .top-right{
-        position: absolute;
-      right: 0;
-      top: 0;
-  }
-  
-  .top-left{
-      position: absolute;
-      left: 0;
-      top: 0;
-  }
-  
-  
-  #combatLog{
-      max-height: 36%;
-      min-height:70px;
-      overflow: auto;
-      line-height: 1.6em;
-      border: 2px solid grey;
-      clear: both;
-      border-radius: 4px;
-  }
-  
 
-  input[type=number]::-webkit-inner-spin-button, 
-  input[type=number]::-webkit-outer-spin-button { 
-    -webkit-appearance: none; 
-    margin: 0; 
-  }
-  .scene{
-    max-width: 220px;
-    text-align: center;
-    padding: 5px 5px 5px 5px;
-    min-width: 48px;
-    width:50%;
-    display:inline-block;
-    }
+.top-right {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
 
-  
-    .hp-options{
-      margin:0px;
-      border: 0px;
-      padding:0px;
-      width:0px;
-    }
-  
-    .hp-options li{
-    position:absolute;
-    border: 0px;
-    width: 31px;
-    z-index:1000;
-     color: #fff !important;
-      background-color: #ff3b30;
-          padding: 1px 5px;
-       }
-  
-   .hp-options li:nth-child(n+4){
-      color: #fff !important;
-      background-color: #4cd964;
-      padding-left: 4px;
-        }
-  
-  
-    .hp-options>li>a:hover {
-      color: #fff !important;
-      background-color: transparent !important;
-    }
-      .hp-options>li>a:focus  {
-      color: #fff !important;
-      background-color: transparent !important;
-    }
-      .hp-options>li>a {
-      padding:1px 0px !important;
-      color: #fff !important;
-    }
-  
-   .hp-options li:nth-child(1){left: -25px;top: -17px;border-top-left-radius: 20px;text-align:right;}
-   .hp-options li:nth-child(2){left: -25px;top: 5px;height: 26px;text-align:right;}
-   .hp-options li:nth-child(3){left: -25px;top: 31px;border-bottom-left-radius: 20px;text-align:right;}
-   .hp-options li:nth-child(4){border-top-right-radius: 20px;top: -17px;left: 60px;text-align:left;}
-   .hp-options li:nth-child(5){top: 5px;height: 26px;left: 60px;text-align:left;}
-   .hp-options li:nth-child(6){left: 60px;top: 31px;border-bottom-right-radius: 20px;text-align:left;}
-   .hp-options li:nth-child(7):after{color:black;content: '\f05c';font: normal normal normal 14px/1 FontAwesome;} 
-    .hp-options li:nth-child(7){
-      background-color: transparent;
-      top: -30px;
-      right: 50px;
-    }
-  
-    .monster-info{height: 60vh;
-      overflow: auto;
-      text-align: left !important;
-      border-right: 1px solid lightgrey;
-      border-bottom: 1px solid lightgrey;
-      border-left: 1px solid lightgrey;
-      padding: 12px;
-      border-bottom-left-radius: 10px;
-      border-bottom-right-radius: 10px;
-      background: white;
-      border-top-right-radius: 10px;
-        }
-    .monster-info table{width:auto}
-  
-  
-  .spell-block tr > td:first-child{
-     text-align:right;
-     font-weight:bold;
-  }
-  
-  .dice-bag-modal{
-    z-index: 1050; max-width: 250px; top: 30vh; left: 71%;
-  }
-  
-  .sound-options-modal{
-    z-index: 1050; max-width: 250px;
-  }
-  
-  
-    .sound-options-modal  input[type=checkbox].form-control {
-      height: 20px;
-      width:25px;
-      float:right;
-    }
-  
-  .sound-options-modal .switch.active .switch-handle {
-      border-color: #007aff;
-      -webkit-transform: translate(20px,0);
-      -ms-transform: translate(20px,0);
-      -o-transform: translate(20px,0);
-      transform: translate(20px,0);
-  }
-  
-  .sound-options-modal .switch .switch-handle {
-      width: 20px;
-      height: 20px;
-  }
-  
-  .sound-options-modal .switch {
-      width: 40px;
-      height: 20px;
-  }
-  
+.top-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+#combatLog {
+  max-height: 36%;
+  min-height: 70px;
+  overflow: auto;
+  line-height: 1.6em;
+  border: 2px solid grey;
+  clear: both;
+  border-radius: 4px;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.scene {
+  max-width: 220px;
+  text-align: center;
+  padding: 5px 5px 5px 5px;
+  min-width: 48px;
+  width: 50%;
+  display: inline-block;
+}
+
+.hp-options {
+  margin: 0px;
+  border: 0px;
+  padding: 0px;
+  width: 0px;
+}
+
+.hp-options li {
+  position: absolute;
+  border: 0px;
+  width: 31px;
+  z-index: 1000;
+  color: #fff !important;
+  background-color: #ff3b30;
+  padding: 1px 5px;
+}
+
+.hp-options li:nth-child(n + 4) {
+  color: #fff !important;
+  background-color: #4cd964;
+  padding-left: 4px;
+}
+
+.hp-options > li > a:hover {
+  color: #fff !important;
+  background-color: transparent !important;
+}
+.hp-options > li > a:focus {
+  color: #fff !important;
+  background-color: transparent !important;
+}
+.hp-options > li > a {
+  padding: 1px 0px !important;
+  color: #fff !important;
+}
+
+.hp-options li:nth-child(1) {
+  left: -25px;
+  top: -17px;
+  border-top-left-radius: 20px;
+  text-align: right;
+}
+.hp-options li:nth-child(2) {
+  left: -25px;
+  top: 5px;
+  height: 26px;
+  text-align: right;
+}
+.hp-options li:nth-child(3) {
+  left: -25px;
+  top: 31px;
+  border-bottom-left-radius: 20px;
+  text-align: right;
+}
+.hp-options li:nth-child(4) {
+  border-top-right-radius: 20px;
+  top: -17px;
+  left: 60px;
+  text-align: left;
+}
+.hp-options li:nth-child(5) {
+  top: 5px;
+  height: 26px;
+  left: 60px;
+  text-align: left;
+}
+.hp-options li:nth-child(6) {
+  left: 60px;
+  top: 31px;
+  border-bottom-right-radius: 20px;
+  text-align: left;
+}
+.hp-options li:nth-child(7):after {
+  color: black;
+  content: "\f05c";
+  font: normal normal normal 14px/1 FontAwesome;
+}
+.hp-options li:nth-child(7) {
+  background-color: transparent;
+  top: -30px;
+  right: 50px;
+}
+
+.monster-info {
+  height: 60vh;
+  overflow: auto;
+  text-align: left !important;
+  border-right: 1px solid lightgrey;
+  border-bottom: 1px solid lightgrey;
+  border-left: 1px solid lightgrey;
+  padding: 12px;
+  border-bottom-left-radius: 10px;
+  border-bottom-right-radius: 10px;
+  background: white;
+  border-top-right-radius: 10px;
+}
+.monster-info table {
+  width: auto;
+}
+
+.spell-block tr > td:first-child {
+  text-align: right;
+  font-weight: bold;
+}
+
+.dice-bag-modal {
+  z-index: 1050;
+  max-width: 250px;
+  top: 30vh;
+  left: 71%;
+}
+
+.sound-options-modal {
+  z-index: 1050;
+  max-width: 250px;
+}
+
+.sound-options-modal input[type="checkbox"].form-control {
+  height: 20px;
+  width: 25px;
+  float: right;
+}
+
+.sound-options-modal .switch.active .switch-handle {
+  border-color: #007aff;
+  -webkit-transform: translate(20px, 0);
+  -ms-transform: translate(20px, 0);
+  -o-transform: translate(20px, 0);
+  transform: translate(20px, 0);
+}
+
+.sound-options-modal .switch .switch-handle {
+  width: 20px;
+  height: 20px;
+}
+
+.sound-options-modal .switch {
+  width: 40px;
+  height: 20px;
+}
 
 footer.footer {
-    padding: 1rem 2.2rem;
-    position: fixed;
-    bottom: 0px;
-    font-size: 0.75em;
+  padding: 1rem 2.2rem;
+  position: fixed;
+  bottom: 0px;
+  font-size: 0.75em;
 }
 
 .accordion .card .card-header button {
@@ -217,7 +279,8 @@ footer.footer {
   padding: 0.8rem;
   padding-bottom: 0.8rem !important;
 }
-.accordion .card .card-header button:hover, .accordion .card .card-header .selected {
+.accordion .card .card-header button:hover,
+.accordion .card .card-header .selected {
   background-color: white;
   font-weight: 800;
 }

@@ -31,7 +31,7 @@ body {
 
 .burgFeature {
   padding: 0.2rem;
-  font-size: 1.8rem;
+  font-size: 1.4rem;
   cursor: pointer;
 }
 
@@ -375,8 +375,10 @@ mwlResizable {
 .story-box {
   position: absolute;
   font-size: 1.2rem;
-  right: 2rem;
-  top: 2rem;
+  right: 50vw;
+  top: 3rem;
+  max-width: 30vw;
+  z-index: 50;
 }
 
 .zoom-label div:first-child {
@@ -403,6 +405,58 @@ mwlResizable {
   text-align: center;
   position: absolute;
 }
-.story-box {
-  max-width: 30vw;
+
+.poi-npc > div {
+  border: 1px solid white;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  height: 3rem;
+}
+.poi-npc-hover {
+  flex: 0 0 100%;
+  max-width: 100%;
+}
+.poi-npc-hover > div {
+  height: auto;
+}
+.poi-npc-hover .hide {
+  display: flex !important;
+}
+.poi-npc .hide {
+  display: none;
+}
+
+.winter {
+  background-image: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
+}
+.summer {
+  background-image: linear-gradient(to right, #f9d423 0%, #ff4e50 100%);
+}
+.season {
+  color: black;
+  font-size: 1.2rem;
+  border-radius: 0.5rem;
+  padding: 0.2rem 1rem;
+  background: rgb(0, 146, 255);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 146, 255, 1) 0%,
+    rgba(255, 250, 6, 1) 50%,
+    rgba(255, 0, 0, 1) 100%
+  );
+}
+
+:host ::ng-drrp .ql-snow .ql-picker-options {
+  background-color: #101010;
+}
+
+.bullseye {
+  font-size: 1.45rem;
+  padding-left: 0.15rem;
+}
+
+.minimize {
+  position: absolute;
+  right: 35px;
+  top: -10px;
 }

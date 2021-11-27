@@ -117,6 +117,7 @@ function showUploadErrorMessage(error, URL, random) {
 }
 
 function uploadMap(file, callback) {
+  if (file.size == 0) return;
   uploadMap.timeStart = performance.now();
   const OLDEST_SUPPORTED_VERSION = 0.7;
   const currentVersion = parseFloat(version);
@@ -200,7 +201,7 @@ function parseLoadedData(data) {
     if (window.closeDialogs) closeDialogs();
     customization = 0;
     if (customizationMenu.offsetParent) styleTab.click();
-
+    console.log(data);
     const reliefIcons = document.getElementById("defs-relief").innerHTML; // save relief icons
     const hatching = document.getElementById("hatching").cloneNode(true); // save hatching
 
@@ -1322,7 +1323,12 @@ function parseLoadedData(data) {
     eraInput.value = options.era;
     shapeRendering.value =
       viewbox.attr("shape-rendering") || "geometricPrecision";
-
+    document.getElementById("manorsInput").value = localStorage.getItem(
+      "manorsInput"
+    )
+      ? localStorage.getItem("manorsInput")
+      : 100;
+    setBurgs(document.getElementById("manorsInput").value);
     if (window.restoreDefaultEvents) restoreDefaultEvents();
     focusOn(); // based on searchParams focus on point, cell or burg
     invokeActiveZooming();

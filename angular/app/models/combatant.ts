@@ -18,6 +18,7 @@ export class Combatant {
   public armor_class: number;
   public hit_points: string;
   public initiative: string = null;
+  public hp: number = 0;
   public str: number = 0;
   public dex: number = 0;
   public con: number = 0;

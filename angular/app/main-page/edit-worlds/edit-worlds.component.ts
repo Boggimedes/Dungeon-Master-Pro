@@ -21,7 +21,7 @@ export class EditWorldsComponent implements OnInit {
   @ViewChild(PerfectScrollbarComponent, { static: false })
   componentRef?: PerfectScrollbarComponent;
   worldCollapsed: boolean = false;
-  selectedWorld: World = new World();
+  selectedWorld: World;
   worldSubscription: Subscription;
   public config: PerfectScrollbarConfigInterface = {
     wheelPropagation: true,
@@ -83,13 +83,7 @@ export class EditWorldsComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private worldService: WorldService
-  ) {
-    route.paramMap.subscribe((p) => {
-      if (!!p.get("worldId")) {
-        this.worldService.getWorld(parseInt(p.get("worldId"), 10));
-      }
-    });
-  }
+  ) {}
 
   newWorld = () => {};
 
@@ -299,11 +293,6 @@ export class EditWorldsComponent implements OnInit {
   };
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((p) => {
-      if (!!p.get("worldId")) {
-        this.worldService.getWorld(parseInt(p.get("worldId"), 10));
-      }
-    });
     this.worldSubscription = this.worldService.selectedWorld$.subscribe(
       (world) => {
         if (world) {
@@ -322,7 +311,7 @@ export class EditWorldsComponent implements OnInit {
               return t;
             });
           }
-          this.selectedWorld = new World(world);
+          this.selectedWorld = world;
           console.log(this.selectedWorld);
         }
       }

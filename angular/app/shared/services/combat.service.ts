@@ -1,5 +1,5 @@
 import { Inject, Injectable } from "@angular/core";
-import { BehaviorSubject } from "rxjs";
+import { BehaviorSubject, ReplaySubject } from "rxjs";
 import { Attack } from "../../models/attacks";
 import { Multiattack } from "../../models/attacks";
 import { HttpClient } from "@angular/common/http";
@@ -17,6 +17,7 @@ export class CombatService {
   public combatLog = [];
   public recentMonsters = [];
   public groups = [];
+  public lastDmg = 0;
   public diceBagQuick = [];
   public favoriteMonsters = [];
   constructor(
@@ -27,6 +28,7 @@ export class CombatService {
       this.groups = JSON.parse(localStorage.getItem("groups"));
     if (localStorage.getItem("combatants")) {
       let combatants = JSON.parse(localStorage.getItem("combatants"));
+      combatants = combatants ? combatants : [];
       for (let i = 0; i < combatants.length; i++) {
         combatants[i] = new Combatant(combatants[i]);
       }
@@ -91,7 +93,7 @@ export class CombatService {
   };
 
   public startCombat = () => {
-    let combatants = this.combatLogSource.getValue();
+    let combatants = this.combatantsSource.getValue();
     for (let i in combatants) {
       combatants[i].turn = 1;
     }
@@ -121,10 +123,6 @@ export class CombatService {
     let damage = null;
     let log: any = {};
     let actor;
-    console.log(actor);
-    console.log(attack);
-    console.log(attack instanceof String);
-    console.log(typeof attack);
 
     if (typeof combatant == "string") {
       actor = combatant;
@@ -137,6 +135,19 @@ export class CombatService {
         name: "Straight d20" + adv,
       });
     }
+    if (typeof attack == "string") {
+      log = {
+        actor: actor,
+        name: attack,
+        dice: this.rollDice(attack),
+      };
+    } else {
+      if (attack.hasOwnProperty("attacks")) {
+        attack = new Multiattack(attack);
+      } else {
+        attack = new Attack(attack);
+      }
+    }
     if (attack instanceof Multiattack) {
       let multi = [];
       for (let i = 0; i < attack.attacks.length; i++) {
@@ -145,20 +156,15 @@ export class CombatService {
       log.multiattack = multi;
       log.actor = actor;
       log.name = attack.name;
+      console.log(multi);
     }
     if (attack instanceof Attack) {
       log = this.processAttack(combatant, attack, adv);
       log.actor = actor;
       log.name = attack.name;
+      console.log(log);
       console.log(actor);
       console.log(attack);
-    }
-    if (typeof attack == "string") {
-      log = {
-        actor: actor,
-        name: attack,
-        dice: this.rollDice(attack),
-      };
     }
     this.combatLogSource.next(log);
   };
@@ -337,6 +343,7 @@ export class CombatService {
         rollStr = rollStr.replace(vMatch[r], eval(vMatch[r]));
       }
     }
+    console.log(rollStr);
     return rollStr;
   };
   public order = (combatants = this.combatantsSource.getValue()) => {

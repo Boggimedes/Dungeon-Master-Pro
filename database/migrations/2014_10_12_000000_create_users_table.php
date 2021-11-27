@@ -228,6 +228,22 @@ class CreateUsersTable extends Migration
             $table->foreign('region_id')->references('id')->on('regions')->onDelete('cascade');
             $table->unique(['id', 'region_id', 'type']);
         });
+        Schema::create('npc_poi', function (Blueprint $table) {
+			// keys
+			$table->integer('npc_id')->unsigned()->nullable();
+			$table->foreign('npc_id') ->references('id')->on('npcs')->onDelete('cascade');
+
+			$table->integer('poi_id')->unsigned()->nullable();
+			// $table->foreign('poi_id') ->references('id')->on('poi')->onDelete('cascade');
+
+			$table->integer('region_id')->unsigned()->nullable();
+			// $table->foreign('region_id')->references('region_id')->on('poi')->onDelete('cascade');
+
+			$table->integer('type')->unsigned()->nullable();
+			// $table->foreign('type') ->references('type')->on('poi')->onDelete('cascade');
+            // $table->unique(['npc_id','poi_id', 'region_id', 'type']);
+			// $table->foreign(['poi_id', 'region_id', 'type'])->references(['id', 'region_id', 'type'])->on('poi')->onDelete('cascade');
+        });
         Schema::create('spells', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('original_spell_id')->unsigned();

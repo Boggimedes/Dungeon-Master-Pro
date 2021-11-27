@@ -12,19 +12,15 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(private router: Router) {
     console.log("App Construct");
-
   }
 
   ngOnInit() {
-    console.log("ngOnInit");
     this.subscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe(() => window.scrollTo(0, 0));
   }
 
   ngOnDestroy() {
-    console.log("ngOnDestroy");
-
     if (this.subscription) {
       this.subscription.unsubscribe();
     }

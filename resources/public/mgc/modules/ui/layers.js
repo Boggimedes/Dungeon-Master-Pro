@@ -747,6 +747,7 @@ function toggleIce(event) {
 }
 
 function drawIce() {
+  return;
   const cells = grid.cells,
     vertices = grid.vertices,
     n = cells.i.length,
@@ -884,7 +885,6 @@ function drawCultures() {
   });
 
   const data = paths.map((p, i) => [p, i]).filter((d) => d[0].length > 10);
-  console.log(data);
   cults
     .selectAll("path")
     .data(data)
@@ -995,15 +995,11 @@ function drawReligions() {
     religions[i].pole = polylabel(sorted, 1.0); // pole of inaccessibility
   });
 
-  console.log(religions);
-  console.log(body);
   const bodyData = body
     .map((p, i) => {
-      console.log(i);
       return [p.length > 10 ? p : null, i, religions[i].color];
     })
     .filter((d) => d[0]);
-  console.log(bodyData);
   relig
     .selectAll("path")
     .data(bodyData)
@@ -1841,14 +1837,11 @@ function toggleMarkers(event) {
 function drawMarkers() {
   const rescale = +1;
   const pinned = +markers.attr("pinned");
-  console.log(pinned);
   const markersData = pack.markers;
   // pinned
   // ? pack.markers.filter(({ pinned }) => pinned)
   // : pack.markers;
   const html = markersData.map((marker) => drawMarker(marker, rescale));
-  console.log(pack.markers);
-  console.log(markersData);
   markers.html(html.join(""));
 }
 
@@ -1881,7 +1874,6 @@ const getPin = (shape = "bubble", fill = "#fff", stroke = "#000") => {
 };
 
 function drawMarker(marker, rescale = 1) {
-  console.log(marker.size);
   const {
     i,
     icon,

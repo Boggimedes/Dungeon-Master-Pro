@@ -129,13 +129,15 @@ class User extends Authenticatable implements JWTSubject {
 	public function withSearchList()
 	{
 		$user = $this->toArray();
-		$regionList = $this->worlds()->leftJoin('regions','worlds.id','=','regions.world_id')->select('worlds.name as world_name', 'regions.name as region_name', 'worlds.id as world_id', 'regions.id as region_id')->get();
+		$locationList = $this->worlds()->leftJoin('regions','worlds.id','=','regions.world_id')->select('worlds.name as world_name', 'regions.name as region_name', 'worlds.id as world_id', 'regions.id as region_id')->get();
 		$i = 0;
 		$searchList = [];
-		foreach ($regionList as $region) {
-			if (!$i++) {
+		foreach ($locationList as $region) {
+			if (!$i++ || $region->world_id != $lastWorld) {
+				$lastWorld = $region->world_id;
 				$searchList[] = [
-					'name' => $region['world_name'],
+					'name' => $region['world_name'] .' | World',
+					'id' => $region['world_id'],
 					'type' => 'world',
 					'url' => '/app/world/' . $region['world_id'] . '/edit',
 					'icon' => "ft-globe"
@@ -143,10 +145,13 @@ class User extends Authenticatable implements JWTSubject {
 			}
 
 		$searchList[] = [
-					'name' => $region['region_name'],
+					'name' => $region['region_name'] .' | Region',
+					'id' => $region['region_id'],
+					'world_id' => $region['world_id'],
 					'type' => 'region',
-					'url' => '/app/region/' . $region['world_id'] . '/story',
-					'icon' => "ft-map"
+					'url' => '/app/region/' . $region['region_id'] . '/story',
+					'alt_url' => '/region/' . $region['region_id'] . '/map-generator',
+					'icon' => "ft-book"
 		];
 
 		}

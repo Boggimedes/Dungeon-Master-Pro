@@ -193,6 +193,26 @@
 
     </style>
     <script>
+        var shapes = ["heater", "spanish", "french", "horsehead", "horsehead2", "polish", "hessen", "swiss", "boeotian",
+            "roman", "kite", "oldFrench", "renaissance", "baroque", "targe", "targe2", "pavise", "wedged", "flag",
+            "pennon", "guidon", "banner", "dovetail", "gonfalon", "pennant", "round", "oval", "vesicaPiscis",
+            "square", "diamond", "no", "fantasy1", "fantasy2", "fantasy3", "fantasy4", "fantasy5", "noldor",
+            "gondor", "easterling", "erebor", "ironHills", "urukHai", "moriaOrc"
+        ];
+        // return the last element of array
+        function last(array) {
+            return array[array.length - 1];
+        }
+
+        // return random value from the array
+        function ra(array) {
+            return array[cryptoRand(0, array.length - 1)];
+        }
+
+        function cryptoRand(x, y) {
+            return x + (crypto.getRandomValues(new Uint32Array(1))[0] % (y - x + 1));
+        }
+        var regionId = {{ $region->id }};
         var regionRaces = window.regionRaces = [
             @foreach ($region->racial_balance as $race)
                 {!! json_encode($race) !!},
@@ -219,7 +239,7 @@
             @endif
         ];
         regionCultures = regionCultures.map((c) => {
-            c.shield = "random";
+            c.shield = "custom";
             c.base = 1;
             return c
         });
@@ -230,6 +250,18 @@
             @endforeach
 
         ];
+        regionStates = regionStates.map((s) => {
+            if (s.shield == 'random') {
+                s.shield = ra(shapes);
+                return s;
+            }
+            console.log(s);
+            if (s.coa?.shield == 'random') {
+                s.coa.shield = ra(shapes);
+                return s;
+            }
+            return s;
+        });
         var testing = [];
         Object.assign(testing, regionCultures);
         var regionRaceNames = {
@@ -237,7 +269,6 @@
                 {{ $race->id }}: '{{ $race->name }}',
             @endforeach
         };
-        var regionId = {{ $region->id }};
 
         function changeTemplate(value) {
             document.getElementById('map').style.display = 'none';
@@ -274,7 +305,6 @@
             <div id="mapSetup" class="col-5 pl-4 order-first text-light pb-5" style="height:100vh;overflow:auto;">
                 <div class="btn-container w-100 row">
                     <div class="d-flex col-2 pl-3">
-                        <a href="/app/story" class="btn btn-primary mx-1">&lt;- Back</a>
                         <button class="pl-3 btn btn-secondary mx-1" id="loadButton"
                             data-tip="Load fully-functional map in .map format" onclick="mapToLoad.click()">Load Map
                             File</button>
@@ -369,15 +399,15 @@
                                         <input id="yearInput" data-stored="year" type="number" step="100" min="0"
                                             max="10000" value="1000" onchange="updateEpoch()">
                                     </div>
-                                    <h4 class="pt-3">City Density</h4>
+                                    <h4 class="pt-3">City Generation</h4>
                                     <div class="col-12">
                                         <div class="btn-group w-100" role="group" aria-label="Basic example">
                                             <button type="button" class="btn btn-primary burg-density" data-value="100"
-                                                onclick="setBurgs(100)">1 City/200mi</button>
+                                                onclick="setBurgs(100)">100 Cities</button>
                                             <button type="button" class="btn btn-secondary burg-density"
-                                                data-value="200" onclick="setBurgs(200)">1 City/100mi</button>
+                                                data-value="200" onclick="setBurgs(200)">200 Cities</button>
                                             <button type="button" class="btn btn-secondary burg-density"
-                                                data-value="300" onclick="setBurgs(300)">1 City/50mi</button>
+                                                data-value="300" onclick="setBurgs(300)">300 Cities</button>
                                             <button type="button" class="btn btn-secondary burg-density"
                                                 data-value="1000" onclick="setBurgs(1000)">All The Cities</button>
                                         </div>
@@ -504,6 +534,9 @@
                                     </table>
                                 </div>
                                 <br><button class="btn btn-primary" onclick="newState()">Add State</button>
+                                <button type="button" class="btn btn-secondary ml-2"
+                                    onclick="editEmblem('state', 'stateCOA1', pack.states[1])">Edit Coat of
+                                    Arms</button>
                             </div>
                         </div>
                     </div>
@@ -816,7 +849,126 @@
                             <image id="oceanicPattern" href="/fmg/images/pattern1.png"></image>
                         </pattern>
                     </defs>
-                    <g id="viewbox"></g>
+                    <g id="viewbox" shape-rendering="geometricPrecision" style="cursor: default;">
+                        <g id="ocean">
+                            <g id="oceanLayers" layers="-6,-3,-1">
+                                <rect id="oceanBase" x="0" y="0" width="2000" height="2000" fill="#466eab"></rect>
+                            </g>
+                            <g id="oceanPattern">
+                                <rect fill="url(#oceanic)" x="0" y="0" width="2000" height="2000" opacity="0.2"></rect>
+                            </g>
+                        </g>
+                        <g id="lakes">
+                            <g id="freshwater" opacity="0.5" fill="#a6c1fd" stroke="#5f799d" stroke-width="0.7"></g>
+                            <g id="salt" opacity="0.5" fill="#409b8a" stroke="#388985" stroke-width="0.7"></g>
+                            <g id="sinkhole" opacity="1" fill="#5bc9fd" stroke="#53a3b0" stroke-width="0.7"></g>
+                            <g id="frozen" opacity="0.95" fill="#cdd4e7" stroke="#cfe0eb" stroke-width="0"></g>
+                            <g id="lava" opacity="0.7" fill="#90270d" stroke="#f93e0c" stroke-width="2"
+                                filter="url(#crumpled)"></g>
+                            <g id="dry" opacity="1" fill="#c9bfa7" stroke="#8e816f" stroke-width="0.7"></g>
+                        </g>
+                        <g id="landmass" opacity="1" fill="beige">
+                            <rect x="0" y="0" width="2000" height="2000"></rect>
+                        </g>
+                        <g id="texture" mask="url(#land)"></g>
+                        <g id="terrs" mask="url(#land)" stroke="none" scheme="bright" terracing="0" skip="5" relax="0"
+                            curve="0"></g>
+                        <g id="biomes" mask="url(#land)"></g>
+                        <g id="cells"></g>
+                        <g id="gridOverlay"></g>
+                        <g id="coordinates"></g>
+                        <g id="compass"></g>
+                        <g id="rivers" fill="#5d97bb"></g>
+                        <g id="terrain" set="colored" size="1.3" density="0.2"></g>
+                        <g id="relig" opacity="0.7" stroke="#777777" stroke-width="0"></g>
+                        <g id="cults" opacity="0.6" stroke="#777777" stroke-width="0.5"></g>
+                        <g id="regions">
+                            <g id="statesBody" opacity="0.4"></g>
+                            <g id="statesHalo" data-width="10" stroke-width="10" opacity="0.4" filter="blur(5px)"
+                                style="display: block;"></g>
+                        </g>
+                        <g id="provs" opacity="0.7" fill="#000000" font-family="Georgia" data-size="10" font-size="10">
+                        </g>
+                        <g id="zones" opacity="0.6" stroke="#333333" stroke-width="0" stroke-linecap="butt"
+                            style="display: none;"></g>
+                        <g id="borders">
+                            <g id="stateBorders" opacity="0.8" stroke="#56566d" stroke-width="1" stroke-dasharray="2"
+                                stroke-linecap="butt"></g>
+                            <g id="provinceBorders" opacity="0.8" stroke="#56566d" stroke-width="0.5"
+                                stroke-dasharray="0 2" stroke-linecap="round"></g>
+                        </g>
+                        <g id="routes">
+                            <g id="roads" opacity="0.9" stroke="#d06324" stroke-width="0.7" stroke-dasharray="2"
+                                stroke-linecap="butt"></g>
+                            <g id="trails" opacity="0.9" stroke="#d06324" stroke-width="0.25" stroke-dasharray=".8 1.6"
+                                stroke-linecap="butt"></g>
+                            <g id="searoutes" opacity="0.8" stroke="#ffffff" stroke-width="0.45" stroke-dasharray="1 2"
+                                stroke-linecap="round"></g>
+                        </g>
+                        <g id="temperature" fill="#000000" stroke-width="1.8" fill-opacity="0.3" font-size="8px"></g>
+                        <g id="coastline">
+                            <g id="sea_island" opacity="0.5" stroke="#1f3846" stroke-width="0.7" auto-filter="1"
+                                filter="url(#dropShadow)"></g>
+                            <g id="lake_island" opacity="1" stroke="#7c8eaf" stroke-width="0.35"></g>
+                        </g>
+                        <g id="ice" opacity="0.9" fill="#e8f0f6" stroke="#e8f0f6" stroke-width="1"
+                            filter="url(#dropShadow05)" style=""></g>
+                        <g id="prec" style="display: none;"></g>
+                        <g id="prec" stroke="#000000" stroke-width="0.1" fill="#003dff" style="display: none;">
+                            <g id="wind"><text x="20" y="469.34499999999997">⇉</text><text x="952" y="915">⇈</text></g>
+                        </g>
+                        <g id="emblems" style="display: none;">
+                            <g id="burgEmblems"></g>
+                            <g id="provinceEmblems"></g>
+                            <g id="stateEmblems"></g>
+                        </g>
+                        <g id="labels">
+                            <g id="states" fill="#3e3e4b" opacity="1" stroke="#3a3a3a" stroke-width="0"
+                                font-family="Almendra SC" font-size="24" data-size="24"
+                                style="text-shadow: white 0px 0px 4px;"></g>
+                            <g id="religions" fill="#3e3e4b" opacity="1" stroke="#3a3a3a" stroke-width="0"
+                                font-family="Almendra SC" font-size="24" data-size="24"
+                                style="text-shadow: white 0px 0px 4px;"></g>
+                            <g id="cultures" fill="#3e3e4b" opacity="1" stroke="#3a3a3a" stroke-width="0"
+                                font-family="Almendra SC" font-size="24" data-size="24"
+                                style="text-shadow: white 0px 0px 4px;"></g>
+                            <g id="addedLabels" fill="#3e3e4b" opacity="1" stroke="#3a3a3a" stroke-width="0"
+                                font-family="Almendra SC" font-size="18" data-size="18"
+                                style="text-shadow: white 0px 0px 4px;"></g>
+                            <g id="burgLabels">
+                                <g id="cities" fill="#3e3e4b" opacity="1" font-family="Almendra SC" font-size="8"
+                                    data-size="8" style="text-shadow: white 0px 0px 4px;"></g>
+                                <g id="towns" fill="#3e3e4b" opacity="1" font-family="Almendra SC" font-size="4"
+                                    data-size="4" style="text-shadow: white 0px 0px 4px;" class="hidden"></g>
+                            </g>
+                        </g>
+                        <g id="icons">
+                            <g id="burgIcons">
+                                <g id="cities" opacity="1" size="1" stroke-width="0.24" fill="#ffffff" stroke="#3e3e4b"
+                                    fill-opacity="0.7" stroke-dasharray="" stroke-linecap="butt"></g>
+                                <g id="towns" opacity="1" size="0.5" stroke-width="0.12" fill="#ffffff" stroke="#3e3e4b"
+                                    fill-opacity="0.7" stroke-dasharray="" stroke-linecap="butt"></g>
+                            </g>
+                            <g id="anchors">
+                                <g id="cities" opacity="1" fill="#ffffff" stroke="#3e3e4b" stroke-width="1.2" size="2">
+                                </g>
+                                <g id="towns" opacity="1" fill="#ffffff" stroke="#3e3e4b" stroke-width="1.2" size="1">
+                                </g>
+                            </g>
+                        </g>
+                        <g id="armies" style="display: none;"></g>
+                        <g id="markers" rescale="1" filter="url(#dropShadow01)"></g>
+                        <g id="fogging-cont" mask="url(#fog)">
+                            <g id="fogging" opacity="0.98" fill="#30426f" style="display: none;">
+                                <rect x="0" y="0" width="100%" height="100%"></rect>
+                                <rect x="0" y="0" width="100%" height="100%" fill="#e8f0f6" filter="url(#splotch)">
+                                </rect>
+                            </g>
+                        </g>
+                        <g id="ruler" style="display: none;"></g>
+                        <g id="debug"></g>
+                    </g>
+
                     <g id="scaleBar"></g>
                     <g id="initial" opacity=1>
                         <rect x="-1%" y="-1%" width="102%" height="102%" fill="#466eab" />
@@ -1707,7 +1859,7 @@
                         <td></td>
                         <td>Points number</td>
                         <td>
-                            <input id="pointsInput" type="range" min=1 max=13 value=4 data-cells=10000>
+                            <input id="pointsInput" type="range" min=1 max=13 value=13 data-cells=20000>
                         </td>
                         <td>
                             <output id="pointsOutput_formatted" style="color: #053305">10K</output>
@@ -1958,6 +2110,7 @@
                                     <option value="random">Culture-random</option>
                                     <option value="state">State-specific</option>
                                 </optgroup>
+                                <option value="random">Random</option>
                                 <optgroup label="Basic">
                                     <option value="heater">Heater</option>
                                     <option value="spanish">Spanish</option>
@@ -4348,17 +4501,19 @@
                     <div class="label">State:</div>
                     <select id="emblemStates"></select>
                 </div>
-                <div data-tip="Select province in state">
+                <div data-tip="Select province in state" class="d-none">
                     <div class="label">Province:</div>
                     <select id="emblemProvinces"></select>
                 </div>
-                <div data-tip="Select burg in province or state">
+                <div data-tip="Select burg in province or state" class="d-none">
                     <div class="label">Burg:</div>
                     <select id="emblemBurgs"></select>
                 </div>
                 <hr />
                 <div data-tip="Select shape of the emblem">
                     <div class="label">Shape:</div>
+                    <input id="randomShield" class="checkbox" type="checkbox" onclick="toggleEmblemSS($event)">
+                    <label>Random</label>
                     <select id="emblemShapeSelector">
                         <optgroup label="Basic">
                             <option value="heater">Heater</option>
@@ -4421,15 +4576,15 @@
                     </select>
                 </div>
 
-                <div
+                <div class="d-none"
                     data-tip="Set size of particular Emblem. To hide set to 0. To change the entire category go to Menu ⭢ Style ⭢ Emblems">
                     <div class="label" style="width: 2.8em">Size:</div>
                     <input id="emblemSizeSlider" type="range" min=0 max=5 step=.1 style="width: 8em" />
                     <input id="emblemSizeNumber" type="number" min=0 max=5 step=.1 />
                 </div>
             </div>
-            <div id="emblemsBottom">
-                <button id="emblemsRegenerate" data-tip="Regenerate emblem" class="icon-shuffle"></button>
+            <button id="emblemsRegenerate" data-tip="Regenerate emblem" class="icon-shuffle"></button>
+            <div id="emblemsBottom" class="d-none">
                 <button id="emblemsArmoria"
                     data-tip="Edit the emblem in Armoria - dedicated heraldry editor. Download emblem and upload it back map the generator"
                     class="icon-brush"></button>
@@ -7438,13 +7593,14 @@
         }
 
         function newCulture() {
+
             regionCultures.push({
                 'i': regionCultures.length,
                 'name': '',
                 'race_id': '',
                 'expansionism': 1,
                 'base': 0,
-                'shield': 'random'
+                'shield': ra(shapes)
             });
             console.log(regionCultures);
             culturesTable();
@@ -7481,7 +7637,9 @@
         function statesTable() {
             var table = document.getElementById("states");
             table.innerHTML = '';
+            console.log(regionStates);
             for (var i = 0; i < regionStates.length; i++) {
+                console.log(i);
                 var tr = document.createElement("tr");
                 var td = document.createElement("td");
                 var input = document.createElement("input");
@@ -7575,7 +7733,6 @@
 
                 table.append(tr);
             }
-
         }
 
         function religionHighlightOn(event) {
@@ -7802,6 +7959,7 @@
 
         function setBurgs(value) {
             let manorsInput = document.getElementById('manorsInput');
+            console.log(manorsInput.value);
             console.log($('.burg-density'));
             $('.burg-density').each((i) => {
                 if ($('.burg-density')[i].getAttribute('data-value') == value) $('.burg-density')[i].className =
@@ -7809,6 +7967,8 @@
                 else $('.burg-density')[i].className = "btn btn-secondary burg-density";
             });
             manorsInput.value = value;
+            localStorage.setItem("manorsInput", value)
+            console.log(manorsInput.value);
         }
 
         function drawIcons() {
@@ -7941,27 +8101,34 @@
 
             if (["🏇", "🎎", "👥"].indexOf(window.selectedMarker) + 1) {
                 marker.type = "party";
-                this.addParty(i);
+                addParty(i);
             }
             if (["🍻", "🍺"].indexOf(window.selectedMarker) + 1) {
+                marker.type = "tavern";
                 addInnHook(i, cell, "tavern");
             }
             if (window.selectedMarker == "🛌") {
+                marker.type = "inn";
                 addInnHook(i, cell, "inn");
             }
             if (["⚔️", "🏹", ].indexOf(window.selectedMarker) + 1) {
+                marker.type = "brigand";
                 addBrigandHook(i, cell);
             }
             if (window.selectedMarker == "⛏️") {
+                marker.type = "mine";
                 addMineHook(i, cell);
             }
             if (window.selectedMarker == "🌋") {
+                marker.type = "volcano";
                 addVolcanoHook(i, cell);
             }
             if (window.selectedMarker == "🕸️") {
+                marker.type = "spider";
                 addSpiderHook(i, cell);
             }
             if (window.selectedMarker == "🏴‍☠️") {
+                marker.type = "pirate";
                 addPirateHook(i, cell);
             }
             if (["🏴", "☠️", "💀", "🦑", "🐉"].indexOf(window.selectedMarker) + 1) {
@@ -8583,23 +8750,527 @@
         statesTable();
         drawIcons();
 
-        function updateEpoch() {
-            neutralInput.value = yearInput.value / 6000;
-            console.log(yearInput.value);
-            console.log(neutralInput.value);
-            if (layerIsOn("toggleStates")) {
-                BurgsAndStates.expandStates();
-                drawStates();
-                BurgsAndStates.drawStateLabels()
+        function editEmblem(type, id, el) {
+            if (!id && d3.event) defineEmblemData(d3.event);
+
+            const emblemStates = document.getElementById("emblemStates");
+            //const emblemProvinces = document.getElementById("emblemProvinces");
+            //const emblemBurgs = document.getElementById("emblemBurgs");
+            const emblemShapeSelector = document.getElementById("emblemShapeSelector");
+
+            updateElementSelectors(type, id, el);
+
+            $("#emblemEditor").dialog({
+                title: "Edit Coat of Arms",
+                resizable: true,
+                width: "18.2em",
+                height: "auto",
+                position: {
+                    my: "left top",
+                    at: "left+10 top+10",
+                    of: "svg",
+                    collision: "fit"
+                },
+                close: closeEmblemEditor
+            });
+
+            // add listeners,then remove on closure
+            emblemStates.oninput = selectState;
+            //emblemProvinces.oninput = selectProvince;
+            //emblemBurgs.oninput = selectBurg;
+            emblemShapeSelector.oninput = changeShape;
+            // document.getElementById("emblemSizeSlider").oninput = changeSize;
+            // document.getElementById("emblemSizeNumber").oninput = changeSize;
+            document.getElementById("emblemsRegenerate").onclick = regenerate;
+            document.getElementById("emblemsArmoria").onclick = openInArmoria;
+            document.getElementById("emblemsUpload").onclick = toggleUpload;
+            document.getElementById("emblemsUploadImage").onclick = () => emblemImageToLoad.click();
+            document.getElementById("emblemsUploadSVG").onclick = () => emblemSVGToLoad.click();
+            document.getElementById("emblemImageToLoad").onchange = () => upload("image");
+            document.getElementById("emblemSVGToLoad").onchange = () => upload("svg");
+            document.getElementById("emblemsDownload").onclick = toggleDownload;
+            document.getElementById("emblemsDownloadSVG").onclick = () => download("svg");
+            document.getElementById("emblemsDownloadPNG").onclick = () => download("png");
+            document.getElementById("emblemsDownloadJPG").onclick = () => download("jpeg");
+            document.getElementById("emblemsGallery").onclick = downloadGallery;
+            document.getElementById("emblemsFocus").onclick = showArea;
+
+            function defineEmblemData(e) {
+                const parent = e.target.parentNode;
+                const [g, t] = parent.id === "burgEmblems" ? [pack.burgs, "burg"] :
+                    parent.id === "provinceEmblems" ? [pack.provinces, "province"] : [pack.states, "state"];
+                const i = +e.target.dataset.i;
+                type = t;
+                id = type + "COA" + i;
+                el = g[i];
             }
-            if (layerIsOn("toggleReligions")) {
-                Religions.expandReligions();
-                drawReligions();
+
+            function updateElementSelectors(type, id, el) {
+                let state = 0,
+                    province = 0,
+                    burg = 0;
+
+                // set active type
+                emblemStates.parentElement.className = type === "state" ? "active" : "";
+                //emblemProvinces.parentElement.className = type === "province" ? "active" : "";
+                //emblemBurgs.parentElement.className = type === "burg" ? "active" : "";
+
+                // define selected values
+                if (type === "state") state = el ? el.i : 1;
+                else if (type === "province") {
+                    province = el.i
+                    state = pack.states[el.state].i;
+                } else {
+                    burg = el.i;
+                    province = pack.cells.province[el.cell] ? pack.provinces[pack.cells.province[el.cell]].i : 0;
+                    state = el.state;
+                }
+
+                //const validBurgs = pack.burgs.filter(burg => burg.i && !burg.removed && burg.coa);
+                console.log(state, type, id, el);
+                // update option list and select actual values
+                emblemStates.options.length = 0;
+                //const neutralBurgs = validBurgs.filter(burg => !burg.state);
+                //if (neutralBurgs.length) emblemStates.options.add(new Option(pack.states[0].name, 0, false, !state));
+                const stateList = pack.states.filter(state => state.i && !state.removed);
+                stateList.forEach(s => emblemStates.options.add(new Option(s.name, s.i, false, s.i === state)));
+
+                //emblemProvinces.options.length = 0;
+                //emblemProvinces.options.add(new Option("", 0, false, !province));
+                //const provinceList = pack.provinces.filter(province => !province.removed && province.state === state);
+                //provinceList.forEach(p => emblemProvinces.options.add(new Option(p.name, p.i, false, p.i === province)));
+
+                //emblemBurgs.options.length = 0;
+                //emblemBurgs.options.add(new Option("", 0, false, !burg));
+                //const burgList = validBurgs.filter(burg => province ? pack.cells.province[burg.cell] === province : burg
+                //    .state === state);
+                //burgList.forEach(b => emblemBurgs.options.add(new Option(b.capital ? "👑 " + b.name : b.name, b.i, false, b
+                //    .i === burg)));
+                //emblemBurgs.options[0].disabled = true;
+                if (!id) return;
+                console.log(state);
+                console.log(pack.states);
+                //
+                COArenderer.trigger(id, el.coa).then((r) => {
+                    console.log(r);
+                    pack.states[state].coa_svg = r;
+                });
+                updateEmblemData(type, id, el);
             }
-            if (layerIsOn("toggleCultures")) {
-                Cultures.expand();
-                drawCultures();
+
+            function updateEmblemData(type, id, el) {
+                if (!el.coa) return;
+                document.getElementById("emblemImage").setAttribute("href", "#" + id);
+                let name = el.fullName || el.name;
+                if (type === "burg") name = "Burg of " + name;
+                document.getElementById("emblemArmiger").innerText = name;
+
+                if (el.coa === "custom") emblemShapeSelector.disabled = true;
+                else {
+                    emblemShapeSelector.disabled = false;
+                    emblemShapeSelector.value = el.coa.shield;
+                }
+
+                const size = el.coaSize || 1;
+                document.getElementById("emblemSizeSlider").value = size;
+                document.getElementById("emblemSizeNumber").value = size;
             }
+
+            function selectState() {
+                const state = +this.value;
+                if (state) {
+                    type = "state";
+                    el = pack.states[state];
+                    id = "stateCOA" + state;
+                } else {
+                    // select neutral burg if state is changed to Neutrals
+                    const neutralBurgs = pack.burgs.filter(burg => burg.i && !burg.removed && !burg.state);
+                    if (!neutralBurgs.length) return;
+                    type = "burg";
+                    el = neutralBurgs[0];
+                    id = "burgCOA" + neutralBurgs[0].i;
+                }
+                updateElementSelectors(type, id, el);
+            }
+
+            function selectProvince() {
+                const province = +this.value;
+
+                if (province) {
+                    type = "province";
+                    el = pack.provinces[province];
+                    id = "provinceCOA" + province;
+                } else {
+                    // select state if province is changed to null value
+                    const state = +emblemStates.value;
+                    type = "state";
+                    el = pack.states[state];
+                    id = "stateCOA" + state;
+                }
+
+                updateElementSelectors(type, id, el);
+            }
+
+            function selectBurg() {
+                const burg = +this.value;
+                type = "burg";
+                el = pack.burgs[burg];
+                id = "burgCOA" + burg;
+                updateElementSelectors(type, id, el);
+            }
+
+            function changeShape() {
+                el.coa.shield = this.value;
+                const coaEl = document.getElementById(id);
+                if (coaEl) coaEl.remove();
+                COArenderer.trigger(id, el.coa);
+            }
+
+            function showArea() {
+                highlightEmblemElement(type, el);
+            }
+
+            function changeSize() {
+                const size = el.coaSize = +this.value;
+                document.getElementById("emblemSizeSlider").value = size;
+                document.getElementById("emblemSizeNumber").value = size;
+
+                const g = emblems.select("#" + type + "Emblems");
+                g.select("[data-i='" + el.i + "']").remove();
+                if (!size) return;
+
+                // re-append use element
+                const categotySize = +g.attr("font-size");
+                const shift = categotySize * size / 2;
+                const x = el.x || el.pole[0];
+                const y = el.y || el.pole[1];
+                g.append("use").attr("data-i", el.i)
+                    .attr("x", rn(x - shift), 2).attr("y", rn(y - shift), 2)
+                    .attr("width", size + "em").attr("height", size + "em")
+                    .attr("href", "#" + id);
+            }
+
+            function regenerate() {
+
+                let shield = el?.coa.shield || COA.getShield(el?.culture || parent?.culture || 0, el?.state);
+                console.log(document.getElementById("randomShield").value);
+                if (document.getElementById("randomShield").value) {
+                    shield = ra(shapes);
+                }
+                el.coa = COA.generate(parent ? parent.coa : null, .3, .1, null);
+                el.coa.shield = shield;
+                emblemShapeSelector.disabled = false;
+                emblemShapeSelector.value = el.coa.shield;
+
+                const coaEl = document.getElementById(id);
+                if (coaEl) coaEl.remove();
+                COArenderer.trigger(id, el.coa);
+                el.coa.shield = shield;
+            }
+
+            function openInArmoria() {
+                const coa = el.coa && el.coa !== "custom" ? el.coa : {
+                    t1: "sable"
+                };
+                const json = JSON.stringify(coa).replaceAll("#", "%23");
+                const url = `https://azgaar.github.io/Armoria/?coa=${json}&from=FMG`;
+                openURL(url);
+            }
+
+            function toggleUpload() {
+                document.getElementById("emblemDownloadControl").classList.add("hidden");
+                const buttons = document.getElementById("emblemUploadControl");
+                buttons.classList.toggle("hidden");
+            }
+
+            function upload(type) {
+                const input = type === "image" ? document.getElementById("emblemImageToLoad") : document.getElementById(
+                    "emblemSVGToLoad");
+                const file = input.files[0];
+                input.value = "";
+
+                if (file.size > 500000) {
+                    tip(`File is too big, please optimize file size up to 500kB and re-upload. Recommended size is 200x200 px and up to 100kB`,
+                        true, "error", 5000);
+                    return;
+                }
+
+                const reader = new FileReader();
+
+                reader.onload = function(readerEvent) {
+                    const result = readerEvent.target.result;
+                    const defs = document.getElementById("defs-emblems");
+                    const coa = document.getElementById(id); // old emblem
+
+                    if (type === "image") {
+                        const svg =
+                            `<svg id="${id}" xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><image x="0" y="0" width="200" height="200" href="${result}"/></svg>`;
+                        defs.insertAdjacentHTML("beforeend", svg);
+                    } else {
+                        const el = document.createElement("html");
+                        el.innerHTML = result;
+
+                        // remove sodipodi and inkscape attributes
+                        el.querySelectorAll("*").forEach(el => {
+                            const attributes = el.getAttributeNames();
+                            attributes.forEach(attr => {
+                                if (attr.includes("inkscape") || attr.includes("sodipodi")) el
+                                    .removeAttribute(attr);
+                            });
+                        });
+
+                        const svg = el.querySelector("svg");
+                        if (!svg) {
+                            tip("The file should be prepated for load to FMG. Please use Armoria or other relevant tools",
+                                false, "error");
+                            return;
+                        }
+
+                        const newEmblem = defs.appendChild(svg);
+                        newEmblem.id = id;
+                        newEmblem.setAttribute("width", 200);
+                        newEmblem.setAttribute("height", 200);
+                    }
+
+                    if (coa) coa.remove(); // remove old emblem
+                    el.coa = "custom";
+                    emblemShapeSelector.disabled = true;
+                };
+
+                if (type === "image") reader.readAsDataURL(file);
+                else reader.readAsText(file);
+            }
+
+            function toggleDownload() {
+                document.getElementById("emblemUploadControl").classList.add("hidden");
+                const buttons = document.getElementById("emblemDownloadControl");
+                buttons.classList.toggle("hidden");
+            }
+
+            async function download(format) {
+                const coa = document.getElementById(id);
+                const size = +emblemsDownloadSize.value;
+                const url = await getURL(coa, size);
+                const link = document.createElement("a");
+                link.download = getFileName(`Emblem ${el.fullName || el.name}`) + "." + format;
+
+                if (format === "svg") downloadSVG(url, link);
+                else downloadRaster(format, url, link, size);
+                document.getElementById("emblemDownloadControl").classList.add("hidden");
+            }
+
+            function downloadSVG(url, link) {
+                link.href = url;
+                link.click();
+            }
+
+            function downloadRaster(format, url, link, size) {
+                const canvas = document.createElement("canvas");
+                const ctx = canvas.getContext("2d");
+                canvas.width = size;
+                canvas.height = size;
+
+                const img = new Image();
+                img.src = url;
+                img.onload = function() {
+                    if (format === "jpeg") {
+                        ctx.fillStyle = "#fff";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    }
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const dataURL = canvas.toDataURL("image/" + format, .92);
+                    link.href = dataURL;
+                    link.click();
+                    window.setTimeout(() => window.URL.revokeObjectURL(dataURL), 6000);
+                }
+            }
+
+            async function getURL(svg, size) {
+                const serialized = getSVG(svg, size);
+                const blob = new Blob([serialized], {
+                    type: 'image/svg+xml;charset=utf-8'
+                });
+                const url = window.URL.createObjectURL(blob);
+                window.setTimeout(() => window.URL.revokeObjectURL(url), 6000);
+                return url;
+            }
+
+            function getSVG(svg, size) {
+                const clone = svg.cloneNode(true);
+                clone.setAttribute("width", size);
+                clone.setAttribute("height", size);
+                return (new XMLSerializer()).serializeToString(clone);
+            }
+
+            async function downloadGallery() {
+                const name = getFileName("Emblems Gallery");
+                const validStates = pack.states.filter(s => s.i && !s.removed && s.coa);
+                const validProvinces = pack.provinces.filter(p => p.i && !p.removed && p.coa);
+                const validBurgs = pack.burgs.filter(b => b.i && !b.removed && b.coa);
+                await renderAllEmblems(validStates, validProvinces, validBurgs);
+                runDownload();
+
+                function runDownload() {
+                    const back = `<a href="javascript:history.back()">Go Back</a>`;
+
+                    const stateSection = `<div><h2>States</h2>` + validStates.map(state => {
+                        const el = document.getElementById("stateCOA" + state.i);
+                        return `<figure id="state_${state.i}"><a href="#provinces_${state.i}"><figcaption>${state.fullName}</figcaption>${getSVG(el, 200)}</a></figure>`;
+                    }).join("") + `</div>`;
+
+                    const provinceSections = validStates.map(state => {
+                        const stateProvinces = validProvinces.filter(p => p.state === state.i);
+                        const figures = stateProvinces.map(province => {
+                            const el = document.getElementById("provinceCOA" + province.i);
+                            return `<figure id="province_${province.i}"><a href="#burgs_${province.i}"><figcaption>${province.fullName}</figcaption>${getSVG(el, 200)}</a></figure>`;
+                        }).join("");
+                        return stateProvinces.length ?
+                            `<div id="provinces_${state.i}">${back}<h2>${state.fullName} provinces</h2>${figures}</div>` :
+                            "";
+                    }).join("");
+
+                    const burgSections = validStates.map(state => {
+                        const stateBurgs = validBurgs.filter(b => b.state === state.i);
+                        let stateBurgSections = validProvinces.filter(p => p.state === state.i).map(
+                            province => {
+                                const provinceBurgs = stateBurgs.filter(b => pack.cells.province[b.cell] ===
+                                    province.i);
+                                const provinceBurgFigures = provinceBurgs.map(burg => {
+                                    const el = document.getElementById("burgCOA" + burg.i);
+                                    return `<figure id="burg_${burg.i}"><figcaption>${burg.name}</figcaption>${getSVG(el, 200)}</figure>`;
+                                }).join("");
+                                return provinceBurgs.length ?
+                                    `<div id="burgs_${province.i}">${back}<h2>${province.fullName} burgs</h2>${provinceBurgFigures}</div>` :
+                                    "";
+                            }).join("");
+
+                        const stateBurgOutOfProvinces = stateBurgs.filter(b => !pack.cells.province[b.cell]);
+                        const stateBurgOutOfProvincesFigures = stateBurgOutOfProvinces.map(burg => {
+                            const el = document.getElementById("burgCOA" + burg.i);
+                            return `<figure id="burg_${burg.i}"><figcaption>${burg.name}</figcaption>${getSVG(el, 200)}</figure>`;
+                        }).join("");
+                        if (stateBurgOutOfProvincesFigures) stateBurgSections +=
+                            `<div><h2>${state.fullName} burgs under direct control</h2>${stateBurgOutOfProvincesFigures}</div>`;
+                        return stateBurgSections;
+                    }).join("");
+
+                    const neutralBurgs = validBurgs.filter(b => !b.state);
+                    const neutralsSection = neutralBurgs.length ? "<div><h2>Independent burgs</h2>" + neutralBurgs.map(
+                        burg => {
+                            const el = document.getElementById("burgCOA" + burg.i);
+                            return `<figure id="burg_${burg.i}"><figcaption>${burg.name}</figcaption>${getSVG(el, 200)}</figure>`;
+                        }).join("") + "</div>" : "";
+
+                    const FMG =
+                        `<a href="https://azgaar.github.io/Fantasy-Map-Generator" target="_blank">Azgaar's Fantasy Map Generator</a>`;
+                    const license =
+                        `<a target="_blank" href="https://github.com/Azgaar/Armoria#license">the license</a>`;
+                    const html = `<!DOCTYPE html><html><head><title>${mapName.value} Emblems Gallery</title></head>
+                        <style type="text/css">
+                        body { margin: 0; padding: 1em; font-family: serif; }
+                        h1, h2 { font-family: 'Forum'; }
+                        div { width: 100%; max-width: 1018px; margin: 0 auto; border-bottom: 1px solid #ddd; }
+                        figure { margin: 0 0 2em; display: inline-block; transition: .2s; }
+                        figure:hover { background-color: #f6f6f6; }
+                        figcaption { text-align: center; margin: .4em 0; width: 200px; font-family: 'Overlock SC' }
+                        address { width: 100%; max-width: 1018px; margin: 0 auto; }
+                        a { color: black; }
+                        figure > a { text-decoration: none; }
+                        div > a { float: right; font-family: monospace; margin-top: .8em; }
+                        </style>
+                        <link href="https://fonts.googleapis.com/css2?family=Forum&family=Overlock+SC" rel="stylesheet">
+                        <body>
+                        <div><h1>${mapName.value} Emblems Gallery</h1></div>
+                        ${stateSection}
+                        ${provinceSections}
+                        ${burgSections}
+                        ${neutralsSection}
+                        <address>Generated by ${FMG}. The tool is free, but images may be copyrighted, see ${license}</address>
+                        </body></html>`;
+                    downloadFile(html, name + ".html", "text/plain");
+                }
+            }
+
+            async function renderAllEmblems(states, provinces, burgs) {
+                tip("Preparing for download...", true, "warn");
+
+                const statePromises = states.map(state => COArenderer.trigger("stateCOA" + state.i, state.coa));
+                const provincePromises = provinces.map(province => COArenderer.trigger("provinceCOA" + province.i,
+                    province.coa));
+                const burgPromises = burgs.map(burg => COArenderer.trigger("burgCOA" + burg.i, burg.coa));
+                const promises = [...statePromises, ...provincePromises, ...burgPromises];
+
+                return Promise.allSettled(promises).then(res => clearMainTip());
+            }
+
+            function dragEmblem() {
+                const tr = parseTransform(this.getAttribute("transform"));
+                const x = +tr[0] - d3.event.x,
+                    y = +tr[1] - d3.event.y;
+
+                d3.event.on("drag", function() {
+                    const transform = `translate(${(x + d3.event.x)},${(y + d3.event.y)})`;
+                    this.setAttribute("transform", transform);
+                });
+            }
+
+            function closeEmblemEditor() {
+                emblems.selectAll("use").call(d3.drag().on("drag", null)).attr("class", null);
+            }
+
+            function toggleEmblemSS(event) {
+                if (event.target.value) {
+                    document.getElementById("emblemShapeSelector").disabled = true;
+                } else {
+                    document.getElementById("emblemShapeSelector").disabled = false;
+                }
+            }
+        }
+
+        async function saveToServer() {
+            console.time("saveToServer");
+            const pngurl = await getMapURL("png");
+            console.timeEnd("saveToServer1");
+
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = 260;
+            canvas.height = 260;
+            let states = pack.states;
+            let religions = pack.religions;
+
+            let data = {
+                map: getMapData(),
+                url: null,
+                states: JSON.stringify(states),
+                religions: JSON.stringify(religions),
+            };
+
+            const img = new Image();
+
+            img.src = pngurl;
+
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                data.url = canvas.toDataURL("image/png");
+
+                window.setTimeout(function() {
+                    canvas.remove();
+                }, 5000);
+
+                $.ajax({
+                    type: "POST",
+                    url: "/api/region/" + regionId + "/upload-map",
+                    data: data,
+                    success: () => {
+                        console.timeEnd("saveToServer");
+                        console.log("success");
+                    },
+                });
+            };
+            // link.click();
+
+            // tip(`${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`, true, "success", 5000);
         }
     </script>
     <!-- <script src="libs/translate.js"></script> -->
@@ -8673,7 +9344,7 @@
     <script defer src="/fmg/modules/ui/regiment-editor.js"></script>
     <script defer src="/fmg/modules/ui/battle-screen.js"></script>
     <script defer src="/fmg/modules/coa-renderer.js"></script>
-    <script defer src="/fmg/modules/ui/emblems-editor.js"></script>
+    {{-- <script defer src="/fmg/modules/ui/emblems-editor.js"></script> --}}
     <script defer src="/mgc/modules/ui/editors.js"></script>
     <script defer src="/fmg/modules/ui/3d.js"></script>
     <script defer src="/fmg/modules/ui/hotkeys.js"></script>

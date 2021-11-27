@@ -1,4 +1,4 @@
-import { NgModule, APP_INITIALIZER } from '@angular/core';
+import { NgModule, APP_INITIALIZER } from "@angular/core";
 import { BrowserAnimationsModule } from "@angular/platform-browser/animations";
 
 import { AngularFireModule } from "@angular/fire";
@@ -15,6 +15,7 @@ import { TranslateModule, TranslateLoader } from "@ngx-translate/core";
 import { TranslateHttpLoader } from "@ngx-translate/http-loader";
 import { NgxSpinnerModule } from "ngx-spinner";
 import { BrowserModule } from "@angular/platform-browser";
+import { QuillModule } from "ngx-quill";
 
 import {
   PerfectScrollbarModule,
@@ -54,6 +55,8 @@ import { SignupComponent } from "./pages/signup/signup.component";
 import { CombatLogComponent } from "./main-page/combat/combat-log/combat-log.component";
 import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
 import { ResizableModule } from "angular-resizable-element";
+import { WorldService } from "./shared/services/world.service";
+import { StoryService } from "./shared/services/story.service";
 
 var firebaseConfig = {
   apiKey: "YOUR_API_KEY", //YOUR_API_KEY
@@ -110,18 +113,23 @@ export function createTranslateLoader(http: HttpClient) {
       apiKey: "YOUR_GOOGLE_MAP_API_KEY",
     }),
     PerfectScrollbarModule,
+    QuillModule.forRoot(),
   ],
   providers: [
-    { provide: APP_INITIALIZER, 
-      useFactory: appInitializer, 
-      multi: true, 
-      deps: [AuthService] 
-    },    {
+    {
+      provide: APP_INITIALIZER,
+      useFactory: appInitializer,
+      multi: true,
+      deps: [AuthService],
+    },
+    {
       provide: HTTP_INTERCEPTORS,
       useClass: AuthInterceptor,
       multi: true,
     },
     AuthService,
+    WorldService,
+    StoryService,
     AuthGuard,
     {
       provide: PERFECT_SCROLLBAR_CONFIG,

@@ -11,11 +11,22 @@ use Illuminate\Support\Facades\Storage;
 
 class WorldController extends Controller
 {
-    function getNpcDetails(Npc $npc)
+    function getNpc(Npc $npc)
     {
         $me = \Auth::user();
         if(empty($me) || $npc->user_id !== $me->id) abort(401);
-        return response()->json(['npc' => $npc]);
+        return response()->json(['npc' => $npc->load('race', 
+                    'profession',
+                    'spouse', 
+                    'spouse.race', 
+                    'spouse.profession',
+                    'birthParent', 
+                    'birthParent.race', 
+                    'birthParent.profession',
+                    'parent', 
+                    'parent.race', 
+                    'parent.profession')
+                ->append('children')]);
         }
 
     function getNpcs(Request $request, Region $region)
@@ -40,6 +51,20 @@ class WorldController extends Controller
                     'parent.race', 
                     'parent.profession')
                 ->append('children')]); //->select(['name','id'])
+    }
+
+    function getNpcList(Request $request, Region $region)
+    {
+        $me = \Auth::user();
+        if(empty($me)) abort(401);
+        return response()->json([
+            'region' => $region,
+            'npcs' => $region
+                ->npcs()
+                ->where('alive', '>', 0)
+                ->get()
+                ->load('race', 
+                    'profession')]); //->select(['name','id'])
     }
 
     function deleteRegion(Region $region)
@@ -76,7 +101,10 @@ class WorldController extends Controller
     {
         $me = \Auth::user();
         if(empty($me)) abort(401);
-        $npcData = $request->get('npc_data');
+        $npcData = $request->all();
+        \Log::info($npcData['notes']);
+        \Log::info($npcData['id']);
+        \Log::info($npcData['name']);
         $npcData['user_id'] = $me->id;
         $npc->update($npcData);
 
@@ -117,6 +145,7 @@ class WorldController extends Controller
 
         return response()->json([
             'id' => $world->id,
+            'name' => $world->name,
             'body_types' => $bodyTypes->pluck('type'),
             'lineage_types' => $lineageTypes->pluck('text'),
             'descriptive_types' => collect($descriptiveTypes)->sort()->values(),
@@ -203,15 +232,26 @@ class WorldController extends Controller
     public function uploadMap(Request $request, Region $region) {
 		// $me = \Auth::user();
         // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
-        $validatedData = $request->validate([
+        $data = $request->all();
+        $data['states'] = json_decode($data['states']);
+        $data['religions'] = json_decode($data['religions']);
+        $validatedData = \Validator::make(
+            $data,
+            [
             'map'  => 'string',
             'url'  => 'string',
-        ]);
+            'states'  => 'array',
+            'religions'  => 'array',
+        ]
+        )->validated();
         $image = $validatedData['url'];
         $image = str_replace('data:image/png;base64,', '', $image);
         $image = str_replace(' ', '+', $image);
         Storage::disk('s3')->put('map/rt' . $region->id . '.png', base64_decode($image), 'public');
-        $region->map = $validatedData['map'];
+        $pattern = "/ns\d+:/";
+        $region->map = preg_replace($pattern, "", $validatedData['map']);
+        $region->states = $validatedData['states'];
+        $region->religions = $validatedData['religions'];
         $region->save();
 
         // $this->createPOI('burgs', $validatedData['burgs'], $region);
@@ -219,8 +259,10 @@ class WorldController extends Controller
         return response()->json(['message' => "Map Uploaded Successfully"]);
         
     }
-    private function createPOI($type, $data, Region $region) {
-
+    public function createPOI(Request $request, Region $region) {
+        $data = $request->all();
+        $region->newMarker($data);
+        return response()->json(['message' => ucfirst($data['poi']['type']) . " Created"]);
     }
     public function getMap(Region $region) {
 		// $me = \Auth::user();
@@ -237,22 +279,58 @@ class WorldController extends Controller
             $poi = POI::create(['type' => $type, 'region_id' => $region->id, 'id' => $i]);
         }
         $mapData = $region->getMapItem($type, $i);
+        $poi = $poi->appendNpcs();
         $poi = collect($poi)->merge($mapData)->toArray();
 
-        if (empty($poi['notes'])) $poi['notes'] = $poi['legend'];
+        if (empty($poi['notes']) && !empty($poi['legend'])) $poi['notes'] = $poi['legend'];
         return response()->json($poi);
    }
 
     public function updatePOI(Request $request, Region $region) {
-        $poiData = $request->all();
-        if ($request->has('capital')) $poiData['type'] = 'burgs';
-        \Log::info(print_r($poiData,1));
+        $data = $request->all();
+        $poiData = $data['poi'];
+        if ($request->has('poi.capital')) $poiData['type'] = 'burgs';
         $poi = POI::firstOrCreate(['type' => $poiData['type'], 'region_id' => $region->id, 'id' => $poiData['i']]);
-        $poi->notes = $poiData['notes'];
-        $poi->hooks = $poiData['hooks'];
+        $poi->notes = !empty($poiData['notes']) ? $poiData['notes'] : "";
+        $poi->hooks = !empty($poiData['hooks']) ? $poiData['hooks'] : "";
         $poi->save();
         $region->updateMapData($poiData['type'], $poiData);
         return response()->json(['poi' => array_merge($poi->toArray(), $poiData)]);
+    }
+
+    public function updateSVG(Request $request, Region $region) {
+        $data = $request->all();
+        $svg = $data['svg'];
+        $region->updateSVG($svg);
+        return response()->json(['message' => "SVG Updated"]);
+    }
+
+    public function attachNPC(Region $region, $type, $i, Npc $npc) {
+        $poi = POI::where('type', $type)->where('region_id', $region->id)->where('id', $i)->first();
+        if (empty($poi)) {
+            $poi = POI::create(['type' => $type, 'region_id' => $region->id, 'id' => $i]);
+        }
+        $poi->attachNpcs([$npc->id]);
+        return response()->json($npc);
+    }
+
+    public function detachNPC(Region $region, $type, $i, Npc $npc) {
+        $poi = POI::where('type', $type)->where('region_id', $region->id)->where('id', $i)->first();
+        if (empty($poi)) {
+            $poi = POI::create(['type' => $type, 'region_id' => $region->id, 'id' => $i]);
+        }
+        $poi->detachNpcs([$npc->id]);
+        return response()->json($npc);
+    }
+
+    public function createWorld() {
+		$me = \Auth::user();
+        if(empty($me)) abort(401);
+        $count = World::where([['user_id','=',$me->id],['name','like','New World%']])->count();
+        $countString = $count ? ('New World ' . ($count+1)) : 'New World';
+        $newWorld = World::create(['user_id' => $me->id, 'name' => $countString]);
+        \Log::info($newWorld);
+        return response()->json($newWorld);
     }
 }
 

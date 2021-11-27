@@ -8,7 +8,7 @@ import { Component, OnInit } from "@angular/core";
 export class NpcComponent implements OnInit {
   selectedRow;
   region;
-  selectedNpc;
+  selectedNPC;
   currentRegion;
   constructor() {}
   setClickedRow = (index, table, npc) => {
@@ -25,14 +25,14 @@ export class NpcComponent implements OnInit {
     };
   };
   regionInit = (region) => {
-    if (region.id == this.selectedNpc.region) this.currentRegion = region;
+    if (region.id == this.selectedNPC.region) this.currentRegion = region;
   };
   generationChange = function () {
-    if (this.selectedNpc.generation == "") this.selectedNpc.generation = "NULL";
+    if (this.selectedNPC.generation == "") this.selectedNPC.generation = "NULL";
   };
 
   getAspects = function () {
-    var gender = this.selectedNpc.gender.substring(0, 1).toUpperCase();
+    var gender = this.selectedNPC.gender.substring(0, 1).toUpperCase();
     var pageData = {
       region: this.region,
       gender: gender,
@@ -44,7 +44,7 @@ export class NpcComponent implements OnInit {
     this.mother = [];
     this.father = [];
     this.children = [];
-    this.selectedNpc = {
+    this.selectedNPC = {
       firstName: "",
       lastName: "",
       race: {},
@@ -120,11 +120,11 @@ export class NpcComponent implements OnInit {
   ngOnInit(): void {
     // npcFactory.getNpc(objectData).then(
     //     function(response) {
-    //         this.selectedNpc = response.data;
-    //         this.spouse = this.npcs.all[this.selectedNpc.spouse];
-    //         this.mother = this.npcs.all[this.selectedNpc.mother];
-    //         this.father = this.npcs.all[this.selectedNpc.father];
-    //         this.children = this.selectedNpc.children;
+    //         this.selectedNPC = response.data;
+    //         this.spouse = this.npcs.all[this.selectedNPC.spouse];
+    //         this.mother = this.npcs.all[this.selectedNPC.mother];
+    //         this.father = this.npcs.all[this.selectedNPC.father];
+    //         this.children = this.selectedNPC.children;
     //     },
     //     function(err) {
     //     if(err.status == 401){console.log(28);this.Ui.turnOn('login');}
@@ -150,20 +150,20 @@ export class NpcComponent implements OnInit {
     //             console.log(err);
     //         });
     //         npcFactory.getAspects(pageData).then(function(response) {
-    //             if (this.bodyLock != true) this.selectedNpc.features['Body Type'] = response.data['Body Type'];
-    //             if (this.bodyLock != true) this.selectedNpc.features['Body Description'] = response.data['Body Description'];
-    //             if (this.clothingLock != true) this.selectedNpc.features['Clothing'] = response.data['Clothing'];
-    //             if (this.eyeCLock != true) this.selectedNpc.features['Eye Color'] = response.data['Eye Color'];
-    //             if (this.eyeDLock != true) this.selectedNpc.features['Eye Description'] = response.data['Eye Description'];
-    //             if (this.faceLock != true) this.selectedNpc.features['Face Shape'] = response.data['Face Shape'];
-    //             if (this.hairCLock != true) this.selectedNpc.features['Hair Color'] = response.data['Hair Color'];
-    //             if (this.hairDLock != true) this.selectedNpc.features['Hair Description'] = response.data['Hair Description'];
-    //             if (this.skinCLock != true) this.selectedNpc.features['Skin Color'] = response.data['Skin Color'];
-    //             if (this.skinDLock != true) this.selectedNpc.features['Skin Complexion'] = response.data['Skin Complexion'];
-    //             if (this.specialLock != true) this.selectedNpc.features['Special'] = response.data['Special'];
-    //             if (this.lineageLock != true) this.selectedNpc.lineage = response.data['Lineage'];
-    //             if (this.mannerLock != true) this.selectedNpc.mannerisms = response.data['Manner'];
-    //             if (this.quirkLock != true) this.selectedNpc.quirks = response.data['Quirk'];
+    //             if (this.bodyLock != true) this.selectedNPC.features['Body Type'] = response.data['Body Type'];
+    //             if (this.bodyLock != true) this.selectedNPC.features['Body Description'] = response.data['Body Description'];
+    //             if (this.clothingLock != true) this.selectedNPC.features['Clothing'] = response.data['Clothing'];
+    //             if (this.eyeCLock != true) this.selectedNPC.features['Eye Color'] = response.data['Eye Color'];
+    //             if (this.eyeDLock != true) this.selectedNPC.features['Eye Description'] = response.data['Eye Description'];
+    //             if (this.faceLock != true) this.selectedNPC.features['Face Shape'] = response.data['Face Shape'];
+    //             if (this.hairCLock != true) this.selectedNPC.features['Hair Color'] = response.data['Hair Color'];
+    //             if (this.hairDLock != true) this.selectedNPC.features['Hair Description'] = response.data['Hair Description'];
+    //             if (this.skinCLock != true) this.selectedNPC.features['Skin Color'] = response.data['Skin Color'];
+    //             if (this.skinDLock != true) this.selectedNPC.features['Skin Complexion'] = response.data['Skin Complexion'];
+    //             if (this.specialLock != true) this.selectedNPC.features['Special'] = response.data['Special'];
+    //             if (this.lineageLock != true) this.selectedNPC.lineage = response.data['Lineage'];
+    //             if (this.mannerLock != true) this.selectedNPC.mannerisms = response.data['Manner'];
+    //             if (this.quirkLock != true) this.selectedNPC.quirks = response.data['Quirk'];
     //         },
     //         function(err) {
     //         if(err.status == 401){console.log(30);this.Ui.turnOn('login');}

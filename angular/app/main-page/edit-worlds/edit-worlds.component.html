@@ -711,13 +711,33 @@
                   [(ngModel)]="region.name"
                 />
               </div>
-              <div class="col-5">
-                <label for="regionEpoch">Epoch</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  [(ngModel)]="region.epoch"
-                />
+              <div class="col-6">
+                <div class="btn-group btn-group-lg mt-2">
+                  <button
+                    type="button"
+                    class="btn btn-info icon-buttons"
+                    title="Save Changes"
+                    (click)="saveRegion(i)"
+                  >
+                    <i class="fa fa-save"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-info icon-buttons"
+                    title="Duplicate Region"
+                    (click)="newRegion(region)"
+                  >
+                    <fa-icon [icon]="faClone"></fa-icon>
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-danger icon-buttons"
+                    title="Delete Region"
+                    (click)="deleteRegion(region, i)"
+                  >
+                    <i class="fa fa-times"></i>
+                  </button>
+                </div>
               </div>
               <div class="col-12">
                 <div class="btn-group btn-group-lg mt-2">
@@ -726,6 +746,12 @@
                     title="Edit Npcs"
                     href="/app/region/{{ region.id }}/edit-npcs"
                     ><i class="fa fa-street-view"></i
+                  ></a>
+                  <a
+                    class="btn btn-light icon-buttons"
+                    title="Story"
+                    href="/app/region/{{ region.id }}/story"
+                    ><i class="fa fa-book"></i
                   ></a>
                   <button
                     type="button"
@@ -776,32 +802,6 @@
                       </ng-container>
                     </div>
                   </div>
-                </div>
-                <div class="btn-group btn-group-lg mt-2 ml-2">
-                  <button
-                    type="button"
-                    class="btn btn-info icon-buttons"
-                    title="Save Changes"
-                    (click)="saveRegion(i)"
-                  >
-                    <i class="fa fa-save"></i>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-info icon-buttons"
-                    title="Duplicate Region"
-                    (click)="newRegion(region)"
-                  >
-                    <fa-icon [icon]="faClone"></fa-icon>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-danger icon-buttons"
-                    title="Delete Region"
-                    (click)="deleteRegion(region, i)"
-                  >
-                    <i class="fa fa-times"></i>
-                  </button>
                 </div>
               </div>
               <div class="col-12 mt-2">
@@ -1026,8 +1026,9 @@
                 </perfect-scrollbar>
               </div>
               <div class="col-4">
-                <a href="/region/1/map-generator"
+                <a href="/app/region/{{ region.id }}/edit-map"
                   ><img
+                    alt="Click Here to Generate a Map"
                     src="https://game-master-pro.s3.us-west-2.amazonaws.com/map/rt{{
                       region.id
                     }}.png"

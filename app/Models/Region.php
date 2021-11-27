@@ -44,7 +44,7 @@ class Region extends Model
      *
      * @var array
      */
-    protected $hidden = ['world'
+    protected $hidden = ['world', 'map'
     ];
 
     /**
@@ -60,7 +60,10 @@ class Region extends Model
         'cultures' => 'array',
         'states' => 'array',
     ];
-
+    public function poi()
+    {
+        return $this->hasMany('App\Models\POI');
+    }
     public function world()
 	{
 		return $this->belongsTo(World::class);
@@ -204,16 +207,18 @@ class Region extends Model
             }
         } else $npc->gender = $npcData['gender'];
 
-        $features = [];
-        $features['lineage'] = ['name' => 'lineage', 'text' => ''];
-        foreach ($this->feature_types as $featureType) {
-            if (substr($featureType['name'], 0, 7) == 'lineage' && empty($lineage['text'])) {
-                $lineage = $this->generateFeature($featureType, $npc->gender, $race);
-            } elseif (empty($features[$featureType['name']])) $features[$featureType['name']] = ['name' => $featureType['name'], 'text' => ''];
-        }
-        if (!empty($lineage)) {
-            $features['lineage']['text'] = $lineage['text'];
-        }
+        // $features = [];
+        // $features['lineage'] = ['name' => 'lineage', 'text' => ''];
+        // foreach ($this->feature_types as $featureType) {
+        //     if (substr($featureType->name, 0, 7) == 'lineage' && empty($lineage['text'])) {
+        //         $lineage = $this->generateFeature($featureType, $npc->gender, $race);
+        //     } elseif (empty($features[$featureType->name])) $features[$featureType->name] = $this->generateFeature($featureType, $npc->gender, $race); //['name' => $featureType->name, 'text' => ''];
+        // }
+        $features  = $this->generateFeatures($npc->gender, $race);
+
+        // if (!empty($lineage)) {
+        //     $features['lineage']['text'] = $lineage['text'];
+        // }
         if (!empty($npcData['lineage'])) $features['lineage']['text'] = $npcData['lineage'];
 
         $npc->alive = 1;
@@ -270,15 +275,17 @@ class Region extends Model
         $features = [];
 
         foreach ($this->feature_types as $featureType) {
-            if ($featureType['name'] == 'body extra') continue;
+            if ($featureType->name == 'body extra') continue;
             $descriptive = $this->generateFeature($featureType, $gender, $race);
             if (!empty($descriptive['alive'])) $features['alive'] = $descriptive['alive'];
             if (!empty($descriptive['abilities'])) $features['abilities'] = $descriptive['abilities'];
             unset($descriptive['abilities'], $descriptive['alive']);
-            $features[$featureType['name']] = ['name' => $featureType['name'], 'text' => ucfirst($descriptive['text'])];
-            if ($featureType['name'] == "body") {
-                $bodyExtra = $this->feature_types['body extra'];
-                $bodyExtra['body_type'] = $descriptive['name'];
+            $features[$featureType->name] = ['name' => $featureType->name, 'text' => ucfirst($descriptive['text'])];
+            if ($featureType->name == "body" && !empty($descriptive['type'])) {
+                $bodyExtra = [];
+                foreach($this->feature_types as $ft) {if ($ft->name == 'body extra') $bodyExtra = $ft;}
+                // $bodyExtra = $this->feature_types['body extra'];
+                $bodyExtra->body_type = $descriptive['type'];
                 $descriptive = $this->generateFeature($bodyExtra, $gender, $race);
                 $features['body extra'] = ['name' => 'body extra', 'text' => ucfirst($descriptive['text'])];
                 if (!empty($descriptive['alive'])) $features['alive'] = $descriptive['alive'];
@@ -289,11 +296,11 @@ class Region extends Model
     }
     function generateFeature($featureType, $gender = null, $race = null)
     {
-        $query = Descriptive::where([['type', $featureType['name']], ['world_id',$this->world->id], ['random', 1]]);
-        if($featureType['name']== "body") {
+        $query = Descriptive::where([['type', $featureType->name], ['world_id',$this->world->id], ['random', 1]]);
+        if($featureType->name== "body") {
             $query = Descriptive::where([['type','like','body%'], ['world_id',$this->world->id], ['random', 1]]);
-        } elseif (substr($featureType['name'],0,4) == "body") {
-            $query = Descriptive::where([['type', str_replace(['body (',')'],['', ' extra'],$featureType['body_type'])], ['world_id',$this->world->id], ['random', 1]]);
+        } elseif (substr($featureType->name,0,4) == "body") {
+            $query = Descriptive::where([['type', str_replace(['body (',')'],['', ' extra'],$featureType->body_type)], ['world_id',$this->world->id], ['random', 1]]);
         }
         if ($gender != null) {
             $query = $query->where(function ($q)  use($gender){
@@ -305,14 +312,14 @@ class Region extends Model
                 $q->where('race_id', $race->id)->orWhereNull('race_id');
             });
         }
-        if (substr($featureType['name'], 0, 7) == 'lineage') {
-            $featureType['name'] = 'lineage';
+        if (substr($featureType->name, 0, 7) == 'lineage') {
+            $featureType->name = 'lineage';
         }
         $rand = rand(1, 1000);
-        if ($rand > ($featureType['chance']*10)) return ['name' => $featureType['name'], 'text' => ''];
+        if ($rand > ($featureType->chance*10)) return ['name' => $featureType->name, 'text' => ''];
         $value = $query->get();
         if(!$value->isEmpty()) return $value->random(1)[0];
-        return ['name' => $featureType['name'], 'text' => ''];
+        return ['name' => $featureType->name, 'text' => ''];
     }
 
     private function deathCheck($npc, $increment = 1)
@@ -693,28 +700,51 @@ class Region extends Model
         );
     }
 
-    public function updateMapData($type, $data) 
-    {
+    public function newMarker($data) {
+        $poi = $data['poi'];
+        $svg = $data['svg'];
         $mapData = explode("\r\n", $this->map);
-        $index = $type == "burgs" ? 15 : 4;
-        $groupData = json_decode($mapData[$index]);
-        foreach($groupData as &$mapItem) {
-            if (!empty($mapItem->i) && $mapItem->i == $data['i']) 
-            {
-                $mapItem = $data;
-                break;
-            }
-            if (!empty($mapItem->id) && $mapItem->id == $data['id']) 
-            {
-                $mapItem = $data;
-                break;
-            }
-        }
-        $mapData[$index] = json_encode($groupData);
+        $markers = json_decode($mapData[35]);
+        $markers[] = $poi;
+        \Log::info($markers);
+        $mapData[35] = json_encode($markers);
+        if (!empty($svg)) $mapData[5] = $svg;
         $this->map = implode("\r\n", $mapData);
         $this->save();
     }
+    public function updateMapData($type, $data) 
+    {
+        $mapData = explode("\r\n", $this->map);
+        $index = $type == "burgs" ? [15] : [4, 35];
+        \Log::info("Type: " . $type);
+        foreach($index as $i){
+        $groupData = json_decode($mapData[$i]);
 
+        for($e = 0; $e < count($groupData); $e++) {
+
+            if (!empty($groupData[$e]->i) && !empty($data['i']) && $groupData[$e]->i == $data['i']) 
+            {
+                $groupData[$e] = $data;
+                break;
+            }
+            if (!empty($groupData[$e]->id) && !empty($data['id']) && $groupData[$e]->id == $data['id']) 
+            {
+                \Log::info($data);
+                $groupData[$e] = $data;
+                break;
+            }
+        }
+        $mapData[$i] = json_encode($groupData);
+        }
+        $this->map = implode("\r\n", $mapData);
+        $this->save();
+    }
+    public function updateSVG($svg) {
+        $mapData = explode("\r\n", $this->map);
+        $mapData[5] = $svg;
+        $this->map = implode("\r\n", $mapData);
+        $this->save();
+    }
     public function getMapItem($type, $i) 
     {
         $mapData = explode("\r\n", $this->map);
@@ -758,9 +788,4 @@ function removeInvalidChars( $text) {
     $regex = '/( [\x00-\x7F] | [\xC0-\xDF][\x80-\xBF] | [\xE0-\xEF][\x80-\xBF]{2} | [\xF0-\xF7][\x80-\xBF]{3} ) | ./x';
     return preg_replace($regex, '$1', $text);
 }
-    public function updateMarker($marker) {
-        if ($marker->notes) {
-
-        }
-    }
 }

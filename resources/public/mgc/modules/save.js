@@ -1,47 +1,6 @@
 // Functions to save and load the map
 "use strict";
 // download map as SVG
-async function saveToServer() {
-  console.time("saveToServer");
-  const pngurl = await getMapURL("png");
-  console.timeEnd("saveToServer1");
-
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d");
-  canvas.width = 260;
-  canvas.height = 260;
-
-  let data = {
-    map: getMapData(),
-    url: null,
-  };
-
-  const img = new Image();
-
-  img.src = pngurl;
-
-  img.onload = function () {
-    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    data.url = canvas.toDataURL("image/png");
-
-    window.setTimeout(function () {
-      canvas.remove();
-    }, 5000);
-
-    $.ajax({
-      type: "POST",
-      url: "/api/region/" + regionId + "/upload-map",
-      data: data,
-      success: () => {
-        console.timeEnd("saveToServer");
-        console.log("success");
-      },
-    });
-  };
-  // link.click();
-
-  // tip(`${link.download} is saved. Open "Downloads" screen (crtl + J) to check. You can set image scale in options`, true, "success", 5000);
-}
 
 // download map as SVG
 async function saveSVG() {
@@ -548,8 +507,8 @@ function getMapData() {
   const packFeatures = JSON.stringify(pack.features);
   const cultures = JSON.stringify(pack.cultures);
   const states = JSON.stringify(pack.states);
-  const burgs = JSON.stringify(pack.burgs);
   const religions = JSON.stringify(pack.religions);
+  const burgs = JSON.stringify(pack.burgs);
   const provinces = JSON.stringify(pack.provinces);
   const rivers = JSON.stringify(pack.rivers);
   const markers = JSON.stringify(pack.markers);

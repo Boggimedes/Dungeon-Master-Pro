@@ -96,7 +96,7 @@
   class="col-md-8 col-xs-8 npc-details p-x-0"
   [ngClass]="{ 'help-shown': helpStep == 8 }"
 >
-  <div class="page-cover" *ngIf="selectedNpc == null">
+  <div class="page-cover" *ngIf="selectedNPC == null">
     <span
       >Select NPC to the left or click "New NPC" button in the top menu</span
     >
@@ -116,7 +116,7 @@
         type="text"
         class="form-control"
         name="data.firstName"
-        [ngModel]="selectedNpc.firstName"
+        [ngModel]="selectedNPC.firstName"
       />
     </div>
     <div class="form-group col-md-2 padded">
@@ -125,7 +125,7 @@
         type="text"
         class="form-control"
         name="data.lastName"
-        [ngModel]="selectedNpc.lastName"
+        [ngModel]="selectedNPC.lastName"
       />
     </div>
     <div class="form-group col-md-2">
@@ -134,7 +134,7 @@
         type="text"
         class="form-control"
         name="data.race"
-        [ngModel]="selectedNpc.race.id"
+        [ngModel]="selectedNPC.race.id"
       >
         <option *ngFor="race; in: races" value="{{ race.id }}">
           {{ race.name }}
@@ -147,7 +147,7 @@
         type="text"
         class="form-control"
         name="data.lastName"
-        [ngModel]="selectedNpc.gender"
+        [ngModel]="selectedNPC.gender"
       >
         <option value="male">M</option>
         <option value="female">F</option>
@@ -164,7 +164,7 @@
         type="text"
         class="form-control"
         name="data.lineage"
-        [ngModel]="selectedNpc.lineage"
+        [ngModel]="selectedNPC.lineage"
       />
     </div>
     <div class="form-group col-md-1 padded text-center">
@@ -173,8 +173,8 @@
         type="text"
         style="padding: 6px 0px"
         class="form-control text-center"
-        (change)="selectedNpc.birthYear = currentRegion.epoch - selectedNpc.age"
-        [ngModel]="selectedNpc.age"
+        (change)="selectedNPC.birthYear = currentRegion.epoch - selectedNPC.age"
+        [ngModel]="selectedNPC.age"
       />
     </div>
     <div class="form-group col-md-1">
@@ -182,7 +182,7 @@
       <input
         type="checkbox"
         class="form-control"
-        [ngModel]="selectedNpc.alive"
+        [ngModel]="selectedNPC.alive"
       />
     </div>
     <div class="col-md-8">
@@ -192,7 +192,7 @@
           <input
             type="text"
             class="form-control"
-            [ngModel]="selectedNpc.residentCity"
+            [ngModel]="selectedNPC.residentCity"
           />
         </div>
         <div class="form-group col-md-6">
@@ -201,7 +201,7 @@
             type="text"
             class="form-control"
             name="data.lastName"
-            [ngModel]="selectedNpc.profession"
+            [ngModel]="selectedNPC.profession"
           />
         </div>
         <div class="form-group col-md-5">
@@ -216,7 +216,7 @@
             rows="1"
             class="form-control"
             name="data.quirks"
-            [ngModel]="selectedNpc.quirks"
+            [ngModel]="selectedNPC.quirks"
           ></textarea>
         </div>
         <div class="form-group col-md-3 padded" style="padding-top: 8px">
@@ -272,7 +272,7 @@
             type="text"
             class="form-control"
             name="data.mannerisms"
-            [ngModel]="selectedNpc.mannerisms"
+            [ngModel]="selectedNPC.mannerisms"
           ></textarea>
         </div>
         <div class="form-group col-md-6">
@@ -282,7 +282,7 @@
             type="text"
             class="form-control"
             name="data.abilities"
-            [ngModel]="selectedNpc.abilities"
+            [ngModel]="selectedNPC.abilities"
           ></textarea>
         </div>
       </div>
@@ -294,7 +294,7 @@
         type="text"
         class="form-control"
         name="data.features"
-        [ngModel]="selectedNpc.features['Special']"
+        [ngModel]="selectedNPC.features['Special']"
       />
       <i
         style="width: 13px"
@@ -307,7 +307,7 @@
         class="form-control"
         name="data.features"
         placeholder="average"
-        [ngModel]="selectedNpc.features['Face Shape']"
+        [ngModel]="selectedNPC.features['Face Shape']"
       />
       <i
         style="width: 13px"
@@ -320,7 +320,7 @@
         class="form-control"
         name="data.features"
         placeholder="average"
-        [ngModel]="selectedNpc.features['Skin Complexion']"
+        [ngModel]="selectedNPC.features['Skin Complexion']"
       />
       <i
         style="width: 13px"
@@ -333,7 +333,7 @@
         class="form-control"
         name="data.features"
         placeholder="average"
-        [ngModel]="selectedNpc.features['Skin Color']"
+        [ngModel]="selectedNPC.features['Skin Color']"
       />
       <i
         style="width: 13px"
@@ -346,7 +346,7 @@
         class="form-control"
         name="data.features"
         placeholder="average"
-        [ngModel]="selectedNpc.features['Hair Description']"
+        [ngModel]="selectedNPC.features['Hair Description']"
       />
       <i
         style="width: 13px"
@@ -359,7 +359,7 @@
         class="form-control"
         name="data.features"
         placeholder="average"
-        [ngModel]="selectedNpc.features['Hair Color']"
+        [ngModel]="selectedNPC.features['Hair Color']"
       />
       <i
         style="width: 13px"
@@ -371,7 +371,7 @@
         type="text"
         class="form-control"
         name="data.features"
-        [ngModel]="selectedNpc.features['Eye Description']"
+        [ngModel]="selectedNPC.features['Eye Description']"
       />
       <i
         style="width: 13px"
@@ -383,7 +383,7 @@
         type="text"
         class="form-control"
         name="data.features"
-        [ngModel]="selectedNpc.features['Eye Color']"
+        [ngModel]="selectedNPC.features['Eye Color']"
       />
       <i
         style="width: 13px"
@@ -396,7 +396,7 @@
         class="form-control"
         name="data.features"
         placeholder="average"
-        [ngModel]="selectedNpc.features['Clothing']"
+        [ngModel]="selectedNPC.features['Clothing']"
       />
       <i
         style="width: 13px"
@@ -409,7 +409,7 @@
         class="form-control"
         name="data.features"
         placeholder="average"
-        [ngModel]="selectedNpc.features['Body Type']"
+        [ngModel]="selectedNPC.features['Body Type']"
       />
       <i
         style="width: 13px"
@@ -421,7 +421,7 @@
         type="text"
         class="form-control"
         name="data.features"
-        [ngModel]="selectedNpc.features['Body Description']"
+        [ngModel]="selectedNPC.features['Body Description']"
       />
       <i
         style="width: 13px"
@@ -436,7 +436,7 @@
           type="text"
           class="form-control"
           name="data.notes"
-          [ngModel]="selectedNpc.notes"
+          [ngModel]="selectedNPC.notes"
         ></textarea>
       </div>
     </div>
@@ -444,14 +444,14 @@
       <button
         type="button"
         class="btn btn-success"
-        (click)="updateNpc(selectedNpc)"
+        (click)="updateNpc(selectedNPC)"
       ></button>
       <a (click)="extended = !extended">Toggle Extended Details</a>
     </div>
     <div *ngIf="extended">
       <div class="form-group">
         <label>Region</label>
-        <select class="form-control" [ngModel]="selectedNpc.region">
+        <select class="form-control" [ngModel]="selectedNPC.region">
           <option *ngFor="region; in: regions" (click)="currentRegion = region">
             {{ region.name }}
           </option>
@@ -459,7 +459,7 @@
       </div>
       <div class="form-group">
         <label>Birth Year</label>
-        <input class="form-control" [ngModel]="selectedNpc.birthYear" />
+        <input class="form-control" [ngModel]="selectedNPC.birthYear" />
       </div>
 
       <div class="form-group">
@@ -470,7 +470,7 @@
         <input
           class="form-control"
           (change)="generationChange()"
-          [ngModel]="selectedNpc.generation"
+          [ngModel]="selectedNPC.generation"
         />
       </div>
 
@@ -481,7 +481,7 @@
         <input
           type="checkbox"
           class="form-control"
-          [ngModel]="selectedNpc.immortal"
+          [ngModel]="selectedNPC.immortal"
         />
       </div>
 
@@ -493,7 +493,7 @@
         <input
           type="checkbox"
           class="form-control"
-          [ngModel]="selectedNpc.excluded"
+          [ngModel]="selectedNPC.excluded"
         />
       </div>
 
@@ -502,7 +502,7 @@
         <input
           type="checkbox"
           lass="form-control"
-          [ngModel]="selectedNpc.metParty"
+          [ngModel]="selectedNPC.metParty"
         />
       </div>
     </div>

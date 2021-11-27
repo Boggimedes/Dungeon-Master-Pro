@@ -1,117 +1,24 @@
 <div class="row">
   <div class="col-3 npc-selector">
-    <div class="btn-group btn-group-md float-right" style="z-index: 1000">
-      <span class="btn btn-light">Group By:</span>
-      <button
-        type="button"
-        (click)="groupNpcsBy('age')"
-        class="btn btn-outline-primary"
-      >
-        Age
-      </button>
-      <button
-        type="button"
-        (click)="groupNpcsBy('race')"
-        class="btn btn-outline-primary"
-      >
-        Race
-      </button>
-      <button
-        type="button"
-        (click)="groupNpcsBy('profession')"
-        class="btn btn-outline-primary"
-      >
-        Profession
-      </button>
-      <button
-        type="button"
-        (click)="groupNpcsBy('lineage')"
-        class="btn btn-outline-primary"
-      >
-        Lineage
-      </button>
-    </div>
-    <div ngbDropdown>
-      <button class="btn btn-primary" ngbDropdownToggle>
-        {{ selectedRegion ? selectedRegion.name : "Select Region" }}
-      </button>
-      <div ngbDropdownMenu>
-        <ng-container *ngFor="let region of regions; let i = index">
-          <button
-            ngbDropdownItem
-            class="dropdown-item"
-            (click)="selectRegion(region)"
-          >
-            {{ region.name }}
-          </button>
-        </ng-container>
-      </div>
-    </div>
-    <div class="npc-groups">
-    <ngb-accordion [closeOthers]="true">
-      <ng-container *ngFor="let group of groupedNpcs">
-        <ngb-panel [title]="group[0]">
-          <ng-template ngbPanelContent>
-            <perfect-scrollbar
-              class="scroll-container table-fixed-head"
-              style="position: relative; max-height: 30vh"
-              fxFlex="auto"
-              [config]="{}"
-            >
-              <table class="table table-striped table-sm pb-0">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Age</th>
-                    <th>Race</th>
-                    <th>Profession</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr
-                    *ngFor="let npc of group[1]"
-                    [class.selected]="selectedNpc?.id == npc?.id"
-                    (click)="selectNpc(npc)"
-                  >
-                    <td class="text-capitalize">{{ npc.name }}</td>
-                    <td>{{ npc.age }}</td>
-                    <td>{{ npc.race.name }}</td>
-                    <td>{{ npc.profession?.name }}</td>
-                    <td>
-                      <fa-icon *ngIf="npc.alive == 3" [icon]="faSkull"></fa-icon
-                      ><fa-icon
-                        *ngIf="npc.alive == 2"
-                        [icon]="faInfinity"
-                      ></fa-icon>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </perfect-scrollbar>
-          </ng-template>
-        </ngb-panel>
-      </ng-container>
-    </ngb-accordion>
+    <!-- <app-npc-selector (emitNpc)="selectNpc($event)"></app-npc-selector> -->
   </div>
-  </div>
-  <div class="col-9 npc-details" *ngIf="selectedNpc">
+  <div class="col-9 npc-details" *ngIf="selectedNPC">
     <div class="d-flex npc-row">
       <div class="form-group pr-2 flex-grow">
         <label>Name</label>
         <input
           type="text"
           class="form-control text-capitalize"
-          [(ngModel)]="selectedNpc.name"
+          [(ngModel)]="selectedNPC.name"
         />
       </div>
       <div class="form-group pr-2">
         <div ngbDropdown>
           <button class="btn btn-outline-primary" ngbDropdownToggle>
             {{
-              selectedNpc.alive === null
+              selectedNPC.alive === null
                 ? "Select"
-                : lifeValues[selectedNpc.alive]
+                : lifeValues[selectedNPC.alive]
             }}
           </button>
           <div ngbDropdownMenu>
@@ -119,7 +26,7 @@
               <button
                 ngbDropdownItem
                 class="dropdown-item"
-                (click)="selectedNpc.alive = i"
+                (click)="selectedNPC.alive = i"
               >
                 {{ type }}
               </button>
@@ -133,14 +40,14 @@
           type="number"
           class="form-control"
           style="width: 4rem"
-          [(ngModel)]="selectedNpc.age"
+          [(ngModel)]="selectedNPC.age"
         />
       </div>
       <div class="form-group pr-2" *ngIf="selectedWorld?.races">
         <label>Race</label>
         <div ngbDropdown>
           <button class="btn btn-outline-primary" ngbDropdownToggle>
-            {{ selectedNpc.race ? selectedNpc.race.name : "Select" }}
+            {{ selectedNPC.race ? selectedNPC.race.name : "Select" }}
           </button>
           <div ngbDropdownMenu>
             <ng-container
@@ -149,7 +56,7 @@
               <button
                 ngbDropdownItem
                 class="dropdown-item"
-                (click)="selectedNpc.race = race; selectedNpc.race_id = race.id"
+                (click)="selectedNPC.race = race; selectedNPC.race_id = race.id"
               >
                 {{ race.name }}
               </button>
@@ -162,16 +69,16 @@
           <button
             class="btn btn-outline-primary"
             ngbDropdownToggle
-            [disabled]="!selectedNpc.race"
+            [disabled]="!selectedNPC.race"
           >
-            {{ selectedNpc.gender ? selectedNpc.gender : "Select" }}
+            {{ selectedNPC.gender ? selectedNPC.gender : "Select" }}
           </button>
           <div ngbDropdownMenu>
-            <ng-container *ngFor="let gender of selectedNpc.race.genders">
+            <ng-container *ngFor="let gender of selectedNPC.race.genders">
               <button
                 ngbDropdownItem
                 class="dropdown-item"
-                (click)="selectedNpc.gender = gender"
+                (click)="selectedNPC.gender = gender"
               >
                 {{ gender }}
               </button>
@@ -182,15 +89,14 @@
       <div class="form-group pr-2">
         <div ngbDropdown>
           <button class="btn btn-outline-primary" ngbDropdownToggle>
-
-            {{ upperFirst(selectedNpc.features.lineage["text"], "Select") }}
+            {{ upperFirst(selectedNPC.features.lineage["text"], "Select") }}
           </button>
           <div ngbDropdownMenu>
             <ng-container *ngFor="let lineage of selectedWorld.lineage_types">
               <button
                 ngbDropdownItem
                 class="dropdown-item"
-                (click)="selectedNpc.features.lineage['text'] = lineage"
+                (click)="selectedNPC.features.lineage['text'] = lineage"
               >
                 {{ lineage }}
               </button>
@@ -203,14 +109,14 @@
         <input
           type="text"
           class="form-control"
-          [(ngModel)]="selectedNpc.city"
+          [(ngModel)]="selectedNPC.city"
         />
       </div>
       <div class="form-group pr-2" *ngIf="selectedWorld?.professions">
         <div ngbDropdown>
           <button class="btn btn-outline-primary" ngbDropdownToggle>
             {{
-              selectedNpc.profession ? selectedNpc.profession.name : "Select"
+              selectedNPC.profession ? selectedNPC.profession.name : "Select"
             }}
           </button>
           <div ngbDropdownMenu>
@@ -219,8 +125,8 @@
                 ngbDropdownItem
                 class="dropdown-item"
                 (click)="
-                  selectedNpc.profession = profession;
-                  selectedNpc.profession_id = profession.id
+                  selectedNPC.profession = profession;
+                  selectedNPC.profession_id = profession.id
                 "
               >
                 {{ profession.name }}
@@ -230,95 +136,168 @@
         </div>
       </div>
     </div>
-    <div class="row" *ngIf="!!selectedNpc.features">
+    <div class="row" *ngIf="!!selectedNPC.features">
       <div class="col-8">
         <div class="row">
           <div class="col-6 d-flex flex-column">
             <label>Manner</label>
             <textarea
               class="form-control"
-              [(ngModel)]="selectedNpc.features['manner']['text']"
+              [(ngModel)]="selectedNPC.features['manner']['text']"
             ></textarea>
             <label class="pt-2">Quirks</label>
             <textarea
               class="form-control"
-              [(ngModel)]="selectedNpc.features['quirk']['text']"
+              [(ngModel)]="selectedNPC.features['quirk']['text']"
             ></textarea>
             <label class="pt-2">Abilities</label>
             <textarea
               class="form-control"
-              [(ngModel)]="selectedNpc.abilities"
+              [(ngModel)]="selectedNPC.abilities"
             ></textarea>
           </div>
 
           <div class="col-6 d-flex flex-column">
             <div class="">
               <label>Family</label>
-              <div *ngIf="selectedNpc.birthing_parent" [ngbTooltip]="birthing_parent" container="body" placement="left" class="text-capitalize">Birthing Parent: {{ selectedNpc.birthing_parent.name }}</div>
+              <div
+                *ngIf="selectedNPC.birthing_parent"
+                [ngbTooltip]="birthing_parent"
+                container="body"
+                placement="left"
+                class="text-capitalize"
+              >
+                Birthing Parent: {{ selectedNPC.birthing_parent.name }}
+              </div>
               <ng-template #birthing_parent>
                 <div class="d-flex flex-column text-capitalize">
-                  <strong>{{ selectedNpc.birthing_parent.name }}</strong>
-                  <span>{{ selectedNpc.birthing_parent.gender }}, {{ selectedNpc.birthing_parent.race.name }}</span>
-                  <span *ngIf="selectedNpc.birthing_parent.features.lineage.text">{{ selectedNpc.birthing_parent.features.lineage.text }}</span>
-                  <span>Age: {{ selectedNpc.birthing_parent.age }}</span>
-                  <span>Profession: {{ selectedNpc.birthing_parent.profession.name }}</span>
+                  <strong>{{ selectedNPC.birthing_parent.name }}</strong>
+                  <span
+                    >{{ selectedNPC.birthing_parent.gender }},
+                    {{ selectedNPC.birthing_parent.race.name }}</span
+                  >
+                  <span
+                    *ngIf="selectedNPC.birthing_parent.features.lineage.text"
+                    >{{
+                      selectedNPC.birthing_parent.features.lineage.text
+                    }}</span
+                  >
+                  <span>Age: {{ selectedNPC.birthing_parent.age }}</span>
+                  <span
+                    >Profession:
+                    {{ selectedNPC.birthing_parent.profession.name }}</span
+                  >
                 </div>
-            </ng-template>
-              <div *ngIf="selectedNpc.parent" [ngbTooltip]="parent" container="body" placement="left" class="text-capitalize">Parent: {{ selectedNpc.parent.name }}</div>
+              </ng-template>
+              <div
+                *ngIf="selectedNPC.parent"
+                [ngbTooltip]="parent"
+                container="body"
+                placement="left"
+                class="text-capitalize"
+              >
+                Parent: {{ selectedNPC.parent.name }}
+              </div>
               <ng-template #parent>
                 <div class="d-flex flex-column text-capitalize">
-                  <strong>{{ selectedNpc.parent.name }}</strong>
-                  <span>{{ selectedNpc.parent.gender }}, {{ selectedNpc.parent.race.name }}</span>
-                  <span *ngIf="selectedNpc.parent.features.lineage.text">{{ selectedNpc.parent.features.lineage.text }}</span>
-                  <span>Age: {{ selectedNpc.parent.age }}</span>
-                  <span>Profession: {{ selectedNpc.parent.profession.name }}</span>
+                  <strong>{{ selectedNPC.parent.name }}</strong>
+                  <span
+                    >{{ selectedNPC.parent.gender }},
+                    {{ selectedNPC.parent.race.name }}</span
+                  >
+                  <span *ngIf="selectedNPC.parent.features.lineage.text">{{
+                    selectedNPC.parent.features.lineage.text
+                  }}</span>
+                  <span>Age: {{ selectedNPC.parent.age }}</span>
+                  <span
+                    >Profession: {{ selectedNPC.parent.profession.name }}</span
+                  >
                 </div>
-            </ng-template>
-              <div *ngIf="selectedNpc.spouse" [ngbTooltip]="spouse" container="body" placement="left" class="text-capitalize">Spouse: {{ selectedNpc.spouse.name }}</div>
+              </ng-template>
+              <div
+                *ngIf="selectedNPC.spouse"
+                [ngbTooltip]="spouse"
+                container="body"
+                placement="left"
+                class="text-capitalize"
+              >
+                Spouse: {{ selectedNPC.spouse.name }}
+              </div>
               <ng-template #spouse>
                 <div class="d-flex flex-column text-capitalize">
-                  <strong>{{ selectedNpc.spouse.name }}</strong>
-                  <span>{{ selectedNpc.spouse.gender }}, {{ selectedNpc.spouse.race.name }}</span>
-                  <span *ngIf="selectedNpc.spouse.features.lineage.text">{{ selectedNpc.spouse.features.lineage.text }}</span>
-                  <span>Age: {{ selectedNpc.spouse.age }}</span>
-                  <span>Profession: {{ selectedNpc.spouse.profession.name }}</span>
+                  <strong>{{ selectedNPC.spouse.name }}</strong>
+                  <span
+                    >{{ selectedNPC.spouse.gender }},
+                    {{ selectedNPC.spouse.race.name }}</span
+                  >
+                  <span *ngIf="selectedNPC.spouse.features.lineage.text">{{
+                    selectedNPC.spouse.features.lineage.text
+                  }}</span>
+                  <span>Age: {{ selectedNPC.spouse.age }}</span>
+                  <span
+                    >Profession: {{ selectedNPC.spouse.profession.name }}</span
+                  >
                 </div>
-            </ng-template>
-              <div *ngIf="selectedNpc.children">Children: 
-                <ng-container *ngFor="let child of selectedNpc.children; let i = index" >
-                <span [ngbTooltip]="childTemplate" container="body" placement="left" class="text-capitalize">
-                  {{ child.name }} {{ last ? '' : ', ' }}
-                  <ng-template #childTemplate>
-                    <div class="d-flex flex-column text-capitalize">
-                      <strong>{{ child.name }}</strong>
-                      <span>{{ findRace(child.race_id).name }} <ng-container *ngIf="child.features.lineage.text">{{ child.features.lineage.text }}</ng-container></span>
-                      <span>Age: {{ child.age }}</span>
-                      <span>Profession: {{ findProfession(child.professione_id).name }}</span>
-                    </div>
-                </ng-template>
-                    </span>
-                  </ng-container>
+              </ng-template>
+              <div *ngIf="selectedNPC.children">
+                Children:
+                <ng-container
+                  *ngFor="let child of selectedNPC.children; let i = index"
+                >
+                  <span
+                    [ngbTooltip]="childTemplate"
+                    container="body"
+                    placement="left"
+                    class="text-capitalize"
+                  >
+                    {{ child.name }} {{ last ? "" : ", " }}
+                    <ng-template #childTemplate>
+                      <div class="d-flex flex-column text-capitalize">
+                        <strong>{{ child.name }}</strong>
+                        <span
+                          >{{ findRace(child.race_id).name }}
+                          <ng-container *ngIf="child.features.lineage.text">{{
+                            child.features.lineage.text
+                          }}</ng-container></span
+                        >
+                        <span>Age: {{ child.age }}</span>
+                        <span
+                          >Profession:
+                          {{ findProfession(child.professione_id).name }}</span
+                        >
+                      </div>
+                    </ng-template>
+                  </span>
+                </ng-container>
               </div>
             </div>
             <label class="pt-2">Notes</label>
             <textarea
-            rows="10"
+              rows="10"
               class="form-control"
-              [(ngModel)]="selectedNpc.notes"
+              [(ngModel)]="selectedNPC.notes"
             ></textarea>
             <label class="pt-2">Life Events</label>
             <div>
-              <ng-container *ngFor="let event of selectedNpc.events">
-                <div class="text-capitalize" [ngbTooltip]="event.type == 'birth' ? eventTemplate : ''">{{ selectedRegion.epoch - selectedNpc.age + event.age }}: {{ event.text }}</div>
+              <ng-container *ngFor="let event of selectedNPC.events">
+                <div
+                  class="text-capitalize"
+                  [ngbTooltip]="event.type == 'birth' ? eventTemplate : ''"
+                >
+                  {{ selectedRegion.epoch - selectedNPC.age + event.age }}:
+                  {{ event.text }}
+                </div>
                 <ng-template #eventTemplate>
-                  <div class="d-flex flex-column text-capitalize" *ngIf="event.type == 'birth' && event.coparent">
+                  <div
+                    class="d-flex flex-column text-capitalize"
+                    *ngIf="event.type == 'birth' && event.coparent"
+                  >
                     <strong>{{ event.coparent.name }}</strong>
                     <span>Age: {{ event.coparent.age }}</span>
                     <span>Race: {{ event.coparent.race }}</span>
                   </div>
                 </ng-template>
               </ng-container>
-              
             </div>
           </div>
         </div>
@@ -326,7 +305,7 @@
       <div class="col-4">
         <fa-icon
           [icon]="faRandom"
-          (click)="generateFeatures(selectedNpc)"
+          (click)="generateFeatures(selectedNPC)"
         ></fa-icon>
         <ng-container *ngFor="let feature of featuresArray">
           <div

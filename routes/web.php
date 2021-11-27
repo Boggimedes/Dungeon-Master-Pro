@@ -29,7 +29,7 @@ Route::get('signup/', function () {
 });
 
 Route::group(['middleware' => []], function () {
-    Route::get('region/{region}/map-generator', 'WorldController@mapGenerator');
+    Route::get('/app/region/{region}/edit-map', 'WorldController@mapGenerator');
     Route::get('region/{region}/map', 'WorldController@getMap');
         Route::any('/app{all}', function () {
         return view('app');

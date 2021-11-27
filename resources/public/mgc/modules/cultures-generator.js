@@ -61,7 +61,6 @@ window.Cultures = (function () {
     const centers = d3.quadtree();
     const colors = getColors(count);
     const emblemShape = document.getElementById("emblemShape").value;
-    console.log(colors);
     const codes = [];
     cultures.forEach(function (c, i) {
       const cell = (c.center = placeCenter(
@@ -80,7 +79,6 @@ window.Cultures = (function () {
       cells.culture[cell] = i + 1;
       if (emblemShape === "random") c.shield = getRandomShield();
     });
-    console.log(cultures);
 
     function placeCenter(v) {
       let c,
@@ -1201,7 +1199,6 @@ window.Cultures = (function () {
     });
 
     const neutral = (cells.i.length / 5000) * 1500 * neutralInput.value; // limit cost for culture growth
-    console.log(neutral);
     const cost = [];
     while (queue.length) {
       const next = queue.dequeue(),
@@ -1291,7 +1288,6 @@ window.Cultures = (function () {
       s.cells = s.area = s.burgs = s.rural = s.urban = 0;
       s.neighbors = new Set();
     });
-    console.log(cells.i.length);
     for (const i of cells.i) {
       if (cells.h[i] < 20) continue;
       const s = cells.culture[i];
@@ -1325,9 +1321,7 @@ window.Cultures = (function () {
     const { cells, features, cultures } = pack;
     const paths = []; // text paths
     lineGen.curve(d3.curveBundle.beta(1));
-    console.log(cultures);
     for (const culture of cultures) {
-      console.log(culture);
       if (
         !culture.i ||
         culture.removed ||
@@ -1350,7 +1344,6 @@ window.Cultures = (function () {
         .map((i) => voronoi.vertices.p[i])
         .filter((p, i) => i % 15 === 0 || i + 1 === chain.length);
       paths.push([culture.i, relaxed]);
-      console.log(paths);
 
       function getHull(start, culture, maxLake) {
         const queue = [start],
@@ -1459,7 +1452,6 @@ window.Cultures = (function () {
       // const displayed = layerIsOn("toggleLabels");
       // if (!displayed)
       toggleLabels(1);
-      console.log(list);
       if (!list) {
         // remove all labels and textpaths
         g.selectAll("text").remove();
@@ -1469,29 +1461,19 @@ window.Cultures = (function () {
         labels.select("#religions").selectAll("text").remove();
         t.selectAll("path[id*='religionLabel']").remove();
       }
-      console.log(g._groups[0]);
-      console.log(g._groups[0][0]);
       if (typeof g._groups[0][0] == "undefined") {
         g = labels.append("g").attr("id", "cultures");
-        console.log(g._groups[0]);
-        console.log(g._groups[0][0]);
       }
       const example = g
         .append("text")
         .attr("x", 0)
         .attr("x", 0)
         .text("Average");
-      console.log(g);
-      console.log(example);
-      console.log(example.node());
       const letterLength = example.node().getComputedTextLength() / 7; // average length of 1 letter
-      console.log(letterLength);
-      console.log(paths);
       paths.forEach((p) => {
         const id = p[0];
         const s = cultures[p[0]];
         let short = false;
-        console.log(s);
         if (list) {
           t.select("#textPath_cultureLabel" + id).remove();
           g.select("#cultureLabel" + id).remove();
@@ -1549,8 +1531,6 @@ window.Cultures = (function () {
           return `<tspan x="${left}px" dy="${d ? 1 : top}em">${l}</tspan>`;
         });
 
-        console.log(s.name);
-        console.log(ratio);
         const el = g
           .append("text")
           .attr("id", "cultureLabel" + id)

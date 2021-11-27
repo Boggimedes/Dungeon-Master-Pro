@@ -1,3 +1,15 @@
 ::ng-deep .ps__rail-y {
   background-color: transparent !important;
 }
+:host ::ng-deep .ql-toolbar {
+  display: none;
+}
+
+:host ::ng-deep .ql-container {
+  border: 0px solid #ccc !important
+      ;
+}
+:host ::ng-deep .ql-editor {
+  padding: 0px;
+  padding-top: 0.5rem;
+}

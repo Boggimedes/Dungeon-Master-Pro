@@ -1,75 +1,107 @@
 <div class="map-templates">
-  <label>Views</label>
-  <div style="display: flex; justify-content: center">
-    <button
-      class="btn btn-primary"
-      (click)="changePreset('GMP'); drawStatesLegend()"
+  <div class="btn-group btn-group-toggle">
+    <label class="btn-outline-secondary" ngbButtonLabel>
+      <input
+        type="checkbox"
+        ngbButton
+        (click)="toggleMarkers(!markersToggle)"
+        [(ngModel)]="markersToggle"
+      />
+      Markers
+    </label>
+    <label class="btn-outline-secondary" ngbButtonLabel>
+      <input
+        type="checkbox"
+        ngbButton
+        (click)="toggleRelief(!terrainsToggle)"
+        [(ngModel)]="terrainsToggle"
+      />
+      Terrain
+    </label>
+    <div
+      class="btn-group btn-group-toggle"
+      ngbRadioGroup
+      name="radioBasic"
+      [(ngModel)]="activeLayer"
     >
-      Default
-    </button>
+      <label ngbButtonLabel class="btn-outline-secondary">
+        <input
+          ngbButton
+          type="radio"
+          (click)="toggleBiomes(!biomesToggle)"
+          value="4"
+        />
+        Biomes
+      </label>
+      <label ngbButtonLabel class="btn-outline-secondary">
+        <input
+          ngbButton
+          type="radio"
+          (click)="BurgsAndStates.toggle()"
+          value="1"
+        />
+        States
+      </label>
+      <label ngbButtonLabel class="btn-outline-secondary">
+        <input ngbButton type="radio" (click)="Cultures.toggle()" value="2" />
+        Cultures
+      </label>
+      <label ngbButtonLabel class="btn-outline-secondary">
+        <input ngbButton type="radio" (click)="Religions.toggle()" value="3" />
+        Religions
+      </label>
+    </div>
+  </div>
+  <button
+    style="width: 3rem"
+    class="ml-3 btn btn-sm bg-rainbow px-1"
+    id="rainbow"
+    (click)="svg.attr('data-filter', null).attr('filter', null)"
+  >
+    &nbsp;
+  </button>
+  <button
+    style="width: 3rem"
+    class="btn btn-sm bg-bw px-1"
+    id="grayscale"
+    (click)="
+      svg
+        .attr('data-filter', 'grayscale')
+        .attr('filter', 'url(#filter-grayscale)')
+    "
+  >
+    &nbsp;
+  </button>
+  <button
+    style="width: 3rem"
+    class="btn btn-sm bg-sepia px-1"
+    id="sepia"
+    (click)="
+      svg.attr('data-filter', 'sepia').attr('filter', 'url(#filter-sepia)')
+    "
+  >
+    &nbsp;
+  </button>
+
+  <div class="ml-3 btn-group">
     <button
-      class="btn btn-primary"
-      (click)="changePreset('political'); drawStatesLegend()"
-    >
-      Political
-    </button>
-    <button
-      class="btn btn-primary"
-      (click)="changePreset('religions'); drawReligionsLegend()"
-    >
-      Religions
-    </button>
-    <button
-      class="btn btn-primary"
-      (click)="changePreset('cultural'); drawCulturesLegend()"
-    >
-      Cultural
-    </button>
-    <button
-      class="btn btn-primary"
-      id="grayscale"
-      (click)="svg.attr('data-filter', null).attr('filter', null)"
-    >
-      Color
-    </button>
-    <button
-      class="btn btn-primary"
-      id="grayscale"
-      (click)="
-        svg
-          .attr('data-filter', 'grayscale')
-          .attr('filter', 'url(#filter-grayscale)')
-      "
-    >
-      Grayscale
-    </button>
-    <button
-      class="btn btn-primary"
-      id="sepia"
-      (click)="
-        svg.attr('data-filter', 'sepia').attr('filter', 'url(#filter-sepia)')
-      "
-    >
-      Sepia
-    </button>
-    <button
-      class="btn btn-primary"
+      class="btn btn-dark"
       id=""
       (click)="selectedMarker = null; toggleRouteOpisometerMode()"
     >
-      Route
+      <fa-icon [icon]="faRoute"></fa-icon>
     </button>
     <button
-      class="btn btn-primary"
+      class="btn btn-dark"
       id=""
       (click)="selectedMarker = null; toggleOpisometerMode()"
     >
-      free
+      <fa-icon [icon]="faMeasure"></fa-icon>
     </button>
   </div>
 </div>
 
-<div class="boundary map" id="map-wrapper" style="height: 92vh"></div>
+<div class="boundary map" id="map-wrapper" style="height: 94vh"></div>
 <div id="unitsEditor" class="dialog stable" style="display: none">
   <div id="unitsBody" style="margin-left: 1.1em">
     <div class="unitsHeader" style="margin-top: 0.4em">

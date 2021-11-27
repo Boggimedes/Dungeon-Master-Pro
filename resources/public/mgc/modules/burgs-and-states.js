@@ -58,7 +58,6 @@ window.BurgsAndStates = (function () {
       let localCultures = JSON.parse(JSON.stringify(pack.cultures));
       localCultures.shift();
 
-      console.log(localCultures.length);
       localCultures = localCultures.filter((c) => {
         let sorted = cells.i
           .filter((l) => {
@@ -68,7 +67,6 @@ window.BurgsAndStates = (function () {
         pack.cultures[c.i].stateCenters = sorted;
         return pack.cultures[c.i].stateCenters.length > 0;
       });
-      console.log(localCultures.length);
       for (let i = 0; i < regionStates.length; i++) {
         if (localCultures.length === 0) {
           localCultures = JSON.parse(JSON.stringify(pack.cultures));
@@ -83,10 +81,7 @@ window.BurgsAndStates = (function () {
           regionStates[i].culture == "undefined"
         ) {
           let rn = Math.floor(rand() * localCultures.length);
-          console.log(rn);
-          console.log(localCultures.length - 1);
           let culture = localCultures.splice(rn, 1);
-          console.log(culture);
           regionStates[i].cObject = culture[0];
           regionStates[i].culture = regionStates[i].cObject.i;
         } else {
@@ -98,14 +93,7 @@ window.BurgsAndStates = (function () {
           });
           if (typeof index !== "undefined") localCultures.splice(index, 1);
           regionStates[i].cObject = pack.cultures[regionStates[i].culture];
-          console.log(pack.cultures[regionStates[i].culture]);
-          console.log(regionStates[i].cObject);
-          console.log(typeof regionStates[i].culture == "undefined");
         }
-        console.log(regionStates[i].culture);
-        console.log(pack.cultures);
-        console.log(pack.cultures[regionStates[i].culture]);
-        console.log(pack.cultures[regionStates[i].culture - 1]);
         let treeFind;
         let loop = 0;
         do {
@@ -163,7 +151,6 @@ window.BurgsAndStates = (function () {
 
       burgs.forEach(function (b, i) {
         if (!i) return; // skip first element
-        console.log(b);
         // burgs data
         b.i = b.state = i;
         b.culture = regionStates[b.rsi].culture
@@ -217,7 +204,7 @@ window.BurgsAndStates = (function () {
       const sorted = cells.i
         .filter((i) => !cells.burg[i] && score[i] > 0 && cells.culture[i])
         .sort((a, b) => score[b] - score[a]); // filtered and sorted array of indexes
-
+      console.log(manorsInput.value);
       const desiredNumber =
         manorsInput.value == 1000
           ? rn(sorted.length / 5 / (grid.points.length / 10000) ** 0.8)
@@ -816,17 +803,12 @@ window.BurgsAndStates = (function () {
         .attr("x", 0)
         .attr("x", 0)
         .text("Average");
-      console.log(g);
-      console.log(example);
-      console.log(example.node());
       const letterLength = example.node().getComputedTextLength() / 7; // average length of 1 letter
-      console.log(letterLength);
 
       paths.forEach((p) => {
         const id = p[0];
         const s = states[p[0]];
         let short = false;
-        console.log(s);
         if (list) {
           t.select("#textPath_stateLabel" + id).remove();
           g.select("#stateLabel" + id).remove();
@@ -883,8 +865,6 @@ window.BurgsAndStates = (function () {
           const left = example.node().getBBox().width / -2; // x offset
           return `<tspan x="${left}px" dy="${d ? 1 : top}em">${l}</tspan>`;
         });
-        console.log(s.name);
-        console.log(ratio);
         const el = g
           .append("text")
           .attr("id", "stateLabel" + id)
