@@ -45,7 +45,7 @@
             data-toggle="dropdown"
             ngbDropdownToggle
           >
-            Worlds
+            {{ selectedWorld ? selectedWorld.name : "Select World" }}
           </a>
           <div
             class="dropdown-menu text-left dropdown-menu-right m-0 pb-0"
@@ -56,22 +56,48 @@
               <a
                 class="dropdown-item"
                 ngbDropdownItem
-                (click)="setWorld(world)"
+                routerLink="/app/world/{{ world.id }}/edit"
               >
                 {{ world.name }}
               </a>
             </ng-container>
-            <a class="dropdown-item" (click)="newWorld()"> +Add World </a>
+            <a (click)="newWorld()"> +Add World </a>
           </div>
         </li>
-        <li class="dropdown nav-item px-2" ngbDropdown>
+        <li class="dropdown nav-item px-2" ngbDropdown *ngIf="selectedWorld">
           <a
             class="nav-link dropdown-toggle"
             href="javascript:;"
             data-toggle="dropdown"
             ngbDropdownToggle
           >
-            Regions
+            {{ selectedCampaign ? selectedCampaign.name : "All Campaigns" }}
+          </a>
+          <div
+            class="dropdown-menu text-left dropdown-menu-right m-0 pb-0"
+            style="font-size: 1.5rem"
+            ngbDropdownMenu
+          >
+            <ng-container *ngFor="let campaign of campaigns">
+              <a
+                class="dropdown-item"
+                ngbDropdownItem
+                (click)="setCampaign(campaign)"
+              >
+                {{ campaign.name }}
+              </a>
+            </ng-container>
+            <a (click)="newCampaign()"> +Add Campaign </a>
+          </div>
+        </li>
+        <li class="dropdown nav-item px-2" ngbDropdown *ngIf="selectedWorld">
+          <a
+            class="nav-link dropdown-toggle"
+            href="javascript:;"
+            data-toggle="dropdown"
+            ngbDropdownToggle
+          >
+            {{ selectedRegion ? selectedRegion.name : "Select Region" }}
           </a>
           <div
             class="dropdown-menu text-left dropdown-menu-right m-0 pb-0"

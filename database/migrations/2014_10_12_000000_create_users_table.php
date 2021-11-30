@@ -24,6 +24,15 @@ class CreateUsersTable extends Migration
             $table->rememberToken();
             $table->timestamps();
         });
+        Schema::create('campaigns', function (Blueprint $table) {
+            $table->increments('id');
+            $table->integer('user_id')->unsigned();
+            $table->string('name')->nullable();
+            $table->text('tags');
+            $table->integer('epoch')->nullable();
+            $table->integer('current_day');
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+        });
         Schema::create('npcs', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('user_id')->unsigned();
@@ -31,6 +40,7 @@ class CreateUsersTable extends Migration
             $table->string('city');
             $table->string('gender')->nullable();
             $table->integer('profession_id')->unsigned()->nullable();;
+            $table->integer('origin_npc_id')->unsigned()->nullable();;
             $table->smallinteger('alive')->default(1);
             $table->smallinteger('married')->default(0);
             $table->integer('race_id')->unsigned();
@@ -51,6 +61,9 @@ class CreateUsersTable extends Migration
             $table->text('features')->default('[]')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
+            $table->integer('campaign_id')->unsigned()->nullable();
+
+            $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade');
         });
         Schema::create('scene_collections', function (Blueprint $table) {
             $table->increments('id');
@@ -216,6 +229,9 @@ class CreateUsersTable extends Migration
             $table->text('states')->default('[]');
             $table->longText('map');
             $table->timestamps();
+            $table->integer('campaign_id')->unsigned()->nullable();
+
+            $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade');
             $table->foreign('world_id')->references('id')->on('worlds')->onDelete('cascade');
         });
         Schema::create('poi', function (Blueprint $table) {
@@ -227,6 +243,9 @@ class CreateUsersTable extends Migration
             $table->timestamps();
             $table->foreign('region_id')->references('id')->on('regions')->onDelete('cascade');
             $table->unique(['id', 'region_id', 'type']);
+            $table->integer('campaign_id')->unsigned()->nullable();
+
+            $table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade');
         });
         Schema::create('npc_poi', function (Blueprint $table) {
 			// keys
@@ -273,52 +292,40 @@ class CreateUsersTable extends Migration
 			$table->integer('spell_id')->unsigned()->nullable();
 			$table->foreign('spell_id')->references('id')->on('spells')->onDelete('cascade');
         });
-       
-        Schema::create('maps', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('user_id')->unsigned();
-            $table->string('name')->nullable();
-            $table->string('ext')->nullable();
-            $table->text('tags');
+        // Schema::create('maps', function (Blueprint $table) {
+        //     $table->increments('id');
+        //     $table->integer('user_id')->unsigned();
+        //     $table->string('name')->nullable();
+        //     $table->string('ext')->nullable();
+        //     $table->text('tags');
             
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-        });
-        
-        Schema::create('campaigns', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('user_id')->unsigned();
-            $table->string('name')->nullable();
-            $table->text('tags');
-            $table->integer('current_day');
-            
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-        });
-        
-		Schema::create('campaign_npcs', function (Blueprint $table) {
+        //     $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+        // });
+		Schema::create('campaign_collections', function (Blueprint $table) {
 			// keys
 			$table->integer('campaign_id')->unsigned()->nullable();
 			$table->foreign('campaign_id')->references('id')->on('campaigns')->onDelete('cascade');
 
-			$table->integer('npc_id')->unsigned()->nullable();
-			$table->foreign('npc_id') ->references('id')->on('npcs')->onDelete('cascade');
+			$table->integer('collection_id')->unsigned()->nullable();
+			$table->foreign('collection_id') ->references('id')->on('scene_collections')->onDelete('cascade');
 		});
 
-        Schema::create('map_items', function (Blueprint $table) {
-            $table->increments('id');
-            $table->integer('map_id')->unsigned();
-            $table->integer('campaign_id')->unsigned()->nullable();
-            $table->string('type');
-            $table->string('name');
-            $table->integer('visible_day')->default(0);
-            $table->string('visible_zoom')->default('[]');
-            $table->text('tags');
-            $table->integer('top');
-            $table->integer('left');
-            $table->string('icon');
-            $table->text('notes');
+        // Schema::create('map_items', function (Blueprint $table) {
+        //     $table->increments('id');
+        //     $table->integer('map_id')->unsigned();
+        //     $table->integer('campaign_id')->unsigned()->nullable();
+        //     $table->string('type');
+        //     $table->string('name');
+        //     $table->integer('visible_day')->default(0);
+        //     $table->string('visible_zoom')->default('[]');
+        //     $table->text('tags');
+        //     $table->integer('top');
+        //     $table->integer('left');
+        //     $table->string('icon');
+        //     $table->text('notes');
             
-            $table->foreign('map_id')->references('id')->on('maps')->onDelete('cascade');
-        });
+        //     $table->foreign('map_id')->references('id')->on('maps')->onDelete('cascade');
+        // });
         
         Schema::create('plot_points', function (Blueprint $table) {
             $table->increments('id');

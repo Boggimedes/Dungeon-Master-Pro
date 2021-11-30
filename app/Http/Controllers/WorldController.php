@@ -125,7 +125,7 @@ class WorldController extends Controller
         $npc->delete();
         return response()->json(['message' => 'Deleted NPC']);
     }
-    public function getWorld(Request $request, World $world) 
+    public function read(Request $request, World $world) 
     {
 		$me = \Auth::user();
         if(empty($me) || $world->user_id !== $me->id) abort(401);
@@ -152,13 +152,22 @@ class WorldController extends Controller
             'descriptives' => $world->descriptives,
             'professions' => $world->professions,
             'races' => $world->races,
+            'campaigns' => $me->campaigns,
             'regions' => $world->regions->append('stats'),
             'stats' => $world->stats()
         ]);
     }
+    public function update(Request $request, World $world) 
+    {
+		$me = \Auth::user();
+        if(empty($me) || $world->user_id !== $me->id) abort(401);
+        $world->name = $request->has('name') ? $request->get('name') : $world->name;
+        $world-save();
+        return response()->json(['message' => 'updated ' . $world->name]);
+    }
     public function getWorldFromRegion(Request $request, Region $region)
     {
-        return $this->getWorld($request, $region->world);
+        return $this->read($request, $region->world);
     }
     public function seedRegion(Region $region) {
 		$me = \Auth::user();
@@ -224,7 +233,7 @@ class WorldController extends Controller
         // if(empty($me) || $region->world->user_id !== $me->id) abort(401);
 
 
-
+\Log::info($region);
         return view('map-generator',['region' => $region]);
 
     }
@@ -323,7 +332,7 @@ class WorldController extends Controller
         return response()->json($npc);
     }
 
-    public function createWorld() {
+    public function create() {
 		$me = \Auth::user();
         if(empty($me)) abort(401);
         $count = World::where([['user_id','=',$me->id],['name','like','New World%']])->count();
@@ -331,6 +340,13 @@ class WorldController extends Controller
         $newWorld = World::create(['user_id' => $me->id, 'name' => $countString]);
         \Log::info($newWorld);
         return response()->json($newWorld);
+    }
+
+    public function delete(World $world) {
+		$me = \Auth::user();
+        if(empty($me) || $world->user_id !== $me->id) abort(401);
+        $world->delete();
+        return response()->json(["message" => $world->name . " Deleted", "user" => $me->refresh()->withSearchList()]);
     }
 }
 

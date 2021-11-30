@@ -362,10 +362,6 @@ mwlResizable {
   text-align: center;
   right: -7rem;
 }
-.no-border {
-  border: 0px;
-  padding-left: 0px;
-}
 .map-buttons {
   position: absolute;
   top: 35%;
@@ -446,7 +442,7 @@ mwlResizable {
   );
 }
 
-:host ::ng-drrp .ql-snow .ql-picker-options {
+:host ::ng-deep .ql-snow .ql-picker-options {
   background-color: #101010;
 }
 

@@ -15,10 +15,11 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+Route::post('interest', 'Common@interested');
 
 Route::get('login/', function () {
     return view('app');
-});
+})->name('login');
 
 Route::get('app/', function () {
     return view('app');
@@ -28,8 +29,15 @@ Route::get('signup/', function () {
     return view('app');
 });
 
+Route::get('welcome/', function () {
+    return view('welcome')->with('interested', false);
+});
+
+Route::get('/', function () {
+    return view('welcome')->with('interested', false);
+});
+
 Route::group(['middleware' => []], function () {
-    Route::get('/app/region/{region}/edit-map', 'WorldController@mapGenerator');
     Route::get('region/{region}/map', 'WorldController@getMap');
         Route::any('/app{all}', function () {
         return view('app');

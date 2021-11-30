@@ -24,6 +24,7 @@ import { EditWorldsComponent } from "./edit-worlds/edit-worlds.component";
 import { EditNpcsComponent } from "./edit-npcs/edit-npcs.component";
 import { WelcomeComponent } from "./welcome/welcome.component";
 import { QuillModule } from "ngx-quill";
+import { EditMapsComponent } from './edit-maps/edit-maps.component';
 
 @NgModule({
   imports: [
@@ -57,6 +58,7 @@ import { QuillModule } from "ngx-quill";
     EditNpcsComponent,
     StoryHooksComponent,
     WelcomeComponent,
+    EditMapsComponent,
   ],
   providers: [],
 })

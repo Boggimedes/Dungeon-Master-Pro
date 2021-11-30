@@ -13,3 +13,7 @@
   padding: 0px;
   padding-top: 0.5rem;
 }
+::ng-deep .no-border {
+  border: 0px;
+  padding-left: 0px;
+}

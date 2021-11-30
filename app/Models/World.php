@@ -62,9 +62,11 @@ class World extends Model
 
     public function stats()
     {
-        $stats = [];
+        $stats = ['npcs' => [], 'rural_pop' => 0, 'urban_pop' => 0, 'burgs' => 0, 'living_npcs' => 0];
         foreach($this->races as $race) {
-            $stats[] = [
+            $living = Npc::whereIn('region_id', $this->regions->pluck('id')->toArray())->where('race_id',$race->id)->where('alive', '>',0)->count();
+            $stats['living_npcs'] += $living;
+            $stats['npcs'][] = [
                 'race' => $race->name,
                 'average_age%' => round(100*Npc::whereIn('region_id', $this->regions->pluck('id')->toArray())->where('race_id',$race->id)->where('alive', 1)->avg('age')/$race->old_age),
                 'children' => Npc::whereIn('region_id', $this->regions->pluck('id')->toArray())->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[0,$race->adulthood+1])->count(),
@@ -72,9 +74,19 @@ class World extends Model
                 'middle_age' => Npc::whereIn('region_id', $this->regions->pluck('id')->toArray())->where('race_id',$race->id)->where('alive', 1)->whereBetween('age',[$race->middle_age,$race->old_age+1])->count(),
                 'old_age' => Npc::whereIn('region_id', $this->regions->pluck('id')->toArray())->where('race_id',$race->id)->where('alive', 1)->where('age','>', $race->old_age)->count(),
                 'immortal' => Npc::whereIn('region_id', $this->regions->pluck('id')->toArray())->where('race_id',$race->id)->where('alive', '>',1)->where('age','>', $race->old_age)->count(),
-                'living' => Npc::whereIn('region_id', $this->regions->pluck('id')->toArray())->where('race_id',$race->id)->where('alive', '>',0)->count()
+                'living' => $living
             ];
         }
+        foreach ($this->regions as $r) {
+            if (!$r->map) continue;
+            $popUnit = $r->settings[12];
+            foreach($r->states as $state){
+                $stats['rural_pop'] += $state['rural'] * $popUnit;
+                $stats['urban_pop'] += $state['urban'] * $popUnit;
+                $stats['burgs'] += $state['burgs'];
+            }
+        }
+
         return $stats;
     }
 

@@ -712,6 +712,13 @@ class Region extends Model
         $this->map = implode("\r\n", $mapData);
         $this->save();
     }
+    public function getSettingsAttribute() {
+        if (!$this->map) return ['mi', 3, 'square', 'ft', 2, '°F', 2, null, 0.2, null, null, null, 1000];
+        $mapData = explode("\r\n", $this->map);
+        $settings = explode("|", $mapData[1]);
+        return $settings;
+
+    }
     public function updateMapData($type, $data) 
     {
         $mapData = explode("\r\n", $this->map);

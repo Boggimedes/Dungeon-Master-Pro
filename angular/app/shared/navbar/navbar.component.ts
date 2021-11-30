@@ -119,6 +119,7 @@ export class NavbarComponent implements OnInit, AfterViewInit, OnDestroy {
         console.log(region);
         this.selectedRegion = region;
       });
+
     this.worldService.selectedWorld$
       .pipe(untilDestroyed(this))
       .subscribe((world) => {

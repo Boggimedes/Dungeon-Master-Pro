@@ -30,16 +30,5 @@ export class PageComponent {
         this.worldService.getWorld(parseInt(p.get("worldId"), 10));
       }
     });
-    this.worldService.selectedRegion$
-      .pipe(untilDestroyed(this))
-      .subscribe((region) => {
-        this.regionName = region.name;
-      });
-    this.worldService.selectedWorld$
-      .pipe(untilDestroyed(this))
-      .subscribe((world) => {
-        console.log(world);
-        this.worldName = world.name;
-      });
   }
 }

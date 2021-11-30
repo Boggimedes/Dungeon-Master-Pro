@@ -1,9 +1,11 @@
 import { Component, OnInit, ViewChild, AfterViewInit } from "@angular/core";
-import { World } from "../../models/world";
 import { Region } from "../../models/region";
 import { ActivatedRoute } from "@angular/router";
 import { WorldService } from "../../shared/services/world.service";
+import { StoryService } from "../../shared/services/story.service";
+import { AuthService } from "../../shared/auth/auth.service";
 import { Subscription } from "rxjs";
+import { World, NPC, POI, Race } from "../../models/world";
 import { faSkullCrossbones } from "@fortawesome/free-solid-svg-icons";
 import { faClone } from "@fortawesome/free-solid-svg-icons";
 import { faLink } from "@fortawesome/free-solid-svg-icons";
@@ -23,6 +25,7 @@ export class EditWorldsComponent implements OnInit {
   worldCollapsed: boolean = false;
   selectedWorld: World;
   worldSubscription: Subscription;
+  public hideConfirm = 0;
   public config: PerfectScrollbarConfigInterface = {
     wheelPropagation: true,
     scrollXMarginOffset: -120,
@@ -82,11 +85,32 @@ export class EditWorldsComponent implements OnInit {
   genders = [];
   constructor(
     private route: ActivatedRoute,
-    private worldService: WorldService
+    private worldService: WorldService,
+    private storyService: StoryService,
+    private authService: AuthService
   ) {}
 
-  newWorld = () => {};
-
+  deleteWorld(confirm) {
+    if (confirm) {
+      this.hideConfirm = 1;
+      setTimeout(() => (this.hideConfirm = 0), 4000);
+    } else {
+      // this.storyService
+      //   .hidePOI(this.selectedPOI)
+      //   .subscribe((response) => (this.hideConfirm = 0));
+      console.log("POI Hidden (but not really)");
+      this.hideConfirm = 0;
+      this.worldService
+        .deleteWorld(this.selectedWorld.id)
+        .subscribe((data: any) => {
+          this.authService.updateUser(data.user);
+          this.selectedWorld = null;
+        });
+    }
+  }
+  updateWorld() {
+    this.worldService.updateWorld(this.selectedWorld);
+  }
   saveProfession = () => {};
 
   saveRegion = (index) => {
@@ -118,8 +142,6 @@ export class EditWorldsComponent implements OnInit {
   genderNames = (genders) => {
     return genders.map((g) => g[0]).join(", ");
   };
-
-  saveDescriptive = () => {};
 
   filterDescriptives = () => {
     if (!this.descriptiveSearch) {
@@ -208,6 +230,28 @@ export class EditWorldsComponent implements OnInit {
         if (data.region.racial_balance === null)
           data.region.racial_balance = [];
         this.selectedWorld.regions.push(new Region(data.region));
+      });
+  };
+  saveRace = (race) => {
+    this.worldService
+      .saveRace(this.selectedWorld, race)
+      .subscribe((r: Race) => {
+        if (!race.id) return this.selectedWorld.races.push(r);
+        this.selectedWorld.races.map((race) => {
+          if (race.id === r.id) return r;
+          return race;
+        });
+      });
+  };
+  saveDescriptive = (descriptive) => {
+    this.worldService
+      .saveDescriptive(this.selectedWorld, descriptive)
+      .subscribe((d: any) => {
+        if (!descriptive.id) return this.selectedWorld.descriptives.push(d);
+        this.selectedWorld.descriptives.map((descriptive: any) => {
+          if (descriptive.id === d.id) return d;
+          return descriptive;
+        });
       });
   };
 
@@ -310,6 +354,12 @@ export class EditWorldsComponent implements OnInit {
               t = t.replace("Body (", "").replace(")", "");
               return t;
             });
+            world.stats.urban_pop = this.storyService.abbreviateNumber(
+              world.stats.urban_pop
+            );
+            world.stats.rural_pop = this.storyService.abbreviateNumber(
+              world.stats.rural_pop
+            );
           }
           this.selectedWorld = world;
           console.log(this.selectedWorld);

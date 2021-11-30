@@ -8161,7 +8161,7 @@
 
         function addParty(i) {
             notes.push({
-                id: "marker" + id,
+                id: "marker" + i,
                 name: "Enter Party Name",
                 legend: ``,
             });

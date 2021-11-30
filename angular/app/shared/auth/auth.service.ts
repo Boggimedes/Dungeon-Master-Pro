@@ -40,6 +40,10 @@ export class AuthService {
     return localStorage.getItem("auth_token");
   }
 
+  public updateUser(user) {
+    this.userSource.next(user);
+  }
+
   // Verify the token
   isValidToken() {
     const token = this.getToken();

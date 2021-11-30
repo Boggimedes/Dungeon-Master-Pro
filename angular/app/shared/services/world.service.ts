@@ -1,7 +1,7 @@
 import { Injectable } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
 import { share } from "rxjs/operators";
-import { BehaviorSubject, Observable, ReplaySubject } from "rxjs";
+import { ReplaySubject } from "rxjs";
 import { World } from "../../models/world";
 import { NPC } from "../../models/world";
 import { Region } from "../../models/region";
@@ -34,7 +34,10 @@ export class WorldService {
         this.selectedWorldSource.next(new World(data))
       );
   };
-
+  updateWorld = (world) => {
+    world = { name: world.name, id: world.id };
+    this.http.put("/api/world/" + world.id, world).subscribe();
+  };
   getWorldFromRegion = (id) => {
     console.log("Get World FR");
     this.http.get("/api/world/fr/" + id).subscribe((data: World) => {
@@ -43,7 +46,6 @@ export class WorldService {
       this.selectedWorldSource.next(new World(data));
     });
   };
-
   getRegion = (id) => {
     this.http.get("/api/region/" + id).subscribe((data: { region: Region }) => {
       this.getWorldFromRegion(data.region.id);
@@ -87,19 +89,15 @@ export class WorldService {
       .get("/api/npc/" + npcId)
       .subscribe((data: { npc: any }) => this.selectNpc(data.npc));
   };
-
   getNpcs = (regionId) => {
     return this.http.get("/api/region/" + regionId + "/npcs");
   };
-
   getNpcList = (regionId) => {
     return this.http.get("/api/region/" + regionId + "/npc-list");
   };
-
   getAspects = () => {
     return this.http.get("/api/aspects");
   };
-
   updateNpc = (params) => {
     return this.http
       .put("/api/npc/" + params.id, params)
@@ -108,52 +106,47 @@ export class WorldService {
   addNpc = (params) => {
     return this.http.post("/api/npcs/npc/add", params);
   };
-  createWorld = () => {
-    return this.http.get("/api/world/create");
+  createWorld = (world = null) => {
+    return this.http.post("/api/world/create", world);
+  };
+  deleteWorld = (id) => {
+    return this.http.delete("/api/world/" + id);
   };
   deleteNpc = (params) => {
     return this.http.post("/api/npcs/npc/delete", params);
   };
-  public seedRegion = (region) => {
+  seedRegion = (region) => {
     const call = this.http
       .get("/api/region/" + region.id + "/seed")
       .pipe(share());
     return call;
   };
-  public saveRegion = (region) => {
+  saveRegion = (region) => {
     console.log(region.feature_types.body);
     const call = this.http
       .put("/api/region/" + region.id, region)
       .pipe(share());
     return call;
   };
-  public generateFeatures = (npcId, lockedFeatures) => {
+  generateFeatures = (npcId, lockedFeatures) => {
     return this.http
       .put("/api/npc/" + npcId + "/generate-features", {
         locked_features: lockedFeatures,
       })
       .pipe(share());
   };
-  // getRegions = (params) => {
-  //     return this.http.post('/api/npcs/region/get', params);
-  // }
-  public ageRegion = (region, years) => {
+  ageRegion = (region, years) => {
     const call = this.http
       .get("/api/region/" + region.id + "/age/" + years)
       .pipe(share());
     return call;
   };
-  public clearRegion = (region) => {
+  clearRegion = (region) => {
     const call = this.http
       .get("/api/region/" + region.id + "/clear")
       .pipe(share());
     return call;
   };
-  // updateRegion = (params) => {
-  //     const call = this.http.post('/api/npcs/region/update', params).pipe(share());
-  //     call.subscribe((data) => this.selectedWorldSource.next(data));
-  //     return call;
-  // }
   addRegion = (world, region = null) => {
     const call = this.http
       .post("/api/world/" + world.id + "/region/add", { region: region })
@@ -164,28 +157,6 @@ export class WorldService {
     const call = this.http.delete("/api/region/" + region.id).pipe(share());
     return call;
   };
-  // deleteWorld = (params) => {
-  //     const call = this.http.post('/api/npcs/world/delete', params).pipe(share());
-  //     call.subscribe((data) => this.selectedWorldSource.next(data));
-  //     return call;
-  // }
-  // getDescriptives = (params) => {
-  //     return this.http.post('/api/npcs/descriptives/get', params);
-  // }
-  // updateDescriptives = (params) => {
-  //     return this.http.post('/api/npcs/descriptives/update', params);
-  // }
-  // updateNpcRecord = (table,params) => {
-  //     return this.http.post('/api/npcs/'+table+'/update', params);
-  // }
-  // deleteNpcRecord = (table,params) => {
-  //     return this.http.post('/api/npcs/'+table+'/delete', params);
-  // }
-  // addDescriptives = (params) => {
-  //     return this.http.post('/api/npcs/descriptives/add', params);
-  // }
-  // deleteDescriptives = (params) => {
-  //     return this.http.post('/api/npcs/descriptives/delete', params);
   updateBurg = (region, burg) => {
     const call = this.http
       .put("/api/region/" + region.id + "/burg", burg)
@@ -247,5 +218,35 @@ export class WorldService {
       {}
     );
     return call;
+  };
+  addDescriptive = (descriptive, world) => {
+    this.http.post("/api/world/" + world.id + "/descriptive", descriptive);
+  };
+  saveDescriptive = (descriptive, world) => {
+    return this.http.post(
+      "/api/world/" +
+        world.id +
+        "/race" +
+        (descriptive.id ? "/" + descriptive.id : ""),
+      descriptive
+    );
+  };
+  saveRace = (race, world) => {
+    return this.http.post(
+      "/api/world/" + world.id + "/race" + (race.id ? "/" + race.id : ""),
+      race
+    );
+  };
+  deleteDescriptive = (descriptive) => {
+    this.http.delete("/api/descriptive/" + descriptive.id, descriptive);
+  };
+  deleteRace = (race) => {
+    this.http.delete("/api/race/" + race.id, race);
+  };
+  copyFromWorld = (source, target) => {
+    return this.http.get("/api/copy-world/" + target.id + "/" + source.id);
+  };
+  copyFromRegion = (source, target) => {
+    return this.http.get("/api/copy-region/" + target.id + "/" + source.id);
   };
 }

@@ -1,15 +1,42 @@
-<div class="row">
-  <div class="col-12">
-    <div class="form-control-group">
-      <label for="selectedWorld">Selected World</label>
+<div class="row" *ngIf="selectedWorld">
+  <div class="col-12 col-md-6 pl-3 pt-3">
+    <h1>
       <input
         type="text"
         [(ngModel)]="selectedWorld.name"
-        class="form-control"
+        (blur)="updateWorld()"
+        class="no-border bg-transparent text-primary"
       />
+    </h1>
+    <div class="d-flex flex-column h4 pb-3">
+      <div><strong>NPCs: </strong>{{ selectedWorld.stats?.living_npcs }}</div>
+      <div>
+        <strong>Urban Population: </strong>{{ selectedWorld.stats?.urban_pop }}
+      </div>
+      <div>
+        <strong>Rural Population: </strong>{{ selectedWorld.stats?.rural_pop }}
+      </div>
     </div>
-    <button type="button" class="btn btn-primary" (click)="newWorld()">
-      Add New World
+    <button
+      type="button"
+      [ngbTooltip]="warning"
+      *ngIf="!hideConfirm"
+      class="btn btn-primary ml-3"
+      (click)="deleteWorld(1)"
+    >
+      Delete World
+    </button>
+    <ng-template #warning>
+      <h4 class="text-danger">Careful!!</h4>
+      <p>This cannot be undone.</p>
+    </ng-template>
+    <button
+      type="button"
+      *ngIf="hideConfirm"
+      class="btn btn-primary ml-3"
+      (click)="deleteWorld(0)"
+    >
+      Confirm?
     </button>
   </div>
   <div class="col-12 p-3">
@@ -679,7 +706,7 @@
     </div>
   </div>
 </div>
-<div class="row pb-5">
+<div class="row pb-5" *ngIf="selectedWorld">
   <div class="col-12">
     <button class="btn btn-success" (click)="newRegion()">
       Add New Region

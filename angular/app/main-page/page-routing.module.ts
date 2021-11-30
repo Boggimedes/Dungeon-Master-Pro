@@ -6,6 +6,7 @@ import { StoryComponent } from "./story/story.component";
 import { WelcomeComponent } from "./welcome/welcome.component";
 import { EditWorldsComponent } from "./edit-worlds/edit-worlds.component";
 import { EditNpcsComponent } from "./edit-npcs/edit-npcs.component";
+import { EditMapsComponent } from "./edit-maps/edit-maps.component";
 import { AuthGuard } from "../shared/auth/auth-guard.service";
 
 const routes: Routes = [
@@ -48,6 +49,13 @@ const routes: Routes = [
         component: EditNpcsComponent,
         data: {
           title: "Edit NPCs",
+        },
+      },
+      {
+        path: "edit-map",
+        component: EditMapsComponent,
+        data: {
+          title: "Edit Map",
         },
       },
     ],

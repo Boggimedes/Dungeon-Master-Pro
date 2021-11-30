@@ -12,8 +12,8 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         // $this->call(UserSeeder::class);
-        DB::insert("INSERT INTO `users` (`id`, `name`, `email`) VALUES(1,'Daniel Boggs', 'boggimedes@gmail.com')");
-        DB::insert("INSERT INTO `worlds` (`id`, `name`, `user_id`) VALUES (1, 'Test World',1)");
+        DB::insert("INSERT INTO `users` (`id`, `name`, `email`, `password`) VALUES(1,'Daniel Boggs', 'boggimedes@gmail.com', '$2y$10\$rYk5NDpaYtsb.ilxnZquz.G32eZFUMoDF5qqzSpqcZjsofyle01yW')");
+        DB::insert("INSERT INTO `worlds` (`id`, `name`, `user_id`) VALUES (1, 'Demo World',1)");
         DB::insert("INSERT INTO `descriptives` (`world_id`, `type`, `text`, `gender`, `alive`) VALUES 
         (1,'special','Albino',NULL,NULL),
         (1,'special','Always gets a sunburn',NULL,NULL),
@@ -2263,7 +2263,7 @@ $features = [
         "lineage - godhood" => ["name" => "lineage - godhood", "chance" => .1]
 ];
 
-        DB::insert("INSERT INTO `regions` (`name`, `world_id`, `racial_balance`, `prof_balance`, `id`,`epoch`, `feature_types`, `cultures`, `religions`, `map`) VALUES ('Test City',1,'[{\"id\": 1,\"name\": \"Dwarf\", \"value\":10, \"homeland\": 1},{\"id\": 2,\"name\": \"Elf\", \"value\":10, \"homeland\": 1},{\"id\": 3,\"name\": \"Gnome\", \"value\":10, \"homeland\": 1},{\"id\": 4,\"name\": \"Half-Elf\", \"value\":15, \"homeland\": 1},{\"id\": 5,\"name\": \"Half-Orc\", \"value\":10, \"homeland\": 1},{\"id\": 6,\"name\": \"Halfling\", \"value\":10, \"homeland\": 1}]','[{\"id\": 1,\"name\": \"Actor\", \"value\":10},{\"id\": 3,\"name\": \"Apothecary\", \"value\":10},{\"id\": 5,\"name\": \"Armorer\", \"value\":10},{\"id\": 6,\"name\": \"Artist\", \"value\":10},{\"id\":  7,\"name\": \"Baker\", \"value\":10},{\"id\": 8,\"name\": \"Barkeep\", \"value\":10},{\"id\": 9,\"name\": \"Barmaid\", \"value\":10}]',1,3600, '[]','[]','[]','')");
+        DB::insert("INSERT INTO `regions` (`name`, `world_id`, `racial_balance`, `prof_balance`, `id`,`epoch`, `feature_types`, `cultures`, `religions`, `map`) VALUES ('Test City',1,'[{\"id\": 1,\"name\": \"Dwarf\", \"value\":10, \"homeland\": 1},{\"id\": 2,\"name\": \"Elf\", \"value\":10, \"homeland\": 1},{\"id\": 3,\"name\": \"Gnome\", \"value\":10, \"homeland\": 1},{\"id\": 4,\"name\": \"Half-Elf\", \"value\":15, \"homeland\": 1},{\"id\": 5,\"name\": \"Half-Orc\", \"value\":10, \"homeland\": 1},{\"id\": 6,\"name\": \"Halfling\", \"value\":10, \"homeland\": 1},{\"id\": 6,\"name\": \"Human\", \"value\":30, \"homeland\": 1}]','[{\"id\": 1,\"name\": \"Actor\", \"value\":10},{\"id\": 3,\"name\": \"Apothecary\", \"value\":10},{\"id\": 5,\"name\": \"Armorer\", \"value\":10},{\"id\": 6,\"name\": \"Artist\", \"value\":10},{\"id\":  7,\"name\": \"Baker\", \"value\":10},{\"id\": 8,\"name\": \"Barkeep\", \"value\":10},{\"id\": 9,\"name\": \"Barmaid\", \"value\":10}]',1,3600, '[]','[]','[]','')");
         $region = \App\Models\Region::first();
         $region->feature_types = $features;
         $region->save();
@@ -2685,9 +2685,6 @@ $features = [
         (417,417,1,'Sacred Flame','{((({level}+1)/6)+0.5)}d8 Radiant damage.','Flame-like radiance descends on a creature that you can see within range. The target must succeed on a Dexterity saving throw or take 1d8 radiant damage. The target gains no benefit from cover for this saving throw.\n\nThe spell\'s damage increases by 1d8 when you reach 5th level (2d8), 11th level (3d8), and 17th level (4d8).','Dex save for no damage. The target gains no benefit from cover for this saving throw.','60ft','0','Evocation','Dexterity','1 action','Instantaneous','V,S',''),
         (418,418,1,'Acid Arrow','4d4','A shimmering green arrow streaks toward a target within range and bursts in a spray of acid. Make a ranged spell Attack against the target. On a hit, the target takes 4d4 acid damage immediately and 2d4 acid damage at the end of its next turn. On a miss, the arrow splashes the target with acid for half as much of the initial damage and no damage at the end of its next turn.',NULL,'90 ft','2','Evocation',NULL,'1 action','Instantaneous','V, S, M','');");
 
-        DB::insert("INSERT INTO `maps` (`id`, `name`, `user_id`, `tags`) VALUES (1, 'Test Map 1', 1,'[]')");
-        DB::insert("INSERT INTO `maps` (`id`, `name`, `user_id`, `tags`) VALUES (2, 'Test Map 2', 1,'[]')");
-        DB::insert("INSERT INTO `maps` (`id`, `name`, `user_id`, `tags`) VALUES (3, 'Test Map 3', 1,'[]')");
                 
         DB::insert("INSERT INTO `campaigns` (`id`, `name`, `user_id`, `tags`, `current_day`) VALUES (1, 'Test Campaign', 1,'[]', 1000)");
 

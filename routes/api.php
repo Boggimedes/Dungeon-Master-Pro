@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 
+
 Route::group([
     'middleware' => 'api',
     'prefix' => 'auth'
@@ -21,13 +22,15 @@ Route::group(['middleware' => ['api']], function ($router) {
 	Route::post('monster', 'MonsterController@addMonster');
 	Route::put('monster', 'MonsterController@updateMonster');
 	Route::delete('monster', 'MonsterController@deleteMonster');
+    Route::get('/region/{region}/edit-map', 'WorldController@mapGenerator');
 
 	Route::get('campaigns/{term?}', 'StoryController@getCampaigns');
 	Route::get('campaign', 'StoryController@getCampaign');
 	Route::post('map', 'StoryController@getMap');
 
-    Route::get('world/create', 'WorldController@createWorld');
-    Route::get('world/{world}', 'WorldController@getWorld');
+    Route::post('world/create', 'WorldController@create');
+    Route::get('world/{world}', 'WorldController@read');
+    Route::delete('world/{world}', 'WorldController@delete');
     Route::get('world/fr/{region}', 'WorldController@getWorldFromRegion');
     Route::post('world/{world}/region/add', 'WorldController@addRegion');
     Route::delete('region/{region}', 'WorldController@deleteRegion');

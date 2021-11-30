@@ -4,12 +4,12 @@ import { Region } from "./region";
 export class World {
   public id: number;
   public name: string;
-  public descriptives: [];
+  public descriptives: any[];
   public professions: Profession[];
   public races: Race[];
   public racesOb: any = {};
   public regions: Region[];
-  public stats: [];
+  public stats: any;
   public body_types: string[];
   public descriptive_types: string[];
 
@@ -179,8 +179,8 @@ export class NPC {
     let race: Race;
     console.log(npc);
     console.log(this.world);
-    if (this.race) {
-      race = this.race;
+    if (this.race || npc.race) {
+      race = this.race ? this.race : npc.race;
     } else {
       race = this.world.racesOb[npc.race_id];
     }

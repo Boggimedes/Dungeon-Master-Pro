@@ -29,39 +29,6 @@ export class StoryService {
   public day;
 
   constructor(private http: HttpClient) {}
-  abbreviateNumber(value) {
-    let newValue: any = parseInt(value, 10);
-    value = parseInt(value, 10);
-    if (value >= 1000) {
-      var suffixes = ["", "k", "m", "b", "t"];
-      var suffixNum = Math.floor(("" + value).length / 3);
-      var shortValue: any = "";
-      for (var precision = 2; precision >= 1; precision--) {
-        shortValue = parseFloat(
-          (suffixNum != 0
-            ? value / Math.pow(1000, suffixNum)
-            : value
-          ).toPrecision(precision)
-        );
-        var dotLessShortValue = (shortValue + "").replace(
-          /[^a-zA-Z 0-9]+/g,
-          ""
-        );
-        if (dotLessShortValue.length <= 2) {
-          break;
-        }
-      }
-
-      if (shortValue % 1 != 0) shortValue = shortValue.toFixed(1);
-      if (shortValue < 1) {
-        shortValue = shortValue * 1000;
-        suffixNum -= 1;
-      }
-      newValue = shortValue + suffixes[suffixNum];
-    }
-    return newValue;
-  }
-
   zoomTo(x, y, z, d) {
     this.zoomSource.next({ x, y, z, d });
   }
@@ -72,7 +39,6 @@ export class StoryService {
         this.campaignListSource.next(data.campaigns)
       );
   };
-
   getCampaign = (id) => {
     this.http
       .get("/api/campaign/" + id)
@@ -80,7 +46,13 @@ export class StoryService {
         this.campaignSource.next(data.campaign)
       );
   };
-
+  updateCampaign = (campaign) => {
+    this.http
+      .put("/api/campaign/" + campaign.id, campaign)
+      .subscribe((data: { campaign: Campaign }) =>
+        this.campaignSource.next(data.campaign)
+      );
+  };
   select = (item, type) => {
     let data: any = this.dataSource.getValue();
     let selected: any = {};
@@ -142,7 +114,6 @@ export class StoryService {
     };
     this.dataSource.next(newData);
   };
-
   getMap = (id) => {
     let cId = this.campaignSource.getValue()
       ? this.campaignSource.getValue().id
@@ -167,34 +138,80 @@ export class StoryService {
     if (abs) height = Math.abs(height);
     return Math.round(height * unitRatio) + " " + unit;
   };
-
   convertTemperature = (c) => {
     return Math.round((c * 9) / 5 + 32) + "°F";
   };
-  hidePOI = () => {};
+  updateCampaignPOI = (poi, campaign) => {
+    return this.http.put(
+      "/api/campaign-poi/" + campaign.id + "/" + poi.region_id,
+      poi
+    );
+  };
+  updateCampaignNPC = (npc, campaign) => {
+    return this.http.put(
+      "/api/campaign-npc/" + campaign.id + "/" + npc.id,
+      npc
+    );
+  };
+  resetCampaignPOI = (poi, campaign) => {
+    return this.http.delete(
+      "/api/campaign-poi/" + campaign.id + "/" + poi.region_id
+    );
+  };
+  resetCampaignNPC = (npc, campaign) => {
+    return this.http.delete("/api/campaign-npc/" + campaign.id + "/" + npc.id);
+  };
   // random number in a range
   rand(x = 1, y) {
     return x + (crypto.getRandomValues(new Uint32Array(1))[0] % (y - x + 1));
   }
-
   // return random value from the array
   ra = (array) => {
     return array[this.rand(0, array.length - 1)];
   };
-
   // probability shorthand
   P = (probability) => {
     if (probability >= 1) return true;
     if (probability <= 0) return false;
     return Math.random() < probability;
   };
-
   each = (n) => {
     return (i) => i % n === 0;
   };
-
   // probability shorthand for floats
   Pint = (float) => {
     return ~~float + +this.P(float % 1);
   };
+  abbreviateNumber(value) {
+    let newValue: any = parseInt(value, 10);
+    value = parseInt(value, 10);
+    if (value >= 1000) {
+      var suffixes = ["", "k", "m", "b", "t"];
+      var suffixNum = Math.floor(("" + value).length / 3);
+      var shortValue: any = "";
+      for (var precision = 2; precision >= 1; precision--) {
+        shortValue = parseFloat(
+          (suffixNum != 0
+            ? value / Math.pow(1000, suffixNum)
+            : value
+          ).toPrecision(precision)
+        );
+        var dotLessShortValue = (shortValue + "").replace(
+          /[^a-zA-Z 0-9]+/g,
+          ""
+        );
+        if (dotLessShortValue.length <= 2) {
+          break;
+        }
+      }
+
+      if (shortValue % 1 != 0) shortValue = shortValue.toFixed(1);
+      if (shortValue < 1) {
+        shortValue = shortValue * 1000;
+        suffixNum -= 1;
+      }
+      newValue = shortValue + suffixes[suffixNum];
+    }
+    return newValue;
+  }
 }
