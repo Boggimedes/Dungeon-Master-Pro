@@ -164,15 +164,17 @@ License: You must have a valid license purchased only from themeforest(the above
                                 <div class="row">
                                     <div class="col-12 col-lg-3 order-lg-2">
                                         <h4>Generated World Maps</h4>
-                                        Maps are procedurally generated vector graphics for each
-                                        region/island based on Azgaar's amazing
-                                        <a href="https://azgaar.github.io/Fantasy-Map-Generator/">Fantasy Map
-                                            Generator</a>.
-                                        Realistic natural land shapes with climate and biome to
-                                        match. Cultures, Governments, and Religions can all be set to
-                                        expand and grow organically. Diplomatic relations are created
-                                        when governments meet. Cities and points of interest are spread
-                                        throughout the land with corresponding generated story hooks.
+                                        <p>
+                                            Maps are procedurally generated vector graphics for each
+                                            region/island based on Azgaar's amazing
+                                            <a href="https://azgaar.github.io/Fantasy-Map-Generator/">Fantasy Map
+                                                Generator</a>.
+                                            Realistic natural land shapes with climate and biome to
+                                            match. Cultures, Governments, and Religions can all be set to
+                                            expand and grow organically. Diplomatic relations are created
+                                            when governments meet. Cities and points of interest are spread
+                                            throughout the land with corresponding generated story hooks.
+                                        </p>
                                     </div>
                                     <div class="col-12 col-lg-9 order-lg-1">
                                         <img class="img-fluid" src="/assets/img/pages/map-generation.jpg" />
