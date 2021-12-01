@@ -189,8 +189,8 @@ License: You must have a valid license purchased only from themeforest(the above
                                             <li> Add Henchmen to the party and keep there info close at hand.</li>
                                             <li>Take notes about the party for use later.</li>
                                             <li>You can even run multiple parties in the same campaign, tracking their
-                                                impact on the world together.</li>
-                                            <li>Or run sessions in the same world, keeping all data separate.</li>
+                                                impact on the world together; or use the same world, but keep all
+                                                changes separate.</li>
                                     </div>
                                     <div class="col-12 col-lg-9 order-lg-1">
                                         <img class="img-fluid" src="/assets/img/pages/map-generation.jpg" />
