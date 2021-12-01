@@ -92,13 +92,11 @@ License: You must have a valid license purchased only from themeforest(the above
                         <p>
                             What is "adaptive storytelling" you ask? Another way to describe it
                             would be "collabortive storytelling". My focus is on not just telling a good story, but
-                            doing
-                            so in partner with the players. In order to facilitate that; my games
-                            are far less scripted. I tend to prepare worlds/characters more than
-                            specific sessions, and story arcs unfold based on the player actions,
-                            not in predetermined paths. Finding a system that helped enough, but
-                            not too much wasn't an option back then, so I built my own. GMP can
-                            accomodate more styles than just this, but its origin and focus is storytelling.
+                            doing so in partnership with the players. In order to facilitate that; my games are far less
+                            scripted. I tend to prepare worlds/characters more than specific sessions, and story arcs
+                            unfold based on the player actions, not in predetermined paths. Finding a system that helped
+                            enough, but not too much wasn't an option back then, so I built my own. GMP can accomodate
+                            more styles than just this, but its origin and focus is storytelling.
                         </p>
                         <p>
                             My goal with GMP is to provide infinite story/worldbuilding fodder, and
@@ -169,8 +167,9 @@ License: You must have a valid license purchased only from themeforest(the above
                                         <h4>Generated World Maps</h4>
                                         <p>
                                             Maps are <strong>procedurally generated</strong> vector graphics for each
-                                            region/island based on Azgaar's amazing
-                                            <a href="https://azgaar.github.io/Fantasy-Map-Generator/">Fantasy Map
+                                            region/island based on Azgaar's <strong><i>a-ma-zing</i></strong>
+                                            <a target="_blank"
+                                                href="https://github.com/Azgaar/Fantasy-Map-Generator">Fantasy Map
                                                 Generator</a>.
                                             Realistic natural land shapes with climate and biome to
                                             match. Cultures, Governments, and Religions can all be set to
