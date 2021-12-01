@@ -58,7 +58,7 @@ class CreateUsersTable extends Migration
             // $table->text('lineage')->nullable();
             // $table->text('quirks')->nullable();
             $table->text('abilities')->nullable();
-            $table->text('features')->default('[]')->nullable();
+            $table->text('features')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
             $table->integer('campaign_id')->unsigned()->nullable();
@@ -199,7 +199,7 @@ class CreateUsersTable extends Migration
             $table->increments('id');
             $table->integer('world_id')->unsigned();
             $table->string('name')->nullable();
-            $table->text('genders')->default('[["Female","fantasy"],["Male","fantasy"]]');
+            $table->text('genders')->nullable();
             $table->integer('adulthood')->nullable();
             $table->integer('middle_age')->nullable();
             $table->integer('old_age')->nullable();
@@ -222,11 +222,11 @@ class CreateUsersTable extends Migration
             $table->string('name');
             $table->text('racial_balance');
             $table->text('prof_balance');
-            $table->text('feature_types')->default('{}');
+            $table->text('feature_types')->nullable();
             $table->integer('epoch')->nullable();
-            $table->text('cultures')->default('[]');
-            $table->text('religions')->default('[]');
-            $table->text('states')->default('[]');
+            $table->text('cultures')->nullable();
+            $table->text('religions')->nullable();
+            $table->text('states')->nullable();
             $table->longText('map');
             $table->timestamps();
             $table->integer('campaign_id')->unsigned()->nullable();
