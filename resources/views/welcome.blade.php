@@ -82,7 +82,8 @@ License: You must have a valid license purchased only from themeforest(the above
                     <div class="card-body">
                         <h1 class="card-title">Welcome!</h1>
                         <p>
-                            Welcome to GameMaster.pro (GMP)! I am a single developer with a very
+                            Welcome to GameMaster.pro (GMP), an interactive game management tool! A little about me, I
+                            am a single developer with a very
                             understanding spouse and daughter who started this project nearly a
                             decade ago. Back then this was primarily built in excel and was not
                             nearly so feature rich, but the concept originated from there. My goal
@@ -97,16 +98,16 @@ License: You must have a valid license purchased only from themeforest(the above
                             specific sessions, and story arcs unfold based on the player actions,
                             not in predetermined paths. Finding a system that helped enough, but
                             not too much wasn't an option back then, so I built my own. GMP can
-                            accomodate more styles than just mine, but its origin and focus is on
-                            storytelling.
+                            accomodate more styles than just this, but its origin and focus is storytelling.
                         </p>
                         <p>
-                            The goal of GMP is to provide infinite story/worldbuilding fodder, and
+                            My goal with GMP is to provide infinite story/worldbuilding fodder, and
                             help keep the mechanics of gamplay where they belong: in the background. What makes GMP
                             different? Two words: NPC Generation. Ok, I guess that technically 4 words, but the point is
-                            GMP focuses on
-                            generating interesting and unique NPCs with more backstory than some
-                            player characters.
+                            GMP focuses on generating interesting and unique NPCs with more backstory than some
+                            player characters. These NPCs then continue to interact with their environment and other
+                            NPCs to createa a dynamic and ever changing world that adapts and evolves as the PCs travel
+                            through it.
                         </p>
                     </div>
                 </div>
@@ -140,17 +141,19 @@ License: You must have a valid license purchased only from themeforest(the above
                                         <h4>Create a Living World</h4>
                                         <p>
                                             NPCs aren't just generated, they are born, live lives, and have families.
-                                            Each region is seeded with NPC's then "Aged" a few
-                                            hundred or a few thousand years. Each year is "lived" by each NPC. They
-                                            get jobs, meet, marry, have children, and die. They pass on
-                                            traits like lineage (demonic, angelic, draconic), they occasionally
-                                            contract Lycanthropy, and their children are more likely to
-                                            follow in their footsteps (professions can run in families). If you have
-                                            Monarchies in your world, royal families will be created.
-                                            The system keeps up to 6 generations. When you need an NPC
-                                            you get physical traits, profession, family
+                                            Each region is seeded with a customizeable set of NPC's then "Aged" a few
+                                            hundred or a few thousand years. Each year is "lived" by each NPC. They get
+                                            jobs, meet, marry, have children, and die. They can pass on traits such as
+                                            lineage (demonic, angelic, draconic), they may even contract Lycanthropy and
+                                            pass <strong>that</strong> on! Their children are also more likely to follow
+                                            in their footsteps. If the blacksmith in the town is from 6 generations of
+                                            blacksmiths, you can bet they'd make some epic weaponry. If you choose have
+                                            Monarchies in your world, royal bloodlines will be created. Just for fun,
+                                            royals are twice as likely to be unfaithful, so you will almost certainly
+                                            get illegitimate royal heirs to be villians, despots, or saviors. When you
+                                            need an NPC you get physical traits, race, gender, profession, family
                                             relations, and so much more. Some NPCs could be a gaming session all by
-                                            themselves
+                                            themselves!
                                         </p>
                                     </div>
                                     <div class="col-12 col-lg-9">
@@ -165,16 +168,29 @@ License: You must have a valid license purchased only from themeforest(the above
                                     <div class="col-12 col-lg-3 order-lg-2">
                                         <h4>Generated World Maps</h4>
                                         <p>
-                                            Maps are procedurally generated vector graphics for each
+                                            Maps are <strong>procedurally generated</strong> vector graphics for each
                                             region/island based on Azgaar's amazing
                                             <a href="https://azgaar.github.io/Fantasy-Map-Generator/">Fantasy Map
                                                 Generator</a>.
                                             Realistic natural land shapes with climate and biome to
                                             match. Cultures, Governments, and Religions can all be set to
-                                            expand and grow organically. Diplomatic relations are created
-                                            when governments meet. Cities and points of interest are spread
-                                            throughout the land with corresponding generated story hooks.
+                                            expand and grow organically. When governments expand and meet other
+                                            governments, diplomatic relations are created. Cities and points of interest
+                                            (POI eg. Monsters, ruins, bandits, natural features) are spread throughout
+                                            the land with corresponding randomly generated story hooks. Cities have
+                                            seasonal climate averages, elevations, and features like walls, temples,
+                                            markets, etc. If there aren't any cities or POI nearby, you can generate a
+                                            random story hook at the click of a button. Also:
                                         </p>
+                                        <ul>
+                                            <li>Easily keep track of party movement!</li>
+                                            <li>Travel times are all calculated for you based on chosen movement speed.
+                                            </li>
+                                            <li> Add Henchmen to the party and keep there info close at hand.</li>
+                                            <li>Take notes about the party for use later.</li>
+                                            <li>You can even run multiple parties in the same campaign, tracking their
+                                                impact on the world together.</li>
+                                            <li>Or run sessions in the same world, keeping all data separate.</li>
                                     </div>
                                     <div class="col-12 col-lg-9 order-lg-1">
                                         <img class="img-fluid" src="/assets/img/pages/map-generation.jpg" />
@@ -197,11 +213,14 @@ License: You must have a valid license purchased only from themeforest(the above
                                         <h4>Point and Click Combat</h4>
                                         <p>
                                             Combat and skill rolls are a click away. Monster attacks are
-                                            calculated/rolled automatically from a single click, and on
-                                            the fly rolls are just as easy. The system is based in d20
+                                            calculated/rolled automatically from a single click, and "on
+                                            the fly" rolls are just as easy. The system is based in d20
                                             with optional advantage/disadvantage. Track initiative, hit
-                                            points, turn order, status effects. Combat is a breeze with
-                                            GMP
+                                            points, turn order, status effects, spell effects. The same theory of help
+                                            enough, but not too much applies here. The attacks calculate what AC would
+                                            be hit and how much damage is done, but you can apply that damage or adjust
+                                            it with just a few clicks. So it tells you the random result, but gives you
+                                            the final say on how events play out. Combat is a breeze with GMP
                                         </p>
                                     </div>
                                     <div class="col-12 col-lg-9">
