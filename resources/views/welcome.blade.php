@@ -115,8 +115,7 @@ License: You must have a valid license purchased only from themeforest(the above
                 <div class="card mt-3">
                     <div class="card-body">
                         <h3 style="{{ $interested ? '' : 'display:none' }}">Submitted!</h3>
-                        <h3 class="card-title" style="{{ $interested ? 'display:none' : '' }}">Want updates?
-                            {{ $interested }}</h3>
+                        <h3 class="card-title" style="{{ $interested ? 'display:none' : '' }}">Want updates?</h3>
                         <form method="POST" action="interest" style="{{ $interested ? 'display:none' : '' }}">
                             @csrf
                             <div class="input-group">

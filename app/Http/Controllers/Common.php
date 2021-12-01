@@ -12,8 +12,8 @@ class Common extends Controller
         \Log::info($request->get('email'));
         if ($request->has('email') && $request->get('email')) {
             User::firstOrCreate(['email' => $request->get('email')]);
-        } else return view('welcome');
-        return view('welcome')->with('interested', "true");
+        } else return view('welcome')->with('interested', 0);
+        return view('welcome')->with('interested', 1);
     }
 
 }
