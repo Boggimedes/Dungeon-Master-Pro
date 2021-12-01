@@ -239,20 +239,21 @@ License: You must have a valid license purchased only from themeforest(the above
                         <h5>Why this?</h5>
                         <p>
                             Because I wanted it. No, really, I'm doing this for my personal use
-                            first and foremost.
+                            first and foremost. I would love for it to be used by others, even
+                            if it is a very limited number.
                         </p>
                         <h5>Are you planning on charging? When?</h5>
                         <p>
                             It really depends on popularity. If enough people want to use it, I
                             may charge a small fee. If it grows enough I would have to start
-                            charging, or at least request donations or add "feature upgrades".
+                            charging something for server fees, or at least request donations or add "feature upgrades".
                         </p>
                         <h5>How much?</h5>
                         <p>
-                            Not a ton. I'm thinking $1.50 - 2.50/mo or $15 - 20/yr. I would much
+                            Not a ton. I'm thinking $1.50 - $2.50/mo or $15 - $20/yr. I would much
                             rather have 1000 users paying $1 than 100 users paying $10.
                         </p>
-                        <h5>Does your system work with xyz?</h5>
+                        <h5>Does your site work with "XYZ" system?</h5>
                         <p>
                             Unless its d20, nope. Or at least not yet. If there is enough interest
                             I am willing to support any system.
@@ -261,7 +262,8 @@ License: You must have a valid license purchased only from themeforest(the above
                         <p>
                             If there isn't much interest then my progress will be slower. I'm
                             perfectly willing to use my system even if it's buggy, but if others
-                            are relying on it for their games I'll be more motivated.
+                            are relying on it for their games I'll be more motivated. So sign up
+                            if you like what you see!
                         </p>
                         <h5>
                             What features are planned/implemented that aren't in the
@@ -280,8 +282,9 @@ License: You must have a valid license purchased only from themeforest(the above
                         <h5>You seem a little... casual. No offence, but is my data safe?</h5>
                         <p>
                             Does a dragon hoard treasure? Ok, bad example because that does vary
-                            by mythology. While this may be my side project, I am a Senior Full
-                            Stack developer. No shifty adventurers are getting by this dragon.
+                            by mythology, but you get the idea. While this may be my side project, I am a Senior Full
+                            Stack developer with over 12 years dev experience. No <i>shifty</i> adventurers are getting
+                            by <strong>this</strong> dragon.
                         </p>
                     </div>
                 </div>
