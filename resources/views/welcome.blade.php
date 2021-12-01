@@ -77,7 +77,7 @@ License: You must have a valid license purchased only from themeforest(the above
     </div>
     <div class="container-fluid">
         <div class="row justify-content-center">
-            <div class="col-8">
+            <div class="col-12 col-lg-8">
                 <div class="card">
                     <div class="card-body">
                         <h1 class="card-title">Welcome!</h1>
@@ -111,7 +111,7 @@ License: You must have a valid license purchased only from themeforest(the above
                     </div>
                 </div>
             </div>
-            <div class="col-3">
+            <div class="col-12 col-lg-3">
                 <div class="card mt-3">
                     <div class="card-body">
                         <h3 style="{{ $interested ? '' : 'display:none' }}">Submitted!</h3>
@@ -130,13 +130,13 @@ License: You must have a valid license purchased only from themeforest(the above
                     </div>
                 </div>
             </div>
-            <div class="col-11">
+            <div class="col-12 col-lg-11">
                 <div class="row">
                     <div class="col-12">
                         <div class="card mt-5">
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-3">
+                                    <div class="col-12 col-lg-3">
                                         <h4>Create a Living World</h4>
                                         <p>
                                             NPCs aren't just generated, they are born, live lives, and have families.
@@ -153,7 +153,7 @@ License: You must have a valid license purchased only from themeforest(the above
                                             themselves
                                         </p>
                                     </div>
-                                    <div class="col-9">
+                                    <div class="col-12 col-lg-9">
                                         <img class="img-fluid" src="/assets/img/pages/story.jpg" />
                                     </div>
                                 </div>
@@ -162,10 +162,7 @@ License: You must have a valid license purchased only from themeforest(the above
                         <div class="card mt-5">
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-9">
-                                        <img class="img-fluid" src="/assets/img/pages/map-generation.jpg" />
-                                    </div>
-                                    <div class="col-3">
+                                    <div class="col-12 col-lg-3 order-lg-2">
                                         <h4>Generated World Maps</h4>
                                         Maps are procedurally generated vector graphics for each
                                         region/island based on Azgaar's amazing
@@ -176,6 +173,9 @@ License: You must have a valid license purchased only from themeforest(the above
                                         expand and grow organically. Diplomatic relations are created
                                         when governments meet. Cities and points of interest are spread
                                         throughout the land with corresponding generated story hooks.
+                                    </div>
+                                    <div class="col-12 col-lg-9 order-lg-1">
+                                        <img class="img-fluid" src="/assets/img/pages/map-generation.jpg" />
                                     </div>
                                 </div>
                             </div>
@@ -191,10 +191,7 @@ License: You must have a valid license purchased only from themeforest(the above
                         <div class="card mt-5">
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-9">
-                                        <img class="img-fluid" src="/assets/img/pages/combat-board.jpg" />
-                                    </div>
-                                    <div class="col-3">
+                                    <div class="col-12 col-lg-3">
                                         <h4>Point and Click Combat</h4>
                                         <p>
                                             Combat and skill rolls are a click away. Monster attacks are
@@ -205,13 +202,16 @@ License: You must have a valid license purchased only from themeforest(the above
                                             GMP
                                         </p>
                                     </div>
+                                    <div class="col-12 col-lg-9">
+                                        <img class="img-fluid" src="/assets/img/pages/combat-board.jpg" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="col-9 mt-5">
+            <div class="col-12 col-lg-9 mt-5">
                 <div class="card">
                     <div class="card-body">
                         <h3 class="card-title">FAQ</h3>
